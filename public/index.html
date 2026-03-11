@@ -401,6 +401,110 @@ select.input option{background:var(--surface2);}
 .bj-result-label.lose{background:rgba(252,92,125,.12);color:var(--error);}
 .bj-result-label.push{background:rgba(107,107,138,.2);color:var(--muted);}
 .bj-result-label.blackjack{background:rgba(252,192,92,.15);color:var(--warning);}
+
+/* ═══════════════════════════════════════════════
+   KASYNO AT$
+═══════════════════════════════════════════════ */
+.casino-btn{background:linear-gradient(135deg,#f7971e,#ffd200);color:#1a1a1a;font-weight:800;box-shadow:0 4px 20px rgba(255,200,0,.35);}
+.casino-btn:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(255,200,0,.5);}
+
+/* Lobby kasyna */
+.casino-lobby{max-width:900px;width:100%;}
+.casino-wallet-bar{background:linear-gradient(135deg,rgba(247,151,30,.12),rgba(255,210,0,.08));border:1px solid rgba(255,200,0,.3);border-radius:20px;padding:20px 28px;display:flex;align-items:center;gap:20px;margin-bottom:28px;flex-wrap:wrap;}
+.casino-wallet-amount{font-size:36px;font-weight:800;font-family:'DM Mono',monospace;color:#ffd200;}
+.casino-wallet-label{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:2px;}
+.casino-wallet-meta{font-size:13px;color:var(--muted);}
+.casino-wallet-avatar{width:52px;height:52px;border-radius:50%;border:2px solid rgba(255,200,0,.4);flex-shrink:0;}
+.casino-wallet-info{flex:1;}
+.casino-no-discord{background:rgba(252,92,125,.08);border:1px solid rgba(252,92,125,.25);border-radius:16px;padding:24px;text-align:center;margin-bottom:24px;}
+
+/* Tabela rankingowa */
+.casino-lb-section{margin-bottom:32px;}
+.casino-lb-section h3{font-size:16px;font-weight:800;margin-bottom:14px;color:var(--warning);}
+.casino-lb-table{width:100%;border-collapse:collapse;}
+.casino-lb-table th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.casino-lb-table td{padding:10px 12px;border-bottom:1px solid rgba(42,42,61,.4);font-size:14px;vertical-align:middle;}
+.casino-lb-table tr:hover td{background:rgba(255,200,0,.04);}
+.casino-lb-rank{font-weight:800;font-size:15px;width:32px;}
+.casino-lb-rank.gold{color:var(--warning);}
+.casino-lb-rank.silver{color:#b0b0c8;}
+.casino-lb-rank.bronze{color:#c87850;}
+.casino-lb-avatar{width:28px;height:28px;border-radius:50%;margin-right:8px;vertical-align:middle;}
+.casino-lb-balance{font-family:'DM Mono',monospace;font-size:15px;color:#ffd200;font-weight:700;}
+.casino-lb-profit.pos{color:var(--success);}
+.casino-lb-profit.neg{color:var(--error);}
+.casino-me-row td{background:rgba(255,200,0,.06)!important;border-left:3px solid #ffd200;}
+
+/* Stoły */
+.casino-tables-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px;}
+.casino-table-card{background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.casino-table-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(20,100,60,.15),transparent);pointer-events:none;}
+.casino-table-card.bj::before{background:linear-gradient(135deg,rgba(252,92,125,.1),transparent);}
+.casino-table-card:hover{transform:translateY(-4px);border-color:var(--warning);box-shadow:0 8px 32px rgba(255,200,0,.15);}
+.casino-table-card .t-game{font-size:28px;margin-bottom:8px;}
+.casino-table-card .t-name{font-size:17px;font-weight:800;margin-bottom:4px;}
+.casino-table-card .t-stakes{font-size:13px;color:var(--muted);margin-bottom:12px;}
+.casino-table-card .t-players{display:flex;gap:6px;align-items:center;font-size:13px;margin-bottom:10px;}
+.t-seat{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:9px;overflow:hidden;}
+.t-seat.occupied{border-color:var(--accent3);}
+.t-seat img{width:100%;height:100%;object-fit:cover;}
+.casino-table-status{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;}
+.casino-table-status.open{background:rgba(92,240,200,.15);color:var(--accent3);border:1px solid rgba(92,240,200,.3);}
+.casino-table-status.betting{background:rgba(252,192,92,.12);color:var(--warning);border:1px solid rgba(252,192,92,.3);}
+.casino-table-status.playing{background:rgba(124,92,252,.12);color:var(--accent);border:1px solid rgba(124,92,252,.3);}
+.casino-table-status.results{background:rgba(252,92,125,.1);color:var(--accent2);border:1px solid rgba(252,92,125,.3);}
+
+/* Stół gry */
+.casino-game-screen{max-width:860px;width:100%;}
+.casino-game-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
+.casino-my-chips{background:linear-gradient(135deg,rgba(255,200,0,.15),rgba(255,200,0,.05));border:1px solid rgba(255,200,0,.3);border-radius:12px;padding:10px 18px;display:flex;align-items:center;gap:10px;}
+.casino-my-chips .chips-val{font-size:22px;font-weight:800;font-family:'DM Mono',monospace;color:#ffd200;}
+.casino-my-chips .chips-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.casino-countdown{text-align:center;font-size:13px;color:var(--muted);margin-bottom:10px;}
+.casino-countdown .cd-bar{width:100%;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-top:6px;}
+.casino-countdown .cd-fill{height:100%;background:var(--warning);border-radius:2px;transition:width 1s linear;}
+.casino-players-strip{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;}
+.casino-player-seat{background:var(--surface2);border:2px solid var(--border);border-radius:14px;padding:12px 16px;text-align:center;min-width:110px;position:relative;transition:all .2s;}
+.casino-player-seat.acting{border-color:var(--warning);box-shadow:0 0 0 3px rgba(255,200,0,.2);animation:seatGlow .8s ease-in-out infinite alternate;}
+@keyframes seatGlow{from{box-shadow:0 0 0 3px rgba(255,200,0,.2);}to{box-shadow:0 0 0 6px rgba(255,200,0,.35);}}
+.casino-player-seat.folded{opacity:.35;}
+.casino-player-seat.busted{border-color:var(--error);opacity:.5;}
+.casino-player-seat .seat-avatar{width:36px;height:36px;border-radius:50%;margin:0 auto 6px;display:block;border:2px solid var(--border);}
+.casino-player-seat .seat-name{font-size:13px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;}
+.casino-player-seat .seat-chips{font-size:13px;color:#ffd200;font-family:'DM Mono',monospace;}
+.casino-player-seat .seat-bet{font-size:11px;color:var(--warning);margin-top:2px;}
+.casino-player-seat .seat-result{position:absolute;top:-10px;right:-8px;font-size:12px;font-weight:800;padding:2px 7px;border-radius:8px;}
+.seat-result.win{background:rgba(92,240,200,.9);color:#0a1a12;}
+.seat-result.lose{background:rgba(252,92,125,.9);color:white;}
+.seat-result.push{background:rgba(107,107,138,.8);color:white;}
+.seat-result.blackjack{background:linear-gradient(90deg,#f7971e,#ffd200);color:#1a1a1a;}
+
+/* Stół pokerowy */
+.casino-poker-felt{background:radial-gradient(ellipse 80% 60% at 50% 50%,#0d5c2a,#083a1b);border:4px solid #5a3a1a;border-radius:50px;padding:28px 36px;margin:0 auto 20px;max-width:600px;text-align:center;}
+.casino-poker-felt .community-label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.5);margin-bottom:10px;}
+.casino-pot-display{font-size:18px;font-weight:800;color:#ffd200;margin-top:12px;font-family:'DM Mono',monospace;}
+.casino-phase-badge{display:inline-block;font-size:12px;padding:4px 12px;border-radius:99px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);margin-top:8px;}
+
+/* BJ felt */
+.casino-bj-felt{background:radial-gradient(ellipse 90% 70% at 50% 40%,#0a4a2a,#062518);border:4px solid #5a3a1a;border-radius:40px;padding:24px 32px;margin:0 auto 20px;max-width:640px;}
+.casino-dealer-area{text-align:center;margin-bottom:20px;}
+.casino-dealer-label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.5);margin-bottom:8px;}
+.casino-dealer-value{font-size:13px;color:var(--accent3);font-family:'DM Mono',monospace;margin-top:6px;}
+
+/* Akcje */
+.casino-actions{background:var(--surface2);border:1px solid var(--border);border-radius:18px;padding:18px 20px;margin-top:16px;}
+.casino-actions-title{font-size:13px;color:var(--muted);text-align:center;margin-bottom:12px;}
+.casino-action-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.casino-raise-row{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px;}
+.casino-bet-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;}
+.casino-chip-btn{width:52px;height:52px;border-radius:50%;border:3px solid;font-weight:800;font-size:12px;cursor:pointer;font-family:'Syne',sans-serif;transition:transform .15s;display:flex;align-items:center;justify-content:center;}
+.casino-chip-btn:hover{transform:scale(1.12);}
+.casino-chip-btn.c1{background:#e8e8e8;border-color:#ccc;color:#333;}
+.casino-chip-btn.c5{background:#e03030;border-color:#b01010;color:white;}
+.casino-chip-btn.c25{background:#1a8a1a;border-color:#0d5a0d;color:white;}
+.casino-chip-btn.c100{background:#1a1aaa;border-color:#0d0d7a;color:white;}
+.casino-chip-btn.c500{background:#8a1a8a;border-color:#5a0a5a;color:white;}
+.casino-chip-btn.c1000{background:#1a1a1a;border-color:#ffd200;color:#ffd200;}
 </style>
 </head>
 <body>
@@ -416,6 +520,7 @@ select.input option{background:var(--surface2);}
       <button class="btn btn-primary" onclick="showScreen('create')">➕ Stwórz pokój</button>
       <button class="btn btn-secondary" onclick="showScreen('join')">🔗 Dołącz do pokoju</button>
       <button class="btn btn-secondary" onclick="showScreen('active-rooms')">👁️ Aktywne gry</button>
+      <button class="btn casino-btn" onclick="showScreen('casino-lobby')">🎰 Kasyno AT$</button>
     </div>
     <div class="hero-links">
       <span class="hero-link" onclick="showLeaderboard()">🏆 Leaderboard</span>
@@ -823,7 +928,190 @@ select.input option{background:var(--surface2);}
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════
+     KASYNO AT$ — LOBBY
+════════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-casino-lobby">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div class="casino-lobby">
+
+    <!-- Pasek portfela -->
+    <div id="casino-wallet-area"></div>
+
+    <!-- Ranking AT$ -->
+    <div class="casino-lb-section">
+      <h3>🏆 Ranking AT$ — Top Gracze</h3>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+        <table class="casino-lb-table" id="casino-lb-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Gracz</th><th>AT$</th><th>Zarobki</th><th>Rozegrane</th>
+            </tr>
+          </thead>
+          <tbody id="casino-lb-body">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Ładowanie...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="text-align:right;margin-top:8px">
+        <button class="btn btn-secondary btn-sm" onclick="loadCasinoLobby()">🔄 Odśwież</button>
+      </div>
+    </div>
+
+    <!-- Stoły pokerowe -->
+    <div class="casino-lb-section">
+      <h3>🃏 Stoły Pokera Texas Hold'em</h3>
+      <div class="casino-tables-grid" id="casino-poker-tables"></div>
+    </div>
+
+    <!-- Stoły blackjacka -->
+    <div class="casino-lb-section">
+      <h3>🎰 Stoły Blackjacka</h3>
+      <div class="casino-tables-grid" id="casino-bj-tables"></div>
+    </div>
+
+    <div style="background:rgba(255,200,0,.06);border:1px solid rgba(255,200,0,.2);border-radius:14px;padding:16px;font-size:13px;color:var(--muted);text-align:center;">
+      💡 Każdy gracz startuje z <strong style="color:#ffd200">10 000 AT$</strong>. 
+      Co niedzielę — gracze poniżej 1 000 AT$ otrzymują doładowanie do 10 000 AT$. 
+      Wymagane: logowanie przez Discord.
+    </div>
+  </div>
+</div>
+
+<!-- ══ KASYNO — STÓŁ POKEROWY ═════════════════════════════════ -->
+<div class="screen" id="screen-casino-poker">
+  <div style="position:absolute;top:16px;left:16px;display:flex;gap:8px;z-index:10">
+    <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
+  </div>
+  <div class="casino-game-screen">
+    <!-- Header: stół + moje żetony -->
+    <div class="casino-game-header">
+      <div>
+        <div style="font-size:20px;font-weight:800" id="casino-poker-table-name">Poker</div>
+        <div style="font-size:12px;color:var(--muted)" id="casino-poker-round">Runda 1</div>
+      </div>
+      <div class="casino-my-chips" id="casino-poker-my-chips">
+        <div><div class="chips-label">Twoje żetony</div><div class="chips-val" id="casino-poker-chips-val">—</div></div>
+      </div>
+      <div id="casino-poker-wallet-display" style="font-size:13px;color:var(--muted)"></div>
+    </div>
+
+    <!-- Gracze przy stole -->
+    <div class="casino-players-strip" id="casino-poker-seats"></div>
+
+    <!-- Countdown -->
+    <div class="casino-countdown" id="casino-poker-countdown" style="display:none">
+      <span id="casino-poker-cd-text"></span>
+      <div class="cd-bar"><div class="cd-fill" id="casino-poker-cd-fill" style="width:100%"></div></div>
+    </div>
+
+    <!-- Stół (felt) -->
+    <div class="casino-poker-felt">
+      <div class="community-label">Karty wspólne</div>
+      <div id="casino-poker-community" class="card-row" style="justify-content:center;min-height:70px"></div>
+      <div class="casino-pot-display" id="casino-poker-pot">Pula: 0 AT$</div>
+      <div class="casino-phase-badge" id="casino-poker-phase"></div>
+    </div>
+
+    <!-- Moje karty -->
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Twoje karty</div>
+      <div id="casino-poker-my-hand" class="card-row" style="justify-content:center;min-height:70px"></div>
+    </div>
+
+    <!-- Akcje -->
+    <div class="casino-actions" id="casino-poker-actions" style="display:none">
+      <div class="casino-actions-title" id="casino-poker-actions-title">Twój ruch!</div>
+      <div class="casino-action-btns">
+        <button class="btn btn-danger btn-sm" onclick="casinoPokerAction('fold')">Fold ✗</button>
+        <button class="btn btn-secondary btn-sm" id="cp-check-btn" onclick="casinoPokerAction('check')">Check</button>
+        <button class="btn btn-secondary btn-sm" id="cp-call-btn" onclick="casinoPokerAction('call')">Call</button>
+        <button class="btn btn-primary btn-sm" onclick="casinoPokerShowRaise()">Raise ↑</button>
+        <button class="btn btn-secondary btn-sm" id="cp-allin-btn" onclick="casinoPokerAllIn()">All-In 🔥</button>
+      </div>
+      <div class="casino-raise-row" id="cp-raise-row" style="display:none">
+        <span style="font-size:13px;color:var(--muted)">Podbij do:</span>
+        <input class="input" type="number" id="cp-raise-input" style="width:110px;padding:8px 12px;font-size:14px">
+        <button class="btn btn-primary btn-sm" onclick="casinoPokerAction('raise')">Raise ✓</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('cp-raise-row').style.display='none'">✗</button>
+      </div>
+    </div>
+    <div id="casino-poker-waiting" style="text-align:center;color:var(--muted);font-size:14px;margin-top:12px;padding:12px;"></div>
+
+    <!-- Chat stołu -->
+    <div id="casino-table-chat" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- ══ KASYNO — STÓŁ BLACKJACKA ═══════════════════════════════ -->
+<div class="screen" id="screen-casino-blackjack">
+  <div style="position:absolute;top:16px;left:16px;display:flex;gap:8px;z-index:10">
+    <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
+  </div>
+  <div class="casino-game-screen">
+    <div class="casino-game-header">
+      <div>
+        <div style="font-size:20px;font-weight:800" id="casino-bj-table-name">Blackjack</div>
+        <div style="font-size:12px;color:var(--muted)" id="casino-bj-round">Runda 1</div>
+      </div>
+      <div class="casino-my-chips">
+        <div><div class="chips-label">Twoje żetony</div><div class="chips-val" id="casino-bj-chips-val">—</div></div>
+      </div>
+      <div id="casino-bj-wallet-display" style="font-size:13px;color:var(--muted)"></div>
+    </div>
+
+    <!-- Gracze -->
+    <div class="casino-players-strip" id="casino-bj-seats"></div>
+
+    <!-- Countdown -->
+    <div class="casino-countdown" id="casino-bj-countdown" style="display:none">
+      <span id="casino-bj-cd-text"></span>
+      <div class="cd-bar"><div class="cd-fill" id="casino-bj-cd-fill" style="width:100%"></div></div>
+    </div>
+
+    <!-- Felt BJ -->
+    <div class="casino-bj-felt">
+      <div class="casino-dealer-area">
+        <div class="casino-dealer-label">🎩 Krupier</div>
+        <div id="casino-bj-dealer-hand" class="card-row" style="justify-content:center;min-height:70px"></div>
+        <div class="casino-dealer-value" id="casino-bj-dealer-value"></div>
+      </div>
+    </div>
+
+    <!-- Twoje karty -->
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Twoje karty</div>
+      <div id="casino-bj-my-hand" class="card-row" style="justify-content:center;min-height:70px"></div>
+      <div id="casino-bj-my-value" style="font-size:15px;font-weight:700;color:var(--accent3);margin-top:6px"></div>
+    </div>
+
+    <!-- Zakłady -->
+    <div class="casino-actions" id="casino-bj-bet-area" style="display:none">
+      <div class="casino-actions-title">🎲 Postaw zakład (pozostało: <span id="casino-bj-bet-countdown">—</span>s)</div>
+      <div class="casino-bet-chips" id="casino-bj-chip-btns"></div>
+      <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap">
+        <input class="input" type="number" id="casino-bj-bet-input" style="width:110px;padding:8px 12px;font-size:14px" placeholder="AT$">
+        <button class="btn btn-primary btn-sm" onclick="casinoBJPlaceBet()">Postaw ✓</button>
+        <button class="btn btn-secondary btn-sm" onclick="casinoBJMaxBet()">MAX</button>
+      </div>
+      <div id="casino-bj-bet-status" style="text-align:center;color:var(--success);font-size:13px;margin-top:8px;min-height:20px"></div>
+    </div>
+
+    <!-- Akcje gry -->
+    <div class="casino-actions" id="casino-bj-actions" style="display:none">
+      <div class="casino-actions-title" id="casino-bj-turn-info">Twoja kolej!</div>
+      <div class="casino-action-btns">
+        <button class="btn btn-primary btn-sm" onclick="casinoBJAction('hit')">Hit 🃏</button>
+        <button class="btn btn-secondary btn-sm" onclick="casinoBJAction('stand')">Stand ✋</button>
+        <button class="btn btn-secondary btn-sm" id="cbj-double-btn" onclick="casinoBJAction('double')">Double ×2</button>
+      </div>
+    </div>
+    <div id="casino-bj-waiting" style="text-align:center;color:var(--muted);font-size:14px;margin-top:12px;padding:12px;"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
+
 
 
 <script>
@@ -974,6 +1262,7 @@ function showScreen(id) {
   const el = document.getElementById('screen-' + id);
   if (el) el.classList.add('active');
   if (id === 'active-rooms') loadActiveRooms();
+  if (id === 'casino-lobby') loadCasinoLobby();
 }
 function goHome() { location.reload(); }
 
@@ -2568,6 +2857,485 @@ function showToast(msg,type=''){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className=`toast show ${type}`;
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  KASYNO AT$ — JAVASCRIPT
+// ══════════════════════════════════════════════════════════════
+
+let casinoWallet     = null;   // { balance, globalName, ... }
+let casinoDiscordId  = null;
+let casinoTableId    = null;   // aktywny stół
+let casinoMyHand     = [];
+let casinoTableData  = null;   // ostatni stan stołu
+let casinoCdMax      = 20;     // max sekund countdown
+let casinoIsObserver = false;
+
+// ── LOBBY ─────────────────────────────────────────────────────
+async function loadCasinoLobby() {
+  // 1. Portfel
+  try {
+    const res = await fetch('/api/casino/wallet');
+    if (res.ok) {
+      const d = await res.json();
+      casinoWallet    = d.wallet;
+      casinoDiscordId = d.discordId;
+      renderCasinoWallet();
+    } else {
+      renderCasinoNoDiscord();
+    }
+  } catch(e) { renderCasinoNoDiscord(); }
+
+  // 2. Ranking
+  try {
+    const lb = await (await fetch('/api/casino/leaderboard')).json();
+    renderCasinoLB(lb);
+  } catch(e) {}
+
+  // 3. Stoły
+  try {
+    const tables = await (await fetch('/api/casino/tables')).json();
+    renderCasinoTables(tables);
+  } catch(e) {}
+}
+
+function renderCasinoWallet() {
+  const w = casinoWallet;
+  if (!w) return renderCasinoNoDiscord();
+  const profit = w.totalWon - w.totalLost;
+  document.getElementById('casino-wallet-area').innerHTML = `
+    <div class="casino-wallet-bar">
+      ${w.avatar ? `<img class="casino-wallet-avatar" src="${w.avatar}" alt="avatar">` : ''}
+      <div class="casino-wallet-info">
+        <div class="casino-wallet-label">Twój portfel</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">${escHtml(w.globalName)}</div>
+        <div class="casino-wallet-meta">Zarobki netto: <span style="color:${profit>=0?'var(--success)':'var(--error)'}">${profit>=0?'+':''}${profit.toLocaleString('pl-PL')} AT$</span> · Rozegrane: ${w.gamesPlayed}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="casino-wallet-label">Saldo</div>
+        <div class="casino-wallet-amount">${w.balance.toLocaleString('pl-PL')} AT$</div>
+      </div>
+    </div>`;
+}
+
+function renderCasinoNoDiscord() {
+  document.getElementById('casino-wallet-area').innerHTML = `
+    <div class="casino-no-discord">
+      <div style="font-size:28px;margin-bottom:10px">🎰</div>
+      <div style="font-weight:700;margin-bottom:8px">Zaloguj się przez Discord, żeby grać!</div>
+      <div style="color:var(--muted);font-size:14px;margin-bottom:16px">Potrzebujesz konta Discord, żeby zarządzać AT$ i grać w kasynie.</div>
+      <button class="btn btn-primary" onclick="loginWithDiscord()">Zaloguj przez Discord</button>
+    </div>`;
+}
+
+function renderCasinoLB(lb) {
+  const myId = casinoDiscordId;
+  const rows = lb.map((p, i) => {
+    const rankCls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const isMine  = p.discordId === myId;
+    const profit  = p.profit || 0;
+    return `<tr class="${isMine?'casino-me-row':''}">
+      <td class="casino-lb-rank ${rankCls}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+      <td><img class="casino-lb-avatar" src="${p.avatar||'https://cdn.discordapp.com/embed/avatars/0.png'}" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">${escHtml(p.globalName)}${isMine?' 👈':''}</td>
+      <td class="casino-lb-balance">${p.balance.toLocaleString('pl-PL')}</td>
+      <td class="casino-lb-profit ${profit>=0?'pos':'neg'}">${profit>=0?'+':''}${profit.toLocaleString('pl-PL')}</td>
+      <td style="color:var(--muted)">${p.gamesPlayed}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('casino-lb-body').innerHTML = rows || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Brak danych</td></tr>';
+}
+
+function renderCasinoTables(tables) {
+  const poker = tables.filter(t => t.game === 'poker');
+  const bj    = tables.filter(t => t.game === 'blackjack');
+  document.getElementById('casino-poker-tables').innerHTML = poker.map(renderTableCard).join('');
+  document.getElementById('casino-bj-tables').innerHTML    = bj.map(renderTableCard).join('');
+}
+
+function renderTableCard(t) {
+  const statusLabels = { open:'Otwarty', betting:'Zakłady', playing:'Gra', results:'Wyniki', showdown:'Showdown' };
+  const seats = Array(t.maxPlayers).fill(0).map((_, i) => {
+    const p = t.players[i];
+    if (p) return `<div class="t-seat occupied">${p.avatar ? `<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : p.name[0].toUpperCase()}</div>`;
+    return `<div class="t-seat" style="color:var(--muted)">·</div>`;
+  }).join('');
+
+  const stakes = t.game === 'poker'
+    ? `Blindy: ${t.config.blindAmount}/${t.config.blindAmount*2} AT$ · Buy-in: ${t.config.minBuyIn}–${t.config.maxBuyIn}`
+    : `Zakład: ${t.config.minBet}–${t.config.maxBet} AT$`;
+
+  return `<div class="casino-table-card ${t.game==='blackjack'?'bj':''}" onclick="openCasinoTable('${t.id}')">
+    <span class="casino-table-status ${t.status}">${statusLabels[t.status]||t.status}</span>
+    <div class="t-game">${t.game==='poker'?'🃏':'🎰'}</div>
+    <div class="t-name">${escHtml(t.name)}</div>
+    <div class="t-stakes">${stakes}</div>
+    <div class="t-players">${seats} <span style="color:var(--muted)">${t.playerCount}/${t.maxPlayers}</span></div>
+    <button class="btn btn-secondary btn-sm" style="width:100%">
+      ${t.status==='playing'?'👁️ Obserwuj':'→ Dołącz / Obserwuj'}
+    </button>
+  </div>`;
+}
+
+// ── OTWÓRZ STÓŁ ───────────────────────────────────────────────
+async function openCasinoTable(tableId) {
+  // Pobierz dane stołu
+  let table;
+  try { table = await (await fetch(`/api/casino/tables/${tableId}`)).json(); }
+  catch(e) { return showToast('Błąd połączenia z stołem', 'error'); }
+
+  casinoTableId    = tableId;
+  casinoIsObserver = false;
+  casinoMyHand     = [];
+
+  const isPoker = table.game === 'poker';
+
+  // Jeśli Discord i stół otwarty → buy-in dialog
+  if (casinoWallet && (table.status === 'open' || table.status === 'betting')) {
+    const cfg = table.config;
+    const minBI = cfg.minBuyIn || cfg.minBet * 10;
+    const maxBI = cfg.maxBuyIn || cfg.maxBet * 20;
+    const buyIn = isPoker
+      ? prompt(`Buy-in (${minBI}–${Math.min(maxBI, casinoWallet.balance)} AT$, masz ${casinoWallet.balance} AT$):`, minBI)
+      : null; // BJ nie wymaga buy-in przy wejściu
+
+    if (isPoker && (buyIn === null || buyIn === '')) {
+      // Tylko obserwuj
+    } else {
+      const bi = isPoker ? parseInt(buyIn)||minBI : cfg.minBet * 20;
+      socket.emit('casinoJoinTable', { tableId, buyIn: bi });
+    }
+  }
+
+  // Dołącz jako obserwator (też dostaje state updates)
+  socket.emit('casinoObserveTable', { tableId });
+  showScreen(isPoker ? 'casino-poker' : 'casino-blackjack');
+
+  // Ustaw nazwy stołu
+  if (isPoker) {
+    document.getElementById('casino-poker-table-name').textContent = `🃏 ${table.name}`;
+    document.getElementById('casino-poker-round').textContent = `Runda ${table.round || 1}`;
+  } else {
+    document.getElementById('casino-bj-table-name').textContent = `🎰 ${table.name}`;
+    document.getElementById('casino-bj-round').textContent = `Runda ${table.round || 1}`;
+  }
+}
+
+function leaveCasinoTable() {
+  if (casinoTableId) {
+    socket.emit('casinoLeaveTable', { tableId: casinoTableId });
+    casinoTableId = null;
+  }
+  showScreen('casino-lobby');
+  loadCasinoLobby();
+}
+
+// ── SOCKET EVENTS KASYNA ──────────────────────────────────────
+socket.on('casinoJoined', ({ tableId, sessionChips, walletBalance }) => {
+  showToast(`✅ Dołączyłeś! Żetony: ${sessionChips.toLocaleString('pl-PL')} AT$`, 'success');
+  if (casinoWallet) casinoWallet.balance = walletBalance;
+  casinoIsObserver = false;
+});
+
+socket.on('casinoError', ({ message }) => {
+  showToast(message, 'error');
+});
+
+// Countdown
+socket.on('casinoCountdown', ({ tableId, seconds }) => {
+  if (tableId !== casinoTableId) return;
+  const table = casinoTableData;
+  const isPoker = table?.game === 'poker';
+  const prefix  = isPoker ? 'casino-poker' : 'casino-bj';
+  const cdEl    = document.getElementById(`${prefix}-countdown`);
+  const cdText  = document.getElementById(`${prefix}-cd-text`);
+  const cdFill  = document.getElementById(`${prefix}-cd-fill`);
+
+  if (cdEl) {
+    cdEl.style.display = 'block';
+    cdText.textContent = seconds > 0
+      ? `${isPoker ? '⏳ Nowa runda za' : '🎲 Zakłady — pozostało'} ${seconds}s`
+      : 'Start!';
+    const pct = Math.round((seconds / casinoCdMax) * 100);
+    cdFill.style.width = pct + '%';
+    if (seconds <= 0) setTimeout(() => { cdEl.style.display = 'none'; }, 1000);
+  }
+
+  // Aktualizuj też countdown w BJ bet area
+  const bjBetCd = document.getElementById('casino-bj-bet-countdown');
+  if (bjBetCd) bjBetCd.textContent = seconds;
+});
+
+// Stan stołu (poker i BJ)
+socket.on('casinoTableState', (state) => {
+  if (!state.table || state.table.id !== casinoTableId) return;
+  casinoTableData = state;
+
+  if (state.table.game === 'poker') renderCasinoPokerState(state);
+  else                               renderCasinoBJState(state);
+});
+
+// Moje prywatne karty (poker)
+socket.on('casinoMyHand', ({ tableId, cards }) => {
+  if (tableId !== casinoTableId) return;
+  casinoMyHand = cards;
+  const el = document.getElementById('casino-poker-my-hand');
+  if (el) el.innerHTML = renderCards(cards.length ? cards : []);
+});
+
+// Tygodniowe doładowanie
+socket.on('weeklyTopup', ({ message }) => {
+  showToast('🎉 ' + message, 'success');
+  if (casinoWallet) loadCasinoLobby(); // odśwież saldo
+});
+
+// ── RENDER POKER ──────────────────────────────────────────────
+function renderCasinoPokerState(state) {
+  const { table, community, pot, phase, actingPlayer, callAmount, currentBet, folded, allIn, smallBlind, bigBlind, showHands, handNames, winners } = state;
+  const mySocketId = socket.id;
+  const myPlayer   = table.players.find(p => p.socketId === mySocketId);
+
+  // Zaktualizuj round
+  document.getElementById('casino-poker-round').textContent = `Runda ${table.round || 1}`;
+
+  // Moje żetony
+  if (myPlayer) {
+    document.getElementById('casino-poker-chips-val').textContent = myPlayer.sessionChips.toLocaleString('pl-PL') + ' AT$';
+    casinoIsObserver = false;
+  } else {
+    document.getElementById('casino-poker-chips-val').textContent = '👁️ Obserwujesz';
+    casinoIsObserver = true;
+  }
+
+  // Miejsca graczy
+  document.getElementById('casino-poker-seats').innerHTML = table.players.map(p => {
+    const isActing = p.socketId === actingPlayer;
+    const isFolded = folded?.[p.socketId];
+    const isAllIn  = allIn?.[p.socketId];
+    const bet      = currentBet?.[p.socketId] || 0;
+    const isMe     = p.socketId === mySocketId;
+    const isSB     = p.socketId === smallBlind;
+    const isBB     = p.socketId === bigBlind;
+
+    let seatResult = '';
+    if (showHands && winners) {
+      if (winners.includes(p.socketId)) seatResult = `<div class="seat-result win">🏆 WIN</div>`;
+      else seatResult = `<div class="seat-result lose">✗</div>`;
+    }
+
+    return `<div class="casino-player-seat ${isActing?'acting':''} ${isFolded?'folded':''}">
+      ${seatResult}
+      ${p.avatar ? `<img class="seat-avatar" src="${p.avatar}" onerror="this.style.display='none'">` : `<div class="seat-avatar" style="background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700">${p.name[0]}</div>`}
+      <div class="seat-name">${escHtml(p.name)}${isMe?' (Ty)':''}</div>
+      <div class="seat-chips">${p.sessionChips.toLocaleString('pl-PL')}</div>
+      ${bet ? `<div class="seat-bet">${bet} AT$</div>` : ''}
+      ${isSB?'<div style="font-size:10px;color:var(--muted)">SB</div>':''}
+      ${isBB?'<div style="font-size:10px;color:var(--muted)">BB</div>':''}
+      ${isFolded?'<div style="font-size:10px;color:var(--muted)">Fold</div>':''}
+      ${isAllIn?'<div style="font-size:10px;color:var(--accent2)">ALL-IN</div>':''}
+      ${showHands?.[p.socketId]?`<div style="font-size:11px;color:var(--accent3)">${handNames?.[p.socketId]||''}</div>`:''}
+    </div>`;
+  }).join('');
+
+  // Community cards
+  document.getElementById('casino-poker-community').innerHTML = renderCards(community || []);
+  document.getElementById('casino-poker-pot').textContent = `Pula: ${(pot||0).toLocaleString('pl-PL')} AT$`;
+  const phaseNames = { preflop:'Pre-flop', flop:'Flop', turn:'Turn', river:'River', showdown:'Showdown' };
+  document.getElementById('casino-poker-phase').textContent = phaseNames[phase] || phase || '';
+
+  // Pokaż showdown hands
+  if (showHands) {
+    const myHand = showHands[mySocketId];
+    if (myHand) document.getElementById('casino-poker-my-hand').innerHTML = renderCards(myHand);
+  }
+
+  // Akcje
+  const isMyTurn = actingPlayer === mySocketId && !casinoIsObserver;
+  const actEl    = document.getElementById('casino-poker-actions');
+  const waitEl   = document.getElementById('casino-poker-waiting');
+
+  if (isMyTurn && phase !== 'showdown') {
+    actEl.style.display = 'block';
+    waitEl.style.display = 'none';
+    const toCall = (callAmount||0) - (currentBet?.[mySocketId]||0);
+    document.getElementById('cp-call-btn').textContent = `Call ${toCall>0?toCall+' AT$':''}`;
+    document.getElementById('cp-check-btn').style.display = toCall > 0 ? 'none' : 'inline-flex';
+    document.getElementById('cp-call-btn').style.display  = toCall > 0 ? 'inline-flex' : 'none';
+    document.getElementById('casino-poker-actions-title').textContent = `Twój ruch! Do wyrównania: ${toCall} AT$`;
+    if (document.getElementById('cp-raise-input')) {
+      document.getElementById('cp-raise-input').value = Math.min((callAmount||0) * 2, myPlayer?.sessionChips || 0);
+    }
+  } else {
+    actEl.style.display  = 'none';
+    waitEl.style.display = 'block';
+    if (phase === 'showdown') {
+      waitEl.innerHTML = winners?.length ? `🏆 Wygrywa: ${winners.map(sid => escHtml(table.players.find(p=>p.socketId===sid)?.name||sid)).join(', ')}` : '';
+    } else if (actingPlayer) {
+      const ap = table.players.find(p => p.socketId === actingPlayer);
+      waitEl.textContent = ap ? `⏳ Czeka na: ${ap.name}` : '';
+    } else if (table.status === 'open') {
+      waitEl.textContent = table.players.length < 2 ? '⏳ Czekam na graczy...' : '⏳ Zaraz start...';
+    } else {
+      waitEl.textContent = '';
+    }
+  }
+}
+
+// ── RENDER BLACKJACK ──────────────────────────────────────────
+function renderCasinoBJState(state) {
+  const { table, phase, dealerHand, dealerValue, bets, hands, results, actingPlayer } = state;
+  const mySocketId = socket.id;
+  const myPlayer   = table.players.find(p => p.socketId === mySocketId);
+
+  document.getElementById('casino-bj-round').textContent = `Runda ${table.round || 1}`;
+
+  if (myPlayer) {
+    document.getElementById('casino-bj-chips-val').textContent = myPlayer.sessionChips.toLocaleString('pl-PL') + ' AT$';
+    casinoIsObserver = false;
+  } else {
+    document.getElementById('casino-bj-chips-val').textContent = '👁️ Obserwujesz';
+    casinoIsObserver = true;
+  }
+
+  // Krupier
+  document.getElementById('casino-bj-dealer-hand').innerHTML = renderCards(dealerHand || []);
+  document.getElementById('casino-bj-dealer-value').textContent = dealerValue != null
+    ? `Wartość: ${dealerValue}${dealerValue > 21 ? ' — BUST!' : dealerValue === 21 ? ' — BLACKJACK!' : ''}`
+    : '';
+
+  // Moje karty
+  const myHand = hands?.[mySocketId] || [];
+  document.getElementById('casino-bj-my-hand').innerHTML = renderCards(myHand);
+  const myVal = myHand.length ? handVal(myHand) : 0;
+  document.getElementById('casino-bj-my-value').textContent = myHand.length
+    ? `${myVal}${myVal > 21 ? ' — BUST!' : myVal === 21 ? ' — 21!' : ''}`
+    : '';
+
+  // Siedzenia
+  document.getElementById('casino-bj-seats').innerHTML = table.players.map(p => {
+    const isActing = p.socketId === actingPlayer;
+    const hand     = hands?.[p.socketId] || [];
+    const val      = hand.length ? handVal(hand) : 0;
+    const isBust   = val > 21 && hand.length;
+    const isMe     = p.socketId === mySocketId;
+    const res      = results?.[p.socketId];
+    const bet      = bets?.[p.socketId] || 0;
+
+    let seatResult = '';
+    if (res && res !== 'blackjack_pending') {
+      const rl = { win:'✅ WIN', lose:'✗ BUST', push:'= PUSH', blackjack:'🃏 BJ!' };
+      const rc = { win:'win', lose:'lose', push:'push', blackjack:'blackjack' };
+      seatResult = `<div class="seat-result ${rc[res]||''}">${rl[res]||res}</div>`;
+    }
+
+    return `<div class="casino-player-seat ${isActing?'acting':''} ${isBust?'busted':''}">
+      ${seatResult}
+      ${p.avatar ? `<img class="seat-avatar" src="${p.avatar}" onerror="this.style.display='none'">` : `<div class="seat-avatar" style="background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700">${p.name[0]}</div>`}
+      <div class="seat-name">${escHtml(p.name)}${isMe?' (Ty)':''}</div>
+      <div class="seat-chips">${p.sessionChips.toLocaleString('pl-PL')}</div>
+      ${bet ? `<div class="seat-bet">Zakład: ${bet}</div>` : ''}
+      ${val && hand.length ? `<div style="font-size:11px;color:var(--accent3)">${val}${isBust?' 💥':''}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Areas
+  const betEl  = document.getElementById('casino-bj-bet-area');
+  const actEl  = document.getElementById('casino-bj-actions');
+  const waitEl = document.getElementById('casino-bj-waiting');
+  const isMyTurn = actingPlayer === mySocketId && !casinoIsObserver;
+
+  if (phase === 'betting' && !casinoIsObserver && myPlayer) {
+    betEl.style.display  = 'block';
+    actEl.style.display  = 'none';
+    waitEl.style.display = 'none';
+    // Chipy
+    const cfg = table.config;
+    const chips = [cfg.minBet, cfg.minBet*2, cfg.minBet*5, cfg.maxBet].filter((v,i,a)=>a.indexOf(v)===i && v<=myPlayer.sessionChips);
+    document.getElementById('casino-bj-chip-btns').innerHTML = chips.map((v, i) => {
+      const cls = ['c1','c5','c25','c100','c500','c1000'][Math.min(i, 5)];
+      return `<div class="casino-chip-btn ${cls}" onclick="setCasinoBet(${v})">${v}</div>`;
+    }).join('');
+    document.getElementById('casino-bj-bet-input').max = Math.min(cfg.maxBet, myPlayer.sessionChips);
+    document.getElementById('casino-bj-bet-input').min = cfg.minBet;
+    const myBet = bets?.[mySocketId];
+    document.getElementById('casino-bj-bet-status').textContent = myBet
+      ? `✅ Zakład: ${myBet} AT$`
+      : `Maks. zakład: ${cfg.maxBet} AT$`;
+    if (!document.getElementById('casino-bj-bet-input').value) {
+      document.getElementById('casino-bj-bet-input').value = cfg.minBet;
+    }
+  } else if (phase === 'playing' && isMyTurn) {
+    betEl.style.display  = 'none';
+    actEl.style.display  = 'block';
+    waitEl.style.display = 'none';
+    document.getElementById('cbj-double-btn').disabled = (hands?.[mySocketId]?.length !== 2);
+    document.getElementById('casino-bj-turn-info').textContent = `Twoja kolej! Zakład: ${bets?.[mySocketId]||0} AT$`;
+  } else {
+    betEl.style.display  = 'none';
+    actEl.style.display  = 'none';
+    waitEl.style.display = 'block';
+    if (phase === 'betting') waitEl.textContent = casinoIsObserver ? '👁️ Obserwujesz' : '⏳ Czekam na Twój zakład...';
+    else if (phase === 'playing') {
+      const ap = table.players.find(p => p.socketId === actingPlayer);
+      waitEl.textContent = ap ? `⏳ Czeka na: ${ap.name}` : '';
+    }
+    else if (phase === 'results' || phase === 'dealer') waitEl.textContent = '📊 Wyniki rundy...';
+    else waitEl.textContent = table.players.length === 0 ? '⏳ Czekam na graczy...' : '';
+  }
+}
+
+// ── AKCJE POKER ───────────────────────────────────────────────
+function casinoPokerAction(type) {
+  if (!casinoTableId) return;
+  if (type === 'fold')  socket.emit('casinoPokerFold',  { tableId: casinoTableId });
+  else if (type==='check') socket.emit('casinoPokerCheck', { tableId: casinoTableId });
+  else if (type==='call')  socket.emit('casinoPokerCall',  { tableId: casinoTableId });
+  else if (type==='raise') {
+    const amt = parseInt(document.getElementById('cp-raise-input')?.value);
+    if (!amt) return showToast('Podaj kwotę!', 'error');
+    socket.emit('casinoPokerRaise', { tableId: casinoTableId, amount: amt });
+    document.getElementById('cp-raise-row').style.display = 'none';
+  }
+}
+
+function casinoPokerShowRaise() {
+  const row = document.getElementById('cp-raise-row');
+  row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+}
+
+function casinoPokerAllIn() {
+  const gs = casinoTableData;
+  if (!gs) return;
+  const me = gs.table.players.find(p => p.socketId === socket.id);
+  if (!me) return;
+  socket.emit('casinoPokerRaise', { tableId: casinoTableId, amount: me.sessionChips + (gs.currentBet?.[socket.id]||0) });
+}
+
+// ── AKCJE BLACKJACK ───────────────────────────────────────────
+function setCasinoBet(amount) {
+  document.getElementById('casino-bj-bet-input').value = amount;
+}
+
+function casinoBJMaxBet() {
+  const gs = casinoTableData;
+  if (!gs) return;
+  const me = gs.table.players.find(p => p.socketId === socket.id);
+  if (!me) return;
+  const maxBet = Math.min(gs.table.config.maxBet, me.sessionChips);
+  document.getElementById('casino-bj-bet-input').value = maxBet;
+}
+
+function casinoBJPlaceBet() {
+  const amount = parseInt(document.getElementById('casino-bj-bet-input')?.value);
+  if (!amount) return showToast('Podaj kwotę zakładu!', 'error');
+  socket.emit('casinoBJBet', { tableId: casinoTableId, amount });
+  document.getElementById('casino-bj-bet-status').textContent = `✅ Zakład: ${amount} AT$`;
+}
+
+function casinoBJAction(type) {
+  if (!casinoTableId) return;
+  if      (type==='hit')    socket.emit('casinoBJHit',    { tableId: casinoTableId });
+  else if (type==='stand')  socket.emit('casinoBJStand',  { tableId: casinoTableId });
+  else if (type==='double') socket.emit('casinoBJDouble', { tableId: casinoTableId });
 }
 
 // ── INIT ───────────────────────────────────────────────────────
