@@ -15,6 +15,10 @@ module.exports = {
     minPlayers: 2,
     maxPlayers: 10,
     supportsGameMaster: false,
+    configSchema: {
+      maxPlayers: { type: 'number', label: 'Maks. graczy',  min: 2, max: 20, default: 10 },
+      rounds:     { type: 'number', label: 'Liczba pytań',  min: 1, max: 10, default: 5 },
+    },
   },
 
   defaultContent: {

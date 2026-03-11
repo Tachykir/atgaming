@@ -68,8 +68,9 @@ function makeHelpers(roomId) {
       const gs = room.gameState;
       gs.answeredPlayers = [];
       const q = gs.questions[gs.currentQuestion];
-      io.to(rId).emit('quizQuestion', { questionIndex: gs.currentQuestion, total: gs.questions.length, question: q.question, answers: q.answers, points: q.points, timeLimit: 15 });
-      gs.questionTimer = setTimeout(() => this.endQuizQuestion(rId), 15000);
+      const timeLimit = Number(room.config?.questionTime) || 15;
+      io.to(rId).emit('quizQuestion', { questionIndex: gs.currentQuestion, total: gs.questions.length, question: q.question, answers: q.answers, points: q.points, timeLimit });
+      gs.questionTimer = setTimeout(() => this.endQuizQuestion(rId), timeLimit * 1000);
     },
 
     endQuizQuestion(rId) {
@@ -93,11 +94,12 @@ function makeHelpers(roomId) {
       const gs = room.gameState;
       gs.answered = []; gs.roundWinner = null;
       const round = gs.rounds[gs.currentRound];
-      io.to(rId).emit('wordRaceRound', { roundIndex: gs.currentRound, total: gs.rounds.length, clue: round.clue, timeLimit: 20, room });
+      const timeLimit = Number(room.config?.roundTime) || 20;
+      io.to(rId).emit('wordRaceRound', { roundIndex: gs.currentRound, total: gs.rounds.length, clue: round.clue, timeLimit, room });
       gs.roundTimer = setTimeout(() => {
         io.to(rId).emit('wordRaceTimeout', { answer: round.answer, room });
         setTimeout(() => this.nextWordRaceRound(rId), 2500);
-      }, 20000);
+      }, timeLimit * 1000);
     },
 
     nextWordRaceRound(rId) {
@@ -130,8 +132,15 @@ function createRoom(roomId, gameType, hostId, hostName, isGameMaster, config) {
 }
 
 // ─── PUBLIC API ────────────────────────────────────────────────
-app.get('/api/games',   (req, res) => res.json(Object.values(GAMES).map(m => m.meta)));
+app.get('/api/games', (req, res) => res.json(Object.values(GAMES).map(m => m.meta)));
 app.get('/api/content', (req, res) => res.json(CONTENT));
+app.get('/api/config-schemas', (req, res) => {
+  const schemas = {};
+  for (const [id, mod] of Object.entries(GAMES)) {
+    schemas[id] = mod.meta.configSchema || {};
+  }
+  res.json(schemas);
+});
 
 app.get('/api/leaderboard', (req, res) => {
   res.json(leaderboard);
@@ -240,8 +249,9 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room) return socket.emit('error', { message: 'Pokój nie istnieje!' });
     if (room.status !== 'waiting') return socket.emit('error', { message: 'Gra już trwa!' });
-    const max = GAMES[room.gameType]?.meta?.maxPlayers || 8;
-    if (room.players.length >= max) return socket.emit('error', { message: 'Pokój jest pełny!' });
+    // Use configured maxPlayers if set, otherwise fall back to game meta
+    const max = Number(room.config?.maxPlayers) || GAMES[room.gameType]?.meta?.maxPlayers || 8;
+    if (room.players.length >= max) return socket.emit('error', { message: `Pokój jest pełny! (max ${max})` });
     room.players.push({ id: socket.id, name: playerName, score: 0 });
     socket.join(roomId);
     socket.emit('roomJoined', { roomId, room });

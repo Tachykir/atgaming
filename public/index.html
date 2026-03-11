@@ -239,6 +239,15 @@ select.input option{background:var(--surface2);}
 /* ── NICK SAVE ── */
 .nick-saved{font-size:11px;color:var(--accent3);margin-top:4px;}
 
+/* ── PLAYER LIVES ── */
+.player-life-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;min-width:90px;}
+.player-life-card.eliminated{opacity:.4;border-color:var(--error);background:rgba(252,92,125,.06);}
+.player-life-card.active-turn{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,92,252,.25);}
+.player-life-name{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;}
+.player-life-hearts{font-size:14px;letter-spacing:1px;}
+.player-life-badge{font-size:10px;margin-top:3px;color:var(--error);}
+.round-badge{display:inline-block;background:rgba(252,192,92,.15);border:1px solid rgba(252,192,92,.3);color:var(--warning);padding:4px 12px;border-radius:99px;font-size:12px;font-weight:700;margin-bottom:10px;}
+
 /* ── JEOPARDY ── */
 .jeopardy-board{width:100%;max-width:900px;border-collapse:collapse;}
 .jeopardy-board th{background:var(--accent);color:white;padding:14px 10px;font-size:13px;text-align:center;border:2px solid var(--surface);}
@@ -336,6 +345,7 @@ select.input option{background:var(--surface2);}
           </select>
         </div>
       </div>
+      <div id="dynamic-config" style="margin-top:10px"></div>
     </div>
     <label class="gm-toggle" id="gm-toggle">
       <input type="checkbox" id="gm-checkbox">
@@ -389,9 +399,10 @@ select.input option{background:var(--surface2);}
 <div class="screen" id="screen-hangman">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
   <div class="hangman-container">
+    <div id="hangman-round-info" style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:8px"></div>
     <div class="live-scores" id="hangman-scores"></div>
+    <div id="player-lives-display" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px"></div>
     <div class="turn-indicator" id="turn-indicator"></div>
-    <div style="text-align:center;margin-bottom:8px;color:var(--muted);font-size:13px">Błędy: <span id="wrong-count" style="color:var(--error);font-weight:700">0</span>/6</div>
     <div class="hangman-scaffold">
       <svg class="scaffold-svg" viewBox="0 0 200 220" fill="none">
         <line x1="20" y1="210" x2="180" y2="210" stroke="#2a2a3d" stroke-width="4" stroke-linecap="round"/>
@@ -619,9 +630,10 @@ function goHome() { location.reload(); }
 
 // ── INIT ───────────────────────────────────────────────────────
 async function init() {
-  const [gR, cR] = await Promise.all([fetch('/api/games'), fetch('/api/content')]);
-  games   = await gR.json();
-  content = await cR.json();
+  const [gR, cR, sR] = await Promise.all([fetch('/api/games'), fetch('/api/content'), fetch('/api/config-schemas')]);
+  games         = await gR.json();
+  content       = await cR.json();
+  configSchemas = await sR.json();
 
   const container = document.getElementById('game-cards-container');
   container.innerHTML = games.map((g, i) => `
@@ -659,6 +671,31 @@ function onGameChange() {
     gt.style.display = 'none';
     document.getElementById('gm-checkbox').checked = false;
   }
+  // Render dynamic config fields from schema
+  renderConfigSchema(gameId, configSchemas[gameId] || {});
+}
+
+let configSchemas = {};
+
+function renderConfigSchema(gameId, schema) {
+  const container = document.getElementById('dynamic-config');
+  if (!container) return;
+  const entries = Object.entries(schema);
+  if (!entries.length) { container.innerHTML = ''; return; }
+
+  const html = entries
+    .filter(([k]) => k !== 'maxPlayers' || true) // always show maxPlayers
+    .map(([key, cfg]) => {
+      const val = cfg.default;
+      return `<div class="input-group" style="flex:1;min-width:120px">
+        <label>${cfg.label}</label>
+        <input class="input" type="number" id="cfg-${key}"
+          min="${cfg.min}" max="${cfg.max}" value="${val}"
+          style="padding:10px 12px;font-size:14px">
+      </div>`;
+    });
+
+  container.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap">${html.join('')}</div>`;
 }
 
 // ── ROOM ───────────────────────────────────────────────────────
@@ -668,9 +705,25 @@ function createRoom() {
   S.playerName = name;
   S.gameType   = document.getElementById('create-game').value;
   S.isGM       = document.getElementById('gm-checkbox').checked;
+
+  // Collect base config
+  const config = {
+    category:   document.getElementById('create-category').value,
+    difficulty: document.getElementById('create-difficulty').value,
+  };
+
+  // Collect dynamic schema fields
+  const schema = configSchemas[S.gameType] || {};
+  for (const [key, cfg] of Object.entries(schema)) {
+    const el = document.getElementById(`cfg-${key}`);
+    if (el) {
+      const v = Number(el.value);
+      config[key] = Math.max(cfg.min, Math.min(cfg.max, isNaN(v) ? cfg.default : v));
+    }
+  }
+
   socket.emit('createRoom', {
-    gameType: S.gameType, playerName: name, isGameMaster: S.isGM,
-    config: { category: document.getElementById('create-category').value, difficulty: document.getElementById('create-difficulty').value },
+    gameType: S.gameType, playerName: name, isGameMaster: S.isGM, config,
   });
 }
 
@@ -688,17 +741,27 @@ function startGame() {
 }
 function playAgain() { socket.emit('playAgain', { roomId: S.roomId }); }
 
-// ── LOBBY ──────────────────────────────────────────────────────
 function renderLobby(room) {
   document.getElementById('lobby-code').textContent = room.id;
   document.getElementById('player-count').textContent = room.players.length;
   const meta = games.find(g => g.id === room.gameType) || {};
   const cats = content[room.gameType] || {};
   const diffMap = {easy:'😊 Łatwy',medium:'🔥 Średni',hard:'💀 Trudny'};
+  const schema = configSchemas[room.gameType] || {};
+  const maxP = room.config?.maxPlayers || meta.maxPlayers || '?';
+
+  // Build extra config badges
+  const extraBadges = Object.entries(schema)
+    .filter(([k]) => k !== 'maxPlayers' && room.config?.[k] !== undefined)
+    .map(([k, cfg]) => `<span class="badge" style="background:rgba(92,240,200,.08);color:var(--accent3);border:1px solid rgba(92,240,200,.2)">${cfg.label}: ${room.config[k]}</span>`)
+    .join('');
+
   document.getElementById('lobby-badges').innerHTML = `
     <span class="badge badge-game">${meta.icon||''} ${meta.name||room.gameType}</span>
     <span class="badge badge-cat">${cats[room.config?.category]?.label||room.config?.category||'?'}</span>
     <span class="badge badge-diff">${diffMap[room.config?.difficulty]||''}</span>
+    <span class="badge" style="background:rgba(124,92,252,.12);color:var(--accent);border:1px solid rgba(124,92,252,.3)">👥 Max: ${maxP}</span>
+    ${extraBadges}
     ${room.isGameMaster?'<span class="badge badge-gm">🎭 Game Master</span>':''}`;
   const colors = ['#7c5cfc','#fc5c7d','#5cf0c8','#fcc05c','#5cb8fc','#e05cfc'];
   document.getElementById('players-container').innerHTML = [
@@ -829,21 +892,60 @@ function initDraggableChat() {
 const LETTERS = ['A','Ą','B','C','Ć','D','E','Ę','F','G','H','I','J','K','L','Ł','M','N','Ń','O','Ó','P','R','S','Ś','T','U','W','Y','Z','Ź','Ż'];
 const SCAFFOLD = ['h-head','h-body','h-arm-l','h-arm-r','h-leg-l','h-leg-r'];
 
-function renderHangman(room, mask, isMyTurn) {
+let H = { maxWrong: 6, totalRounds: 1, currentRound: 1 };
+
+function renderHangman(room, mask, isMyTurn, playerLives, playerEliminated) {
   renderLiveScores(room, 'hangman-scores');
+  const gs = room.gameState || {};
+  const maxWrong = H.maxWrong || gs.maxWrong || 6;
+  const totalRounds = H.totalRounds || gs.totalRounds || 1;
+  const currentRound = H.currentRound || (gs.currentRound || 0) + 1;
+
+  // Round info
+  const ri = document.getElementById('hangman-round-info');
+  if (ri && totalRounds > 1) ri.innerHTML = `<span class="round-badge">Słowo ${currentRound} / ${totalRounds}</span>`;
+  else if (ri) ri.innerHTML = '';
+
+  // Turn indicator
   const ind = document.getElementById('turn-indicator');
   if (S.isGM) { ind.textContent = '🎭 Obserwujesz jako Game Master'; ind.className = 'turn-indicator gm-view'; }
+  else if (playerEliminated?.[S.playerId]) { ind.textContent = '💀 Zostałeś wyeliminowany!'; ind.className = 'turn-indicator wait'; }
   else if (isMyTurn) { ind.textContent = '🎯 Twoja kolej!'; ind.className = 'turn-indicator your-turn'; }
-  else { const cp = room.players.find(p => p.id === room.gameState?.currentTurn); ind.textContent = `⏳ Kolej: ${cp?.name||'...'}`;ind.className='turn-indicator wait'; }
-  document.getElementById('wrong-count').textContent = room.gameState?.wrongGuesses?.length || 0;
-  SCAFFOLD.forEach((id,i) => document.getElementById(id).style.display = i < (room.gameState?.wrongGuesses?.length||0) ? 'block' : 'none');
+  else { const cp = room.players.find(p => p.id === gs.currentTurn); ind.textContent = `⏳ Kolej: ${cp?.name||'...'}`;ind.className='turn-indicator wait'; }
+
+  // Per-player lives
+  const livesEl = document.getElementById('player-lives-display');
+  if (livesEl && playerLives) {
+    livesEl.innerHTML = room.players.map(p => {
+      const wrong = playerLives[p.id] || 0;
+      const elim = playerEliminated?.[p.id];
+      const isActive = gs.currentTurn === p.id;
+      const hearts = Array.from({length: maxWrong}, (_, i) =>
+        i < (maxWrong - wrong) ? '❤️' : '🖤'
+      ).join('');
+      return `<div class="player-life-card ${elim?'eliminated':''} ${isActive?'active-turn':''}">
+        <div class="player-life-name">${escHtml(p.name)}</div>
+        <div class="player-life-hearts">${hearts}</div>
+        ${elim ? '<div class="player-life-badge">WYELIMINOWANY</div>' : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Scaffold — show based on CURRENT player's wrong count
+  const myWrong = playerLives?.[S.playerId] || 0;
+  SCAFFOLD.forEach((id,i) => document.getElementById(id).style.display = i < myWrong ? 'block' : 'none');
+
+  // Word display
   document.getElementById('word-display').innerHTML = mask.replace(/ /g,'').split('').map(l => `<div class="letter-box ${l!=='_'?'revealed':''}">${l!=='_'?l:''}</div>`).join('');
-  const guessed = [...(room.gameState?.guessed||[]),...(room.gameState?.wrongGuesses||[])].map(l=>l.toUpperCase());
+
+  // Keyboard
+  const guessed = [...(gs.guessed||[])].map(l=>l.toUpperCase());
+  const myElim = playerEliminated?.[S.playerId];
+  const canPlay = isMyTurn && !S.isGM && !myElim;
   document.getElementById('keyboard').innerHTML = LETTERS.map(letter => {
     const up = letter.toUpperCase();
-    const isC = (room.gameState?.guessed||[]).map(l=>l.toUpperCase()).includes(up);
-    const isW = (room.gameState?.wrongGuesses||[]).map(l=>l.toUpperCase()).includes(up);
-    return `<button class="key-btn ${isC?'correct':''} ${isW?'wrong':''}" onclick="guessLetter('${letter.toLowerCase()}')" ${guessed.includes(up)||!isMyTurn||S.isGM?'disabled':''}>${letter}</button>`;
+    const isC = guessed.includes(up);
+    return `<button class="key-btn ${isC?'correct':''}" onclick="guessLetter('${letter.toLowerCase()}')" ${(isC||!canPlay)?'disabled':''}>${letter}</button>`;
   }).join('');
 }
 function guessLetter(l) { socket.emit('guessLetter', { roomId: S.roomId, letter: l }); }
@@ -1006,18 +1108,29 @@ socket.on('playerJoined', ({room}) => {
 socket.on('playerLeft', ({room, playerName}) => {
   S.room=room; if(S.roomId) renderLobby(room); showToast(`${playerName} opuścił pokój`,'error');
 });
-socket.on('gameStarted', ({room,mask,wordLength}) => {
+socket.on('gameStarted', ({room,mask,wordLength,round,totalRounds,maxWrong,playerLives}) => {
   S.room=room;
-  if(room.gameType==='hangman'){ renderHangman(room,mask||Array(wordLength).fill('_').join(' '),room.gameState?.currentTurn===S.playerId); showScreen('hangman'); }
+  if(room.gameType==='hangman'){
+    H = { maxWrong: maxWrong||6, totalRounds: totalRounds||1, currentRound: round||1 };
+    renderHangman(room, mask||Array(wordLength).fill('_').join(' '), room.gameState?.currentTurn===S.playerId, playerLives||{}, {});
+    showScreen('hangman');
+  }
   else if(room.gameType==='quiz'){ showScreen('quiz'); }
   else if(room.gameType==='wordrace'){ showScreen('wordrace'); }
   else if(room.gameType==='jeopardy'){ showScreen('jeopardy'); }
   else if(room.gameType==='familyfeud'){ showScreen('familyfeud'); }
   else if(room.gameType==='kalambury'){ initKalamburyCanvas(); showScreen('kalambury'); }
 });
-socket.on('letterGuessed', ({room,letter,correct,mask,currentTurn}) => {
-  S.room=room; renderHangman(room,mask,currentTurn===S.playerId);
+socket.on('letterGuessed', ({room,letter,correct,mask,currentTurn,playerLives,playerEliminated}) => {
+  S.room=room;
+  if(room.gameState) room.gameState.currentTurn = currentTurn;
+  renderHangman(room, mask, currentTurn===S.playerId, playerLives||{}, playerEliminated||{});
   showToast(correct?`✅ Litera "${letter.toUpperCase()}" jest!`:`❌ Brak litery "${letter.toUpperCase()}"`,correct?'success':'error');
+});
+socket.on('hangmanRoundEnd', ({room, word, won, mask, round, totalRounds, playerLives, playerEliminated}) => {
+  S.room=room;
+  H.currentRound = round + 1;
+  showToast(won ? `✅ Słowo: "${word.toUpperCase()}" — Runda ${round}/${totalRounds}!` : `💀 Słowo: "${word.toUpperCase()}" — wszyscy wyeliminowani!`, won?'success':'error');
 });
 socket.on('quizQuestion', (data) => { selectedAnswer=null; renderQuizQuestion(data); if(S.room) renderLiveScores(S.room,'quiz-scores'); showScreen('quiz'); });
 socket.on('answerResult', ({correct,points}) => {

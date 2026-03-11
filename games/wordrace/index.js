@@ -19,6 +19,11 @@ module.exports = {
     minPlayers: 2,
     maxPlayers: 8,
     supportsGameMaster: false,
+    configSchema: {
+      maxPlayers: { type: 'number', label: 'Maks. graczy',   min: 2, max: 20, default: 8 },
+      rounds:     { type: 'number', label: 'Liczba rund',    min: 3, max: 20, default: 6 },
+      roundTime:  { type: 'number', label: 'Czas rundy (s)', min: 10, max: 60, default: 20 },
+    },
   },
 
   defaultContent: {
@@ -151,7 +156,8 @@ module.exports = {
     const gs = room.gameState;
     const cat = content[room.config.category] || Object.values(content)[0];
     const pool = cat[room.config.difficulty] || cat.easy || [];
-    gs.rounds = [...pool].sort(() => Math.random() - 0.5).slice(0, 6);
+    const numRounds = Math.min(Number(room.config.rounds) || 6, pool.length || 6);
+    gs.rounds = [...pool].sort(() => Math.random() - 0.5).slice(0, numRounds);
 
     if (!gs.rounds.length) {
       return helpers.emitError(room.id, 'Brak słów w tej kategorii!');

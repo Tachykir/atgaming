@@ -15,6 +15,9 @@ module.exports = {
     minPlayers: 1,
     maxPlayers: 6,
     supportsGameMaster: false,
+    configSchema: {
+      maxPlayers: { type: 'number', label: 'Maks. graczy', min: 2, max: 10, default: 6 },
+    },
   },
 
   defaultContent: {

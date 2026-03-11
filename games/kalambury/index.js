@@ -15,6 +15,11 @@ module.exports = {
     minPlayers: 2,
     maxPlayers: 8,
     supportsGameMaster: false,
+    configSchema: {
+      maxPlayers: { type: 'number', label: 'Maks. graczy',   min: 2, max: 16, default: 8 },
+      rounds:     { type: 'number', label: 'Liczba rund',    min: 1, max: 10, default: 0 },
+      roundTime:  { type: 'number', label: 'Czas rysowania (s)', min: 30, max: 180, default: 60 },
+    },
   },
 
   defaultContent: {

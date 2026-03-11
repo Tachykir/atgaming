@@ -15,6 +15,11 @@ module.exports = {
     minPlayers: 1,
     maxPlayers: 8,
     supportsGameMaster: false,
+    configSchema: {
+      maxPlayers:   { type: 'number', label: 'Maks. graczy',     min: 2, max: 20, default: 8 },
+      rounds:       { type: 'number', label: 'Liczba pytań',     min: 3, max: 20, default: 8 },
+      questionTime: { type: 'number', label: 'Czas na pytanie (s)', min: 5, max: 60, default: 15 },
+    },
   },
 
   defaultContent: {
@@ -193,7 +198,8 @@ module.exports = {
     const gs = room.gameState;
     const cat = content[room.config.category] || Object.values(content)[0];
     const pool = cat[room.config.difficulty] || cat.medium || [];
-    gs.questions = [...pool].sort(() => Math.random() - 0.5).slice(0, 8);
+    const numQ = Math.min(Number(room.config.rounds) || 8, pool.length || 8);
+    gs.questions = [...pool].sort(() => Math.random() - 0.5).slice(0, numQ);
 
     if (!gs.questions.length) {
       return helpers.emitError(room.id, 'Brak pytań w tej kategorii! Dodaj pytania w panelu admina.');
