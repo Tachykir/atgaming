@@ -239,6 +239,21 @@ select.input option{background:var(--surface2);}
 /* ── NICK SAVE ── */
 .nick-saved{font-size:11px;color:var(--accent3);margin-top:4px;}
 
+/* ── DISCORD LOGIN ── */
+.discord-btn{display:flex;align-items:center;gap:10px;width:100%;padding:13px 18px;border-radius:12px;background:#5865F2;color:white;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .15s;margin-bottom:16px;}
+.discord-btn:hover{background:#4752c4;transform:translateY(-1px);}
+.discord-btn svg{flex-shrink:0;}
+.discord-divider{display:flex;align-items:center;gap:10px;margin-bottom:16px;color:var(--muted);font-size:12px;}
+.discord-divider::before,.discord-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.discord-user-bar{display:flex;align-items:center;gap:12px;background:rgba(88,101,242,.1);border:1px solid rgba(88,101,242,.3);border-radius:12px;padding:12px 16px;margin-bottom:16px;}
+.discord-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;}
+.discord-user-info{flex:1;}
+.discord-user-name{font-weight:700;font-size:14px;}
+.discord-user-tag{font-size:11px;color:var(--muted);}
+.discord-logout{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;text-decoration:underline;padding:0;}
+.discord-logout:hover{color:var(--error);}
+.discord-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(88,101,242,.15);color:#7289da;border:1px solid rgba(88,101,242,.3);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:700;}
+
 /* ── PLAYER LIVES ── */
 .player-life-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:8px 14px;text-align:center;min-width:90px;}
 .player-life-card.eliminated{opacity:.4;border-color:var(--error);background:rgba(252,92,125,.06);}
@@ -324,6 +339,10 @@ select.input option{background:var(--surface2);}
   <div class="card">
     <h2>Stwórz pokój</h2>
     <p>Skonfiguruj grę i zaproś znajomych.</p>
+
+    <!-- Discord login -->
+    <div id="discord-block-create"></div>
+
     <div class="input-group">
       <label>Twój nick</label>
       <input class="input" id="create-name" placeholder="np. Kamil123" maxlength="20" oninput="saveNick(this.value)">
@@ -361,6 +380,7 @@ select.input option{background:var(--surface2);}
   <div class="card">
     <h2>Dołącz do pokoju</h2>
     <p>Wpisz kod od znajomego.</p>
+    <div id="discord-block-join"></div>
     <div class="input-group"><label>Twój nick</label><input class="input" id="join-name" placeholder="np. Ania99" maxlength="20" oninput="saveNick(this.value)"><div class="nick-saved" id="nick-saved-join" style="display:none">✓ Nick zapamiętany</div></div>
     <div class="input-group"><label>Kod pokoju</label>
       <input class="input" id="join-code" placeholder="XXXXX" maxlength="5" style="text-transform:uppercase;font-family:'DM Mono',monospace;letter-spacing:5px;font-size:22px;text-align:center">
@@ -621,6 +641,114 @@ function loadSavedNick() {
   } catch(e){}
 }
 
+// ── DISCORD AUTH ──────────────────────────────────────────────
+let discordUser = null;
+let discordEnabled = false;
+
+const DISCORD_ICON = `<svg width="20" height="15" viewBox="0 0 71 55" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M60.1 4.9A58.5 58.5 0 0 0 45.5.7a40.6 40.6 0 0 0-1.8 3.7 54.1 54.1 0 0 0-16.3 0A38.9 38.9 0 0 0 25.6.7 58.4 58.4 0 0 0 11 4.9C1.6 18.7-1 32.2.3 45.5a59 59 0 0 0 18 9.1 44.7 44.7 0 0 0 3.9-6.3 38.3 38.3 0 0 1-6.1-2.9l1.5-1.1a42.2 42.2 0 0 0 36 0l1.5 1.1a38.3 38.3 0 0 1-6.1 2.9 44.8 44.8 0 0 0 3.9 6.3 58.8 58.8 0 0 0 18-9.1c1.5-15.5-2.6-28.9-10.8-40.6ZM23.7 37.3c-3.5 0-6.4-3.2-6.4-7.2s2.8-7.2 6.4-7.2 6.5 3.2 6.4 7.2c0 4-2.8 7.2-6.4 7.2Zm23.6 0c-3.5 0-6.4-3.2-6.4-7.2s2.8-7.2 6.4-7.2 6.5 3.2 6.4 7.2c0 4-2.8 7.2-6.4 7.2Z"/></svg>`;
+
+async function initDiscordAuth() {
+  try {
+    const res = await fetch('/auth/discord/status');
+    const data = await res.json();
+    discordEnabled = data.enabled;
+    discordUser = data.user;
+
+    // Check URL params after OAuth callback
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('discord_login') === '1') {
+      // Already handled via session — clean URL
+      window.history.replaceState({}, '', '/');
+    }
+    if (params.get('error')) {
+      const msgs = {
+        discord_not_configured: 'Discord OAuth nie jest skonfigurowane.',
+        discord_denied: 'Anulowano logowanie przez Discord.',
+        discord_token: 'Błąd tokenu Discord — spróbuj ponownie.',
+        discord_user: 'Nie udało się pobrać danych z Discord.',
+        discord_error: 'Błąd logowania Discord.',
+      };
+      showToast(msgs[params.get('error')] || 'Błąd Discord.', 'error');
+      window.history.replaceState({}, '', '/');
+    }
+
+    renderDiscordBlocks();
+
+    // If logged in via Discord, auto-fill nick
+    if (discordUser) {
+      const nick = discordUser.globalName || discordUser.username;
+      ['create-name','join-name'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.value = nick; el.readOnly = true; }
+      });
+      document.getElementById('nick-saved-create')?.style && (document.getElementById('nick-saved-create').style.display = 'none');
+      document.getElementById('nick-saved-join')?.style && (document.getElementById('nick-saved-join').style.display = 'none');
+    }
+  } catch(e) {
+    console.warn('Discord auth check failed:', e);
+  }
+}
+
+function renderDiscordBlocks() {
+  ['create','join'].forEach(ctx => {
+    const el = document.getElementById(`discord-block-${ctx}`);
+    if (!el) return;
+
+    if (discordUser) {
+      // Logged in — show user bar
+      el.innerHTML = `
+        <div class="discord-user-bar">
+          <img class="discord-avatar" src="${discordUser.avatar}" alt="avatar" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+          <div class="discord-user-info">
+            <div class="discord-user-name">${escHtml(discordUser.globalName || discordUser.username)}</div>
+            <div class="discord-user-tag"><span class="discord-badge">${DISCORD_ICON} Discord</span></div>
+          </div>
+          <button class="discord-logout" onclick="discordLogout()">Wyloguj</button>
+        </div>`;
+    } else if (discordEnabled) {
+      // Discord available — show button + divider
+      el.innerHTML = `
+        <button class="discord-btn" onclick="loginWithDiscord()">
+          ${DISCORD_ICON} Zaloguj przez Discord
+        </button>
+        <div class="discord-divider">lub wpisz nick ręcznie</div>`;
+    } else {
+      // Discord not configured — show nothing
+      el.innerHTML = '';
+    }
+  });
+}
+
+function loginWithDiscord() {
+  // Save current page state
+  try { sessionStorage.setItem('discord_return', window.location.href); } catch(e){}
+  window.location.href = '/auth/discord';
+}
+
+async function discordLogout() {
+  try {
+    await fetch('/auth/discord/logout', { method: 'POST' });
+    discordUser = null;
+    ['create-name','join-name'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.value = ''; el.readOnly = false; }
+    });
+    renderDiscordBlocks();
+    loadSavedNick();
+    showToast('Wylogowano z Discord', 'success');
+  } catch(e) {
+    showToast('Błąd wylogowania', 'error');
+  }
+}
+
+// Show Discord avatar in lobby / chat if logged in via Discord
+function getPlayerAvatarHtml(playerName, color, size = 34) {
+  if (discordUser && (discordUser.globalName === playerName || discordUser.username === playerName)) {
+    return `<img src="${discordUser.avatar}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0" alt="avatar" onerror="this.style.display='none'">`;
+  }
+  return `<div class="player-avatar" style="background:${color};width:${size}px;height:${size}px">${playerName[0].toUpperCase()}</div>`;
+}
+
 // ── SCREENS ────────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -649,6 +777,7 @@ async function init() {
   onGameChange();
   loadSavedNick();
   initDraggableChat();
+  await initDiscordAuth();
 }
 
 function selectGame(id, el) {
@@ -769,8 +898,9 @@ function renderLobby(room) {
     ...room.players,
   ].map((p,i) => `
     <div class="player-item">
-      <div class="player-avatar" style="background:${colors[i%colors.length]}">${p.name[0].toUpperCase()}</div>
+      ${getPlayerAvatarHtml(p.name, colors[i%colors.length])}
       <span>${p.name}</span>
+      ${discordUser && (discordUser.globalName===p.name||discordUser.username===p.name) ? `<span class="discord-badge" style="margin-left:4px">${DISCORD_ICON}</span>` : ''}
       ${p._gm?'<span class="gm-badge-small">🎭 GM</span>':''}
       ${!p._gm&&p.id===room.hostId&&!room.isGameMaster?'<span class="player-host-badge">Host</span>':''}
     </div>`).join('');
@@ -820,7 +950,10 @@ function appendChatMsg({ name, message, isGM, isSystem, time }) {
   div.className = `chat-msg${isMe?' mine':''}${isSystem?' system-msg':''}`;
   if (!isSystem) {
     const nameClass = isMe ? 'me' : isGM ? 'gm' : '';
-    div.innerHTML = `<div class="chat-msg-name ${nameClass}">${name}</div>
+    const avatarHtml = isMe && discordUser
+      ? `<img src="${discordUser.avatar}" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:4px" alt="">`
+      : '';
+    div.innerHTML = `<div class="chat-msg-name ${nameClass}">${avatarHtml}${escHtml(name)}</div>
       <div class="chat-msg-bubble">${escHtml(message)}</div>
       <div class="chat-msg-time">${time}</div>`;
   } else {

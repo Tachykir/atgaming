@@ -3,13 +3,34 @@ const http     = require('http');
 const { Server } = require('socket.io');
 const path     = require('path');
 const fs       = require('fs');
+const discordAuth = require('./discord-auth');
+
+// Ładuj .env jeśli istnieje
+try {
+  const envPath = path.join(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+      const [key, ...rest] = line.split('=');
+      if (key && !key.startsWith('#') && rest.length) {
+        process.env[key.trim()] = rest.join('=').trim();
+      }
+    });
+  }
+} catch(e) {}
 
 const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server, { cors: { origin: '*' } });
 
 app.use(express.json());
+
+// ── DISCORD SESSION ───────────────────────────────────────────
+discordAuth.setupSession(app);
+
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ── DISCORD ROUTES ────────────────────────────────────────────
+discordAuth.setupRoutes(app);
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
