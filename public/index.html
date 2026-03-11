@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GameNight</title>
+<title>AT Gaming</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="/socket.io/socket.io.js"></script>
 <style>
@@ -21,12 +21,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .screen{display:none;position:relative;z-index:1;min-height:100vh;padding:20px;}
 .screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center;}
 
-/* HERO */
+/* ── HERO ── */
 .hero{text-align:center;max-width:800px;}
-.hero-badge{display:inline-block;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.4);color:var(--accent);padding:6px 16px;border-radius:99px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px;}
-.hero h1{font-size:clamp(52px,10vw,96px);font-weight:800;line-height:.95;letter-spacing:-3px;margin-bottom:20px;}
+.hero h1{font-size:clamp(52px,10vw,96px);font-weight:800;line-height:.95;letter-spacing:-3px;margin-bottom:28px;}
 .hero h1 span{color:var(--accent);}
-.hero p{color:var(--muted);font-size:18px;margin-bottom:40px;line-height:1.6;}
 .game-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:40px;}
 .game-card{background:var(--surface);border:2px solid var(--border);border-radius:20px;padding:28px 22px;cursor:pointer;transition:all .2s;width:175px;text-align:center;}
 .game-card:hover{transform:translateY(-4px);border-color:var(--accent);}
@@ -35,10 +33,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .game-name{font-size:16px;font-weight:700;margin-bottom:4px;}
 .game-desc{font-size:11px;color:var(--muted);line-height:1.4;}
 .hero-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
-.admin-link{margin-top:20px;font-size:13px;color:var(--muted);cursor:pointer;}
-.admin-link:hover{color:var(--text);}
+.hero-links{display:flex;gap:20px;margin-top:20px;justify-content:center;flex-wrap:wrap;}
+.hero-link{font-size:13px;color:var(--muted);cursor:pointer;transition:color .15s;}
+.hero-link:hover{color:var(--text);}
 
-/* BUTTONS */
+/* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:12px;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:all .15s;}
 .btn-primary{background:var(--accent);color:white;box-shadow:0 4px 20px rgba(124,92,252,.4);}
 .btn-primary:hover{background:#6a4ae8;transform:translateY(-1px);}
@@ -48,21 +47,21 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .btn-sm{padding:8px 16px;font-size:13px;border-radius:8px;}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
 
-/* INPUTS */
+/* ── INPUTS ── */
 .input-group{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;width:100%;}
 .input-group label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
 .input{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 15px;color:var(--text);font-family:'Syne',sans-serif;font-size:15px;outline:none;transition:border-color .2s;width:100%;}
 .input:focus{border-color:var(--accent);}
 select.input option{background:var(--surface2);}
-
-/* CARD */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:32px;width:100%;max-width:500px;}
-.card h2{font-size:26px;font-weight:800;margin-bottom:6px;}
-.card>p{color:var(--muted);margin-bottom:22px;font-size:14px;}
 .row{display:flex;gap:12px;}
 .row .input-group{flex:1;}
 
-/* CONFIG */
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:32px;width:100%;max-width:500px;}
+.card h2{font-size:26px;font-weight:800;margin-bottom:6px;}
+.card>p{color:var(--muted);margin-bottom:22px;font-size:14px;}
+
+/* ── CONFIG ── */
 .config-section{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
 .config-section h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;}
 .gm-toggle{display:flex;align-items:center;gap:12px;padding:13px;background:rgba(252,92,125,.08);border:1px solid rgba(252,92,125,.25);border-radius:12px;cursor:pointer;margin-bottom:16px;transition:all .2s;}
@@ -71,8 +70,8 @@ select.input option{background:var(--surface2);}
 .gm-toggle strong{display:block;font-size:14px;}
 .gm-toggle span{font-size:12px;color:var(--muted);}
 
-/* LOBBY */
-.lobby{max-width:620px;width:100%;}
+/* ── LOBBY ── */
+.lobby{max-width:640px;width:100%;}
 .room-code-display{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:22px;text-align:center;margin-bottom:20px;}
 .room-code-label{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;}
 .room-code{font-family:'DM Mono',monospace;font-size:44px;font-weight:500;color:var(--accent3);letter-spacing:8px;}
@@ -91,7 +90,53 @@ select.input option{background:var(--surface2);}
 .gm-panel{background:rgba(252,192,92,.06);border:1px solid rgba(252,192,92,.25);border-radius:14px;padding:16px;margin-bottom:16px;}
 .gm-panel h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--warning);margin-bottom:10px;}
 
-/* HANGMAN */
+/* ── CHAT ── */
+.chat-toggle{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--accent);border:none;color:white;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(124,92,252,.5);z-index:500;transition:all .2s;display:none;}
+.chat-toggle:hover{transform:scale(1.08);}
+.chat-toggle.has-unread::after{content:attr(data-count);position:absolute;top:-4px;right:-4px;background:var(--error);color:white;font-size:11px;font-weight:700;font-family:'Syne',sans-serif;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.chat-panel{position:fixed;bottom:88px;right:24px;width:320px;height:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:499;display:none;flex-direction:column;overflow:hidden;}
+.chat-panel.open{display:flex;}
+.chat-header{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between;}
+.chat-header span{color:var(--accent3);font-size:12px;}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth;}
+.chat-msg{max-width:100%;}
+.chat-msg-name{font-size:11px;font-weight:700;margin-bottom:2px;}
+.chat-msg-name.gm{color:var(--accent2);}
+.chat-msg-name.me{color:var(--accent);}
+.chat-msg-name.system{color:var(--muted);}
+.chat-msg-bubble{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:7px 11px;font-size:13px;line-height:1.4;word-break:break-word;max-width:100%;}
+.chat-msg.mine .chat-msg-bubble{background:rgba(124,92,252,.15);border-color:rgba(124,92,252,.3);}
+.chat-msg.system-msg .chat-msg-bubble{background:transparent;border-color:transparent;color:var(--muted);font-size:12px;text-align:center;width:100%;}
+.chat-msg-time{font-size:10px;color:var(--muted);margin-top:2px;}
+.chat-input-row{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.chat-input-row .input{flex:1;padding:9px 12px;font-size:13px;border-radius:9px;}
+.chat-send{padding:9px 14px;border-radius:9px;background:var(--accent);color:white;border:none;cursor:pointer;font-size:16px;transition:background .15s;}
+.chat-send:hover{background:#6a4ae8;}
+.chat-messages::-webkit-scrollbar{width:4px;}
+.chat-messages::-webkit-scrollbar-track{background:transparent;}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── LEADERBOARD ── */
+.leaderboard-container{max-width:800px;width:100%;}
+.lb-header{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+.lb-header h2{font-size:28px;font-weight:800;flex:1;}
+.lb-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.lb-tab{padding:9px 18px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;}
+.lb-tab.active{background:var(--accent);color:white;border-color:var(--accent);}
+.lb-empty{text-align:center;padding:48px;color:var(--muted);font-size:15px;}
+.lb-table{width:100%;border-collapse:collapse;}
+.lb-table th{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);}
+.lb-table td{padding:12px 14px;border-bottom:1px solid rgba(42,42,61,.5);font-size:14px;}
+.lb-table tr:hover td{background:rgba(124,92,252,.04);}
+.lb-rank{font-weight:800;font-size:16px;width:36px;}
+.lb-rank.gold{color:var(--warning);}
+.lb-rank.silver{color:#b0b0c8;}
+.lb-rank.bronze{color:#c87850;}
+.lb-score{font-family:'DM Mono',monospace;font-size:16px;color:var(--accent3);font-weight:500;}
+.lb-meta{font-size:12px;color:var(--muted);}
+.lb-date{font-size:12px;color:var(--muted);text-align:right;}
+
+/* ── HANGMAN ── */
 .hangman-container{max-width:680px;width:100%;}
 .live-scores{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;}
 .live-score-chip{background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:5px 13px;font-size:13px;font-weight:600;}
@@ -112,7 +157,7 @@ select.input option{background:var(--surface2);}
 .key-btn.wrong{background:rgba(252,92,125,.08);border-color:rgba(252,92,125,.3);color:var(--muted);}
 .key-btn:disabled{cursor:not-allowed;}
 
-/* QUIZ */
+/* ── QUIZ ── */
 .quiz-container{max-width:680px;width:100%;}
 .quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;}
 .quiz-progress{font-size:14px;color:var(--muted);font-weight:600;}
@@ -132,7 +177,7 @@ select.input option{background:var(--surface2);}
 .answered-indicator{text-align:center;color:var(--muted);font-size:13px;margin-bottom:14px;}
 .answered-indicator span{color:var(--accent3);font-weight:700;}
 
-/* WORD RACE */
+/* ── WORD RACE ── */
 .wordrace-container{max-width:600px;width:100%;}
 .wr-clue{background:var(--surface2);border:1px solid var(--border);border-radius:18px;padding:32px;text-align:center;margin-bottom:24px;}
 .wr-clue-label{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;}
@@ -143,7 +188,7 @@ select.input option{background:var(--surface2);}
 .wr-input-row .input{flex:1;font-size:18px;text-align:center;font-weight:700;}
 .wr-round-info{text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px;}
 
-/* SCOREBOARD */
+/* ── SCOREBOARD ── */
 .scoreboard{max-width:480px;width:100%;}
 .result-banner{text-align:center;padding:28px;border-radius:20px;margin-bottom:22px;}
 .result-banner.win{background:rgba(92,240,200,.08);border:1px solid rgba(92,240,200,.25);}
@@ -158,15 +203,12 @@ select.input option{background:var(--surface2);}
 .score-name{font-weight:700;font-size:16px;flex:1;}
 .score-points{font-family:'DM Mono',monospace;font-size:18px;color:var(--accent3);}
 
-/* ADMIN */
-.admin-container{max-width:920px;width:100%;}
+/* ── ADMIN ── */
 .admin-header{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
 .admin-header h2{font-size:26px;font-weight:800;flex:1;}
 .admin-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
 .tab-btn{padding:9px 20px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;}
 .tab-btn.active{background:var(--accent);color:white;border-color:var(--accent);}
-.admin-tab{display:none;}
-.admin-tab.active{display:block;}
 .admin-section{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px;margin-bottom:16px;}
 .admin-section h3{font-size:16px;font-weight:700;margin-bottom:16px;}
 .word-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
@@ -184,24 +226,22 @@ select.input option{background:var(--surface2);}
 .add-form h4{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--accent3);}
 .answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
 
-/* MISC */
+/* ── MISC ── */
 .back-btn{position:absolute;top:20px;left:20px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 15px;cursor:pointer;font-family:'Syne',sans-serif;font-size:14px;font-weight:600;transition:all .15s;z-index:10;}
 .back-btn:hover{color:var(--text);border-color:var(--accent);}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:13px 22px;font-weight:600;font-size:14px;z-index:1000;transition:transform .3s;max-width:380px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.4);}
 .toast.show{transform:translateX(-50%) translateY(0);}
 .toast.success{border-color:var(--success);color:var(--success);}
 .toast.error{border-color:var(--error);color:var(--error);}
-@media(max-width:600px){.quiz-answers,.answers-grid{grid-template-columns:1fr;}.card{padding:22px;}.row{flex-direction:column;}}
+@media(max-width:600px){.quiz-answers,.answers-grid{grid-template-columns:1fr;}.card{padding:22px;}.row{flex-direction:column;}.chat-panel{width:calc(100vw - 32px);right:16px;}}
 </style>
 </head>
 <body>
 
-<!-- HOME -->
+<!-- ══ HOME ══════════════════════════════════════════════════ -->
 <div class="screen active" id="screen-home">
   <div class="hero">
-    <div class="hero-badge">🎮 Gry multiplayer online</div>
-    <h1>Game<span>Night</span></h1>
-    <p>Zagraj z przyjaciółmi w czasie rzeczywistym.<br>Bez rejestracji, bez instalacji.</p>
+    <h1>AT <span>Gaming</span></h1>
     <div class="game-cards" id="game-cards-container">
       <div style="color:var(--muted);font-size:14px">Ładowanie gier...</div>
     </div>
@@ -209,11 +249,14 @@ select.input option{background:var(--surface2);}
       <button class="btn btn-primary" onclick="showScreen('create')">➕ Stwórz pokój</button>
       <button class="btn btn-secondary" onclick="showScreen('join')">🔗 Dołącz do pokoju</button>
     </div>
-    <div class="admin-link" onclick="showScreen('admin-login')">⚙️ Panel admina</div>
+    <div class="hero-links">
+      <span class="hero-link" onclick="showLeaderboard()">🏆 Leaderboard</span>
+      <span class="hero-link" onclick="showScreen('admin-login')">⚙️ Panel admina</span>
+    </div>
   </div>
 </div>
 
-<!-- CREATE ROOM -->
+<!-- ══ CREATE ROOM ════════════════════════════════════════════ -->
 <div class="screen" id="screen-create">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
   <div class="card">
@@ -230,12 +273,8 @@ select.input option{background:var(--surface2);}
     <div class="config-section">
       <h3>⚙️ Konfiguracja</h3>
       <div class="row">
-        <div class="input-group">
-          <label>Kategoria</label>
-          <select class="input" id="create-category"></select>
-        </div>
-        <div class="input-group">
-          <label>Poziom</label>
+        <div class="input-group"><label>Kategoria</label><select class="input" id="create-category"></select></div>
+        <div class="input-group"><label>Poziom</label>
           <select class="input" id="create-difficulty">
             <option value="easy">😊 Łatwy</option>
             <option value="medium" selected>🔥 Średni</option>
@@ -246,46 +285,39 @@ select.input option{background:var(--surface2);}
     </div>
     <label class="gm-toggle" id="gm-toggle">
       <input type="checkbox" id="gm-checkbox">
-      <div>
-        <strong>🎭 Tryb Game Master</strong>
-        <span id="gm-hint">Zarządzasz grą, nie grasz</span>
-      </div>
+      <div><strong>🎭 Tryb Game Master</strong><span id="gm-hint">Zarządzasz grą, nie grasz</span></div>
     </label>
     <button class="btn btn-primary" style="width:100%" onclick="createRoom()">Stwórz pokój →</button>
   </div>
 </div>
 
-<!-- JOIN ROOM -->
+<!-- ══ JOIN ROOM ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-join">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
   <div class="card">
     <h2>Dołącz do pokoju</h2>
     <p>Wpisz kod od znajomego.</p>
-    <div class="input-group">
-      <label>Twój nick</label>
-      <input class="input" id="join-name" placeholder="np. Ania99" maxlength="20">
-    </div>
-    <div class="input-group">
-      <label>Kod pokoju</label>
+    <div class="input-group"><label>Twój nick</label><input class="input" id="join-name" placeholder="np. Ania99" maxlength="20"></div>
+    <div class="input-group"><label>Kod pokoju</label>
       <input class="input" id="join-code" placeholder="XXXXX" maxlength="5" style="text-transform:uppercase;font-family:'DM Mono',monospace;letter-spacing:5px;font-size:22px;text-align:center">
     </div>
     <button class="btn btn-primary" style="width:100%" onclick="joinRoom()">Dołącz →</button>
   </div>
 </div>
 
-<!-- LOBBY -->
+<!-- ══ LOBBY ══════════════════════════════════════════════════ -->
 <div class="screen" id="screen-lobby">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
   <div class="lobby">
     <div class="room-code-display">
       <div class="room-code-label">Kod pokoju</div>
       <div class="room-code" id="lobby-code">XXXXX</div>
-      <div class="room-code-hint">Wejdź na tę stronę i wpisz kod</div>
+      <div class="room-code-hint">Wejdź na tę stronę i wpisz ten kod</div>
       <div class="config-badge" id="lobby-badges"></div>
     </div>
     <div class="gm-panel" id="gm-word-panel" style="display:none">
       <h3>🎭 Game Master</h3>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Własne słowo (wisielec) lub pozostaw puste dla losowego z kategorii.</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Własne słowo (wisielec) lub zostaw puste dla losowego.</p>
       <input class="input" id="gm-custom-word" placeholder="Wpisz własne słowo (opcjonalne)..." maxlength="30">
     </div>
     <div class="players-list">
@@ -295,21 +327,17 @@ select.input option{background:var(--surface2);}
     <div id="start-btn-container" style="display:none;margin-top:4px">
       <button class="btn btn-primary" style="width:100%" onclick="startGame()">🎮 Rozpocznij grę</button>
     </div>
-    <div id="waiting-msg" style="text-align:center;color:var(--muted);font-size:14px">
-      Czekam aż host rozpocznie grę...
-    </div>
+    <div id="waiting-msg" style="text-align:center;color:var(--muted);font-size:14px">Czekam aż host rozpocznie grę...</div>
   </div>
 </div>
 
-<!-- HANGMAN -->
+<!-- ══ HANGMAN ════════════════════════════════════════════════ -->
 <div class="screen" id="screen-hangman">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
   <div class="hangman-container">
     <div class="live-scores" id="hangman-scores"></div>
     <div class="turn-indicator" id="turn-indicator"></div>
-    <div style="text-align:center;margin-bottom:8px;color:var(--muted);font-size:13px">
-      Błędy: <span id="wrong-count" style="color:var(--error);font-weight:700">0</span>/6
-    </div>
+    <div style="text-align:center;margin-bottom:8px;color:var(--muted);font-size:13px">Błędy: <span id="wrong-count" style="color:var(--error);font-weight:700">0</span>/6</div>
     <div class="hangman-scaffold">
       <svg class="scaffold-svg" viewBox="0 0 200 220" fill="none">
         <line x1="20" y1="210" x2="180" y2="210" stroke="#2a2a3d" stroke-width="4" stroke-linecap="round"/>
@@ -329,7 +357,7 @@ select.input option{background:var(--surface2);}
   </div>
 </div>
 
-<!-- QUIZ -->
+<!-- ══ QUIZ ═══════════════════════════════════════════════════ -->
 <div class="screen" id="screen-quiz">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
   <div class="quiz-container">
@@ -345,17 +373,14 @@ select.input option{background:var(--surface2);}
   </div>
 </div>
 
-<!-- WORD RACE -->
+<!-- ══ WORD RACE ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-wordrace">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
   <div class="wordrace-container">
     <div class="live-scores" id="wr-scores"></div>
     <div class="wr-round-info">Runda <span id="wr-round">1</span>/<span id="wr-total">6</span></div>
     <div class="wr-timer-bar"><div id="wr-timer-fill" class="wr-timer-fill"></div></div>
-    <div class="wr-clue">
-      <div class="wr-clue-label">Wskazówka</div>
-      <div class="wr-clue-text" id="wr-clue">...</div>
-    </div>
+    <div class="wr-clue"><div class="wr-clue-label">Wskazówka</div><div class="wr-clue-text" id="wr-clue">...</div></div>
     <div class="wr-input-row">
       <input class="input" id="wr-answer" placeholder="Wpisz odpowiedź..." autocomplete="off" onkeydown="if(event.key==='Enter')submitWordRace()">
       <button class="btn btn-primary" onclick="submitWordRace()">→</button>
@@ -364,7 +389,7 @@ select.input option{background:var(--surface2);}
   </div>
 </div>
 
-<!-- GAME OVER -->
+<!-- ══ GAME OVER ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-gameover">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
   <div class="scoreboard">
@@ -374,38 +399,64 @@ select.input option{background:var(--surface2);}
       <p id="result-subtitle"></p>
     </div>
     <div id="final-scores"></div>
-    <div style="display:flex;gap:12px;margin-top:20px">
+    <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
       <button class="btn btn-secondary" style="flex:1" onclick="goHome()">🏠 Menu</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="showLeaderboard()">🏆 Leaderboard</button>
       <button class="btn btn-primary" style="flex:1;display:none" id="play-again-btn" onclick="playAgain()">🔄 Zagraj ponownie</button>
     </div>
   </div>
 </div>
 
-<!-- ADMIN LOGIN -->
+<!-- ══ LEADERBOARD ════════════════════════════════════════════ -->
+<div class="screen" id="screen-leaderboard">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div class="leaderboard-container">
+    <div class="lb-header">
+      <h2>🏆 Leaderboard</h2>
+      <button class="btn btn-secondary btn-sm" onclick="loadLeaderboard()">🔄 Odśwież</button>
+    </div>
+    <div class="lb-tabs" id="lb-tabs"></div>
+    <div id="lb-content"></div>
+  </div>
+</div>
+
+<!-- ══ ADMIN LOGIN ════════════════════════════════════════════ -->
 <div class="screen" id="screen-admin-login">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
   <div class="card">
     <h2>⚙️ Panel Admina</h2>
     <p>Zarządzaj kategoriami, słowami i pytaniami.</p>
-    <div class="input-group">
-      <label>Hasło</label>
-      <input class="input" id="admin-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()">
-    </div>
+    <div class="input-group"><label>Hasło</label><input class="input" id="admin-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"></div>
     <button class="btn btn-primary" style="width:100%" onclick="adminLogin()">Zaloguj →</button>
     <p style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">Domyślne: admin123</p>
   </div>
 </div>
 
-<!-- ADMIN PANEL -->
+<!-- ══ ADMIN PANEL ════════════════════════════════════════════ -->
 <div class="screen" id="screen-admin">
   <div style="width:100%;max-width:920px;position:relative;z-index:1">
     <div class="admin-header">
       <button class="btn btn-secondary btn-sm" onclick="goHome()">← Wróć</button>
       <h2>⚙️ Panel Admina</h2>
-      <button class="btn btn-danger btn-sm" onclick="adminReset()">🔄 Reset</button>
+      <button class="btn btn-danger btn-sm" onclick="adminResetLb()">🗑️ Wyczyść LB</button>
+      <button class="btn btn-danger btn-sm" onclick="adminReset()">🔄 Reset treści</button>
     </div>
     <div class="admin-tabs" id="admin-tabs"></div>
     <div id="admin-tab-content"></div>
+  </div>
+</div>
+
+<!-- ══ CHAT (floating) ════════════════════════════════════════ -->
+<button class="chat-toggle" id="chat-toggle" onclick="toggleChat()" title="Czat">💬</button>
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-header">
+    <span>💬 Czat pokoju</span>
+    <span id="chat-room-label"></span>
+  </div>
+  <div class="chat-messages" id="chat-messages"></div>
+  <div class="chat-input-row">
+    <input class="input" id="chat-input" placeholder="Napisz coś..." maxlength="200" onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="chat-send" onclick="sendChat()">➤</button>
   </div>
 </div>
 
@@ -417,500 +468,500 @@ const socket = io();
 let S = { roomId:null, playerId:null, playerName:null, isHost:false, isGM:false, gameType:null, room:null, selectedGame:null };
 let adminPwd = '';
 let content = {};
-let games = [];  // lista modułów z /api/games
+let games = [];
 let timerInterval = null;
+let wrTimerInterval = null;
 let selectedAnswer = null;
+let chatOpen = false;
+let chatUnread = 0;
+let activeAdminTab = null;
+let activeLbTab = null;
 
 // ── SCREENS ────────────────────────────────────────────────────
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-'+id).classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
 }
 function goHome() { location.reload(); }
 
-// ── LOAD GAMES FROM SERVER ────────────────────────────────────
+// ── INIT ───────────────────────────────────────────────────────
 async function init() {
-  const r = await fetch('/api/games');
-  games = await r.json();
-  const cr = await fetch('/api/content');
-  content = await cr.json();
+  const [gR, cR] = await Promise.all([fetch('/api/games'), fetch('/api/content')]);
+  games   = await gR.json();
+  content = await cR.json();
 
-  // Render game cards
   const container = document.getElementById('game-cards-container');
-  container.innerHTML = games.map((g,i) => `
-    <div class="game-card ${i===0?'selected':''}" data-game="${g.id}" onclick="selectGame('${g.id}',this)" style="--game-color:${g.color}">
+  container.innerHTML = games.map((g, i) => `
+    <div class="game-card ${i===0?'selected':''}" data-game="${g.id}" onclick="selectGame('${g.id}',this)">
       <div class="game-icon">${g.icon}</div>
       <div class="game-name">${g.name}</div>
       <div class="game-desc">${g.description}</div>
-    </div>
-  `).join('');
-
+    </div>`).join('');
   if (games[0]) S.selectedGame = games[0].id;
 
-  // Populate create-game select
   document.getElementById('create-game').innerHTML = games.map(g =>
     `<option value="${g.id}">${g.icon} ${g.name}</option>`).join('');
-
   onGameChange();
 }
 
 function selectGame(id, el) {
   S.selectedGame = id;
-  document.querySelectorAll('.game-card').forEach(c=>c.classList.remove('selected'));
+  document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
 }
 
 function onGameChange() {
   const gameId = document.getElementById('create-game').value;
-  const gameMeta = games.find(g=>g.id===gameId);
+  const meta = games.find(g => g.id === gameId);
   const cats = content[gameId] || {};
-
-  // Categories
   document.getElementById('create-category').innerHTML = Object.entries(cats)
-    .map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
-
-  // GM toggle
-  const gmToggle = document.getElementById('gm-toggle');
-  if (gameMeta?.supportsGameMaster) {
-    gmToggle.style.display = 'flex';
-    document.getElementById('gm-hint').textContent = gameMeta.gameMasterHint || 'Zarządzasz grą, nie grasz';
+    .map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('');
+  const gt = document.getElementById('gm-toggle');
+  if (meta?.supportsGameMaster) {
+    gt.style.display = 'flex';
+    document.getElementById('gm-hint').textContent = meta.gameMasterHint || 'Zarządzasz grą, nie grasz';
   } else {
-    gmToggle.style.display = 'none';
+    gt.style.display = 'none';
     document.getElementById('gm-checkbox').checked = false;
   }
 }
 
-// ── CREATE / JOIN ──────────────────────────────────────────────
-async function createRoom() {
+// ── ROOM ───────────────────────────────────────────────────────
+function createRoom() {
   const name = document.getElementById('create-name').value.trim();
-  if (!name) return showToast('Wpisz nick!','error');
+  if (!name) return showToast('Wpisz nick!', 'error');
   S.playerName = name;
-  S.gameType = document.getElementById('create-game').value;
-  S.isGM = document.getElementById('gm-checkbox').checked;
-  const config = {
-    category: document.getElementById('create-category').value,
-    difficulty: document.getElementById('create-difficulty').value,
-  };
-  socket.emit('createRoom', { gameType: S.gameType, playerName: name, isGameMaster: S.isGM, config });
+  S.gameType   = document.getElementById('create-game').value;
+  S.isGM       = document.getElementById('gm-checkbox').checked;
+  socket.emit('createRoom', {
+    gameType: S.gameType, playerName: name, isGameMaster: S.isGM,
+    config: { category: document.getElementById('create-category').value, difficulty: document.getElementById('create-difficulty').value },
+  });
 }
 
 function joinRoom() {
   const name = document.getElementById('join-name').value.trim();
   const code = document.getElementById('join-code').value.trim().toUpperCase();
-  if (!name) return showToast('Wpisz nick!','error');
-  if (code.length!==5) return showToast('Wpisz 5-literowy kod!','error');
+  if (!name) return showToast('Wpisz nick!', 'error');
+  if (code.length !== 5) return showToast('Wpisz 5-literowy kod!', 'error');
   S.playerName = name;
-  socket.emit('joinRoom', { roomId:code, playerName:name });
+  socket.emit('joinRoom', { roomId: code, playerName: name });
 }
 
 function startGame() {
-  const customWord = document.getElementById('gm-custom-word')?.value.trim()||'';
-  socket.emit('startGame', { roomId:S.roomId, customWord });
+  socket.emit('startGame', { roomId: S.roomId, customWord: document.getElementById('gm-custom-word')?.value.trim() || '' });
 }
-
-function playAgain() { socket.emit('playAgain', { roomId:S.roomId }); }
+function playAgain() { socket.emit('playAgain', { roomId: S.roomId }); }
 
 // ── LOBBY ──────────────────────────────────────────────────────
 function renderLobby(room) {
   document.getElementById('lobby-code').textContent = room.id;
   document.getElementById('player-count').textContent = room.players.length;
-
-  const gameMeta = games.find(g=>g.id===room.gameType)||{};
-  const cats = content[room.gameType]||{};
-  const catLabel = cats[room.config?.category]?.label||room.config?.category||'?';
+  const meta = games.find(g => g.id === room.gameType) || {};
+  const cats = content[room.gameType] || {};
   const diffMap = {easy:'😊 Łatwy',medium:'🔥 Średni',hard:'💀 Trudny'};
   document.getElementById('lobby-badges').innerHTML = `
-    <span class="badge badge-game">${gameMeta.icon||''} ${gameMeta.name||room.gameType}</span>
-    <span class="badge badge-cat">${catLabel}</span>
+    <span class="badge badge-game">${meta.icon||''} ${meta.name||room.gameType}</span>
+    <span class="badge badge-cat">${cats[room.config?.category]?.label||room.config?.category||'?'}</span>
     <span class="badge badge-diff">${diffMap[room.config?.difficulty]||''}</span>
-    ${room.isGameMaster?'<span class="badge badge-gm">🎭 Game Master</span>':''}
-  `;
-
-  const colors=['#7c5cfc','#fc5c7d','#5cf0c8','#fcc05c','#5cb8fc','#e05cfc'];
+    ${room.isGameMaster?'<span class="badge badge-gm">🎭 Game Master</span>':''}`;
+  const colors = ['#7c5cfc','#fc5c7d','#5cf0c8','#fcc05c','#5cb8fc','#e05cfc'];
   document.getElementById('players-container').innerHTML = [
     ...(room.isGameMaster?[{id:room.gameMasterId,name:room.gameMasterName,_gm:true}]:[]),
     ...room.players,
-  ].map((p,i)=>`
+  ].map((p,i) => `
     <div class="player-item">
       <div class="player-avatar" style="background:${colors[i%colors.length]}">${p.name[0].toUpperCase()}</div>
       <span>${p.name}</span>
-      ${p._gm?'<span class="gm-badge-small">🎭 Game Master</span>':''}
+      ${p._gm?'<span class="gm-badge-small">🎭 GM</span>':''}
       ${!p._gm&&p.id===room.hostId&&!room.isGameMaster?'<span class="player-host-badge">Host</span>':''}
     </div>`).join('');
+  const isCtrl = S.isGM || (S.isHost && !room.isGameMaster);
+  document.getElementById('start-btn-container').style.display = isCtrl ? 'block' : 'none';
+  document.getElementById('waiting-msg').style.display = isCtrl ? 'none' : 'block';
+  document.getElementById('gm-word-panel').style.display = (S.isGM && room.gameType === 'hangman') ? 'block' : 'none';
+}
 
-  const isCtrl = S.isGM||(S.isHost&&!room.isGameMaster);
-  document.getElementById('start-btn-container').style.display = isCtrl?'block':'none';
-  document.getElementById('waiting-msg').style.display = isCtrl?'none':'block';
-  document.getElementById('gm-word-panel').style.display = (S.isGM&&room.gameType==='hangman')?'block':'none';
+// ── CHAT ───────────────────────────────────────────────────────
+function showChat() {
+  document.getElementById('chat-toggle').style.display = 'flex';
+  document.getElementById('chat-room-label').textContent = S.roomId || '';
+}
+function hideChat() {
+  document.getElementById('chat-toggle').style.display = 'none';
+  document.getElementById('chat-panel').classList.remove('open');
+  chatOpen = false;
+}
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-panel').classList.toggle('open', chatOpen);
+  if (chatOpen) {
+    chatUnread = 0;
+    updateChatBadge();
+    const msgs = document.getElementById('chat-messages');
+    msgs.scrollTop = msgs.scrollHeight;
+    document.getElementById('chat-input').focus();
+  }
+}
+function updateChatBadge() {
+  const btn = document.getElementById('chat-toggle');
+  if (chatUnread > 0) { btn.classList.add('has-unread'); btn.dataset.count = chatUnread; }
+  else { btn.classList.remove('has-unread'); }
+}
+function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg || !S.roomId) return;
+  socket.emit('chatMessage', { roomId: S.roomId, message: msg });
+  input.value = '';
+}
+function appendChatMsg({ name, message, isGM, isSystem, time }) {
+  const msgs = document.getElementById('chat-messages');
+  const isMe = name === S.playerName && !isSystem;
+  const div = document.createElement('div');
+  div.className = `chat-msg${isMe?' mine':''}${isSystem?' system-msg':''}`;
+  if (!isSystem) {
+    const nameClass = isMe ? 'me' : isGM ? 'gm' : '';
+    div.innerHTML = `<div class="chat-msg-name ${nameClass}">${name}</div>
+      <div class="chat-msg-bubble">${escHtml(message)}</div>
+      <div class="chat-msg-time">${time}</div>`;
+  } else {
+    div.innerHTML = `<div class="chat-msg-bubble">${escHtml(message)}</div>`;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  if (!chatOpen) { chatUnread++; updateChatBadge(); }
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ── HANGMAN ────────────────────────────────────────────────────
-const LETTERS=['A','Ą','B','C','Ć','D','E','Ę','F','G','H','I','J','K','L','Ł','M','N','Ń','O','Ó','P','R','S','Ś','T','U','W','Y','Z','Ź','Ż'];
-const SCAFFOLD=['h-head','h-body','h-arm-l','h-arm-r','h-leg-l','h-leg-r'];
+const LETTERS = ['A','Ą','B','C','Ć','D','E','Ę','F','G','H','I','J','K','L','Ł','M','N','Ń','O','Ó','P','R','S','Ś','T','U','W','Y','Z','Ź','Ż'];
+const SCAFFOLD = ['h-head','h-body','h-arm-l','h-arm-r','h-leg-l','h-leg-r'];
 
 function renderHangman(room, mask, isMyTurn) {
-  renderLiveScores(room,'hangman-scores');
-  const ind=document.getElementById('turn-indicator');
-  if(S.isGM){ind.textContent='🎭 Obserwujesz jako Game Master';ind.className='turn-indicator gm-view';}
-  else if(isMyTurn){ind.textContent='🎯 Twoja kolej!';ind.className='turn-indicator your-turn';}
-  else{const cp=room.players.find(p=>p.id===room.gameState?.currentTurn);ind.textContent=`⏳ Kolej: ${cp?.name||'...'}`;ind.className='turn-indicator wait';}
-  document.getElementById('wrong-count').textContent=room.gameState?.wrongGuesses?.length||0;
-  SCAFFOLD.forEach((id,i)=>document.getElementById(id).style.display=i<(room.gameState?.wrongGuesses?.length||0)?'block':'none');
-  const letters=mask.replace(/ /g,'').split('');
-  document.getElementById('word-display').innerHTML=letters.map(l=>`<div class="letter-box ${l!=='_'?'revealed':''}">${l!=='_'?l:''}</div>`).join('');
-  const guessed=[...(room.gameState?.guessed||[]),...(room.gameState?.wrongGuesses||[])].map(l=>l.toUpperCase());
-  document.getElementById('keyboard').innerHTML=LETTERS.map(letter=>{
-    const up=letter.toUpperCase();
-    const isC=(room.gameState?.guessed||[]).map(l=>l.toUpperCase()).includes(up);
-    const isW=(room.gameState?.wrongGuesses||[]).map(l=>l.toUpperCase()).includes(up);
+  renderLiveScores(room, 'hangman-scores');
+  const ind = document.getElementById('turn-indicator');
+  if (S.isGM) { ind.textContent = '🎭 Obserwujesz jako Game Master'; ind.className = 'turn-indicator gm-view'; }
+  else if (isMyTurn) { ind.textContent = '🎯 Twoja kolej!'; ind.className = 'turn-indicator your-turn'; }
+  else { const cp = room.players.find(p => p.id === room.gameState?.currentTurn); ind.textContent = `⏳ Kolej: ${cp?.name||'...'}`;ind.className='turn-indicator wait'; }
+  document.getElementById('wrong-count').textContent = room.gameState?.wrongGuesses?.length || 0;
+  SCAFFOLD.forEach((id,i) => document.getElementById(id).style.display = i < (room.gameState?.wrongGuesses?.length||0) ? 'block' : 'none');
+  document.getElementById('word-display').innerHTML = mask.replace(/ /g,'').split('').map(l => `<div class="letter-box ${l!=='_'?'revealed':''}">${l!=='_'?l:''}</div>`).join('');
+  const guessed = [...(room.gameState?.guessed||[]),...(room.gameState?.wrongGuesses||[])].map(l=>l.toUpperCase());
+  document.getElementById('keyboard').innerHTML = LETTERS.map(letter => {
+    const up = letter.toUpperCase();
+    const isC = (room.gameState?.guessed||[]).map(l=>l.toUpperCase()).includes(up);
+    const isW = (room.gameState?.wrongGuesses||[]).map(l=>l.toUpperCase()).includes(up);
     return `<button class="key-btn ${isC?'correct':''} ${isW?'wrong':''}" onclick="guessLetter('${letter.toLowerCase()}')" ${guessed.includes(up)||!isMyTurn||S.isGM?'disabled':''}>${letter}</button>`;
   }).join('');
 }
+function guessLetter(l) { socket.emit('guessLetter', { roomId: S.roomId, letter: l }); }
 
-function guessLetter(l){socket.emit('guessLetter',{roomId:S.roomId,letter:l});}
-
-// ── QUIZ ────────────────────────────────────────────────────────
-function renderQuizQuestion(data){
-  document.getElementById('q-num').textContent=data.questionIndex+1;
-  document.getElementById('q-total').textContent=data.total;
-  document.getElementById('q-points').textContent=data.points;
-  document.getElementById('quiz-question').textContent=data.question;
-  document.getElementById('answered-count').textContent='0';
-  document.getElementById('total-count').textContent=S.room?.players.length||0;
-  document.getElementById('quiz-answers').innerHTML=data.answers.map((a,i)=>
+// ── QUIZ ───────────────────────────────────────────────────────
+function renderQuizQuestion(data) {
+  document.getElementById('q-num').textContent = data.questionIndex + 1;
+  document.getElementById('q-total').textContent = data.total;
+  document.getElementById('q-points').textContent = data.points;
+  document.getElementById('quiz-question').textContent = data.question;
+  document.getElementById('answered-count').textContent = '0';
+  document.getElementById('total-count').textContent = S.room?.players.length || 0;
+  document.getElementById('quiz-answers').innerHTML = data.answers.map((a,i) =>
     `<button class="answer-btn" onclick="answerQuiz(${i})">${a}</button>`).join('');
   startTimer(data.timeLimit);
 }
-
-function answerQuiz(i){
-  if(selectedAnswer!==null)return;
-  selectedAnswer=i;
-  document.querySelectorAll('.answer-btn').forEach((b,j)=>{b.disabled=true;if(j===i)b.classList.add('selected');});
-  socket.emit('quizAnswer',{roomId:S.roomId,answerIndex:i});
+function answerQuiz(i) {
+  if (selectedAnswer !== null) return;
+  selectedAnswer = i;
+  document.querySelectorAll('.answer-btn').forEach((b,j) => { b.disabled=true; if(j===i) b.classList.add('selected'); });
+  socket.emit('quizAnswer', { roomId: S.roomId, answerIndex: i });
 }
-
-function startTimer(seconds){
+function startTimer(seconds) {
   clearInterval(timerInterval);
-  const bar=document.getElementById('timer-bar');
-  let left=seconds;
-  bar.style.width='100%';bar.className='quiz-timer-bar';
-  timerInterval=setInterval(()=>{
-    left--;const pct=(left/seconds)*100;
-    bar.style.width=pct+'%';
-    if(pct<40)bar.classList.add('warning');
-    if(pct<20)bar.classList.add('danger');
-    if(left<=0)clearInterval(timerInterval);
-  },1000);
+  const bar = document.getElementById('timer-bar');
+  let left = seconds; bar.style.width='100%'; bar.className='quiz-timer-bar';
+  timerInterval = setInterval(() => {
+    left--; const pct=(left/seconds)*100; bar.style.width=pct+'%';
+    if(pct<40) bar.classList.add('warning'); if(pct<20) bar.classList.add('danger');
+    if(left<=0) clearInterval(timerInterval);
+  }, 1000);
 }
 
 // ── WORD RACE ──────────────────────────────────────────────────
-let wrTimerInterval=null;
-
-function renderWordRace(data){
-  document.getElementById('wr-round').textContent=data.roundIndex+1;
-  document.getElementById('wr-total').textContent=data.total;
-  document.getElementById('wr-clue').textContent=data.clue;
-  document.getElementById('wr-answer').value='';
-  document.getElementById('wr-answer').disabled=false;
-  document.getElementById('wr-feedback').textContent='';
+function renderWordRace(data) {
+  document.getElementById('wr-round').textContent = data.roundIndex + 1;
+  document.getElementById('wr-total').textContent = data.total;
+  document.getElementById('wr-clue').textContent = data.clue;
+  document.getElementById('wr-answer').value = '';
+  document.getElementById('wr-answer').disabled = false;
+  document.getElementById('wr-feedback').textContent = '';
   document.getElementById('wr-answer').focus();
-  renderLiveScores(data.room,'wr-scores');
+  renderLiveScores(data.room, 'wr-scores');
   startWrTimer(data.timeLimit);
 }
-
-function startWrTimer(seconds){
+function startWrTimer(seconds) {
   clearInterval(wrTimerInterval);
-  const fill=document.getElementById('wr-timer-fill');
-  let left=seconds;fill.style.width='100%';fill.style.background='var(--warning)';
-  wrTimerInterval=setInterval(()=>{
-    left--;const pct=(left/seconds)*100;fill.style.width=pct+'%';
-    if(pct<30)fill.style.background='var(--error)';
-    if(left<=0)clearInterval(wrTimerInterval);
-  },1000);
+  const fill = document.getElementById('wr-timer-fill');
+  let left = seconds; fill.style.width='100%'; fill.style.background='var(--warning)';
+  wrTimerInterval = setInterval(() => {
+    left--; const pct=(left/seconds)*100; fill.style.width=pct+'%';
+    if(pct<30) fill.style.background='var(--error)';
+    if(left<=0) clearInterval(wrTimerInterval);
+  }, 1000);
 }
-
-function submitWordRace(){
-  const answer=document.getElementById('wr-answer').value.trim();
-  if(!answer)return;
-  socket.emit('wordRaceAnswer',{roomId:S.roomId,answer});
+function submitWordRace() {
+  const answer = document.getElementById('wr-answer').value.trim();
+  if (!answer) return;
+  socket.emit('wordRaceAnswer', { roomId: S.roomId, answer });
 }
 
 // ── SHARED ────────────────────────────────────────────────────
-function renderLiveScores(room,id){
-  const el=document.getElementById(id);if(!el)return;
-  el.innerHTML=[...room.players].sort((a,b)=>b.score-a.score).map(p=>
+function renderLiveScores(room, id) {
+  const el = document.getElementById(id); if (!el) return;
+  el.innerHTML = [...room.players].sort((a,b) => b.score-a.score).map(p =>
     `<div class="live-score-chip">${p.name} <span>${p.score}</span></div>`).join('');
 }
 
-function showGameOver(data){
-  clearInterval(timerInterval);clearInterval(wrTimerInterval);
-  const sorted=data.sorted||[...data.room.players].sort((a,b)=>b.score-a.score);
-  const ranks=['🥇','🥈','🥉'];
-  const banner=document.getElementById('result-banner');
-  const game=data.room.gameType;
-  if(game==='hangman'){
-    banner.className=data.won?'result-banner win':'result-banner lose';
-    document.getElementById('result-emoji').textContent=data.won?'🎉':'💀';
-    document.getElementById('result-title').textContent=data.won?'Słowo odgadnięte!':'Wisielec umarł!';
-    document.getElementById('result-subtitle').textContent=`Słowo: ${(data.word||'').toUpperCase()}`;
-  }else{
-    const meta=games.find(g=>g.id===game)||{};
-    banner.className='result-banner win';
-    document.getElementById('result-emoji').textContent='🏆';
-    document.getElementById('result-title').textContent=`Koniec — ${meta.name||game}!`;
-    document.getElementById('result-subtitle').textContent=sorted[0]?`Wygrywa ${sorted[0].name}!`:'';
+function showGameOver(data) {
+  clearInterval(timerInterval); clearInterval(wrTimerInterval);
+  const sorted = data.sorted || [...data.room.players].sort((a,b) => b.score-a.score);
+  const ranks = ['🥇','🥈','🥉'];
+  const banner = document.getElementById('result-banner');
+  if (data.room.gameType === 'hangman') {
+    banner.className = data.won ? 'result-banner win' : 'result-banner lose';
+    document.getElementById('result-emoji').textContent = data.won ? '🎉' : '💀';
+    document.getElementById('result-title').textContent = data.won ? 'Słowo odgadnięte!' : 'Wisielec umarł!';
+    document.getElementById('result-subtitle').textContent = `Słowo: ${(data.word||'').toUpperCase()}`;
+  } else {
+    const meta = games.find(g => g.id === data.room.gameType) || {};
+    banner.className = 'result-banner win';
+    document.getElementById('result-emoji').textContent = '🏆';
+    document.getElementById('result-title').textContent = `Koniec — ${meta.name||data.room.gameType}!`;
+    document.getElementById('result-subtitle').textContent = sorted[0] ? `Wygrywa ${sorted[0].name}!` : '';
   }
-  document.getElementById('final-scores').innerHTML=sorted.map((p,i)=>
+  document.getElementById('final-scores').innerHTML = sorted.map((p,i) =>
     `<div class="score-item ${i===0?'first':i===1?'second':i===2?'third':''}">
       <div class="score-rank">${ranks[i]||(i+1)}</div>
       <div class="score-name">${p.name}${p.id===S.playerId?' <span style="color:var(--accent);font-size:12px">(ty)</span>':''}</div>
       <div class="score-points">${p.score}</div>
     </div>`).join('');
-  if(S.isHost||S.isGM)document.getElementById('play-again-btn').style.display='inline-flex';
+  if (S.isHost || S.isGM) document.getElementById('play-again-btn').style.display = 'inline-flex';
   showScreen('gameover');
 }
 
+// ── LEADERBOARD ────────────────────────────────────────────────
+async function showLeaderboard() {
+  await loadLeaderboard();
+  showScreen('leaderboard');
+}
+
+async function loadLeaderboard() {
+  const r = await fetch('/api/leaderboard');
+  const lb = await r.json();
+  const tabsEl = document.getElementById('lb-tabs');
+
+  // Build tabs from loaded games + any keys in lb
+  const allIds = [...new Set([...games.map(g=>g.id), ...Object.keys(lb)])];
+  if (!activeLbTab || !allIds.includes(activeLbTab)) activeLbTab = allIds[0];
+
+  tabsEl.innerHTML = allIds.map(id => {
+    const meta = games.find(g => g.id === id) || {};
+    const count = lb[id]?.length || 0;
+    return `<button class="lb-tab ${id===activeLbTab?'active':''}" onclick="lbTab('${id}')">${meta.icon||'🎮'} ${meta.name||id} <span style="opacity:.6;font-size:11px">(${count})</span></button>`;
+  }).join('');
+
+  renderLbContent(lb[activeLbTab] || []);
+}
+
+function lbTab(id) {
+  activeLbTab = id;
+  loadLeaderboard();
+}
+
+function renderLbContent(entries) {
+  const el = document.getElementById('lb-content');
+  if (!entries.length) { el.innerHTML = '<div class="lb-empty">Brak wyników. Zagraj pierwszą grę! 🎮</div>'; return; }
+  const diffLabel = {easy:'Łatwy',medium:'Średni',hard:'Trudny'};
+  el.innerHTML = `<table class="lb-table">
+    <thead><tr><th>#</th><th>Gracz</th><th>Wynik</th><th>Kategoria</th><th>Data</th></tr></thead>
+    <tbody>${entries.slice(0, 50).map((e, i) => {
+      const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const rank = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+      const date = new Date(e.date).toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<tr>
+        <td><span class="lb-rank ${rankClass}">${rank}</span></td>
+        <td style="font-weight:700">${escHtml(e.name)}</td>
+        <td><span class="lb-score">${e.score}</span></td>
+        <td><span class="lb-meta">${e.category||'—'} · ${diffLabel[e.difficulty]||e.difficulty||'—'}</span></td>
+        <td class="lb-date">${date}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
 // ── SOCKET EVENTS ──────────────────────────────────────────────
-socket.on('connect',()=>{S.playerId=socket.id;});
-socket.on('error',({message})=>showToast(message,'error'));
+socket.on('connect', () => { S.playerId = socket.id; });
+socket.on('error', ({message}) => showToast(message, 'error'));
 
-socket.on('roomCreated',({roomId,room})=>{S.roomId=roomId;S.isHost=true;S.room=room;renderLobby(room);showScreen('lobby');});
-socket.on('roomJoined',({roomId,room})=>{S.roomId=roomId;S.isHost=false;S.room=room;renderLobby(room);showScreen('lobby');});
-socket.on('playerJoined',({room})=>{S.room=room;renderLobby(room);showToast(`👋 ${room.players[room.players.length-1].name} dołączył!`);});
-socket.on('playerLeft',({room,playerName})=>{S.room=room;if(S.roomId)renderLobby(room);showToast(`${playerName} opuścił pokój`,'error');});
-
-socket.on('gameStarted',({room,mask,wordLength})=>{
-  S.room=room;
-  if(room.gameType==='hangman'){renderHangman(room,mask||Array(wordLength).fill('_').join(' '),room.gameState?.currentTurn===S.playerId);showScreen('hangman');}
-  else if(room.gameType==='quiz'){showScreen('quiz');}
-  else if(room.gameType==='wordrace'){showScreen('wordrace');}
+socket.on('roomCreated', ({roomId, room}) => {
+  S.roomId=roomId; S.isHost=true; S.room=room; renderLobby(room); showChat(); showScreen('lobby');
 });
-
-socket.on('letterGuessed',({room,letter,correct,mask,currentTurn})=>{
-  S.room=room;renderHangman(room,mask,currentTurn===S.playerId);
+socket.on('roomJoined', ({roomId, room}) => {
+  S.roomId=roomId; S.isHost=false; S.room=room; renderLobby(room); showChat(); showScreen('lobby');
+});
+socket.on('playerJoined', ({room}) => {
+  S.room=room; renderLobby(room);
+  showToast(`👋 ${room.players[room.players.length-1].name} dołączył!`);
+});
+socket.on('playerLeft', ({room, playerName}) => {
+  S.room=room; if(S.roomId) renderLobby(room); showToast(`${playerName} opuścił pokój`,'error');
+});
+socket.on('gameStarted', ({room,mask,wordLength}) => {
+  S.room=room;
+  if(room.gameType==='hangman'){ renderHangman(room,mask||Array(wordLength).fill('_').join(' '),room.gameState?.currentTurn===S.playerId); showScreen('hangman'); }
+  else if(room.gameType==='quiz'){ showScreen('quiz'); }
+  else if(room.gameType==='wordrace'){ showScreen('wordrace'); }
+});
+socket.on('letterGuessed', ({room,letter,correct,mask,currentTurn}) => {
+  S.room=room; renderHangman(room,mask,currentTurn===S.playerId);
   showToast(correct?`✅ Litera "${letter.toUpperCase()}" jest!`:`❌ Brak litery "${letter.toUpperCase()}"`,correct?'success':'error');
 });
-
-socket.on('quizQuestion',(data)=>{selectedAnswer=null;renderQuizQuestion(data);if(S.room)renderLiveScores(S.room,'quiz-scores');showScreen('quiz');});
-socket.on('answerResult',({correct,points})=>{
+socket.on('quizQuestion', (data) => { selectedAnswer=null; renderQuizQuestion(data); if(S.room) renderLiveScores(S.room,'quiz-scores'); showScreen('quiz'); });
+socket.on('answerResult', ({correct,points}) => {
   const btns=document.querySelectorAll('.answer-btn');
   if(correct){if(selectedAnswer!==null)btns[selectedAnswer].classList.add('correct');showToast(`✅ Poprawnie! +${points} pkt`,'success');}
   else{if(selectedAnswer!==null)btns[selectedAnswer].classList.add('wrong');showToast('❌ Błędna odpowiedź','error');}
 });
-socket.on('quizReveal',({correctIndex,room})=>{
-  S.room=room;clearInterval(timerInterval);
+socket.on('quizReveal', ({correctIndex,room}) => {
+  S.room=room; clearInterval(timerInterval);
   const btns=document.querySelectorAll('.answer-btn');
   if(btns[correctIndex])btns[correctIndex].classList.add('correct');
-  btns.forEach(b=>b.disabled=true);renderLiveScores(room,'quiz-scores');
+  btns.forEach(b=>b.disabled=true); renderLiveScores(room,'quiz-scores');
 });
-socket.on('playerAnswered',({answeredCount,totalPlayers})=>{
+socket.on('playerAnswered', ({answeredCount,totalPlayers}) => {
   document.getElementById('answered-count').textContent=answeredCount;
   document.getElementById('total-count').textContent=totalPlayers;
 });
-
-socket.on('wordRaceRound',(data)=>{S.room=data.room;renderWordRace(data);showScreen('wordrace');});
-socket.on('wordRaceCorrect',({playerName,answer,points,room})=>{
-  S.room=room;clearInterval(wrTimerInterval);
+socket.on('wordRaceRound', (data) => { S.room=data.room; renderWordRace(data); showScreen('wordrace'); });
+socket.on('wordRaceCorrect', ({playerName,answer,points,room}) => {
+  S.room=room; clearInterval(wrTimerInterval);
   const isMe=room.players.find(p=>p.id===S.playerId)?.name===playerName;
-  document.getElementById('wr-feedback').style.color='var(--success)';
-  document.getElementById('wr-feedback').textContent=isMe?`✅ Poprawnie! +${points} pkt`:`✅ ${playerName} odpowiedział! Słowo: ${answer.toUpperCase()}`;
-  document.getElementById('wr-answer').disabled=true;
-  renderLiveScores(room,'wr-scores');
-});
-socket.on('wordRaceWrong',()=>{
   const el=document.getElementById('wr-feedback');
-  el.style.color='var(--error)';el.textContent='❌ Nie to słowo...';
+  el.style.color='var(--success)'; el.textContent=isMe?`✅ Poprawnie! +${points} pkt`:`✅ ${playerName}: ${answer.toUpperCase()}`;
+  document.getElementById('wr-answer').disabled=true; renderLiveScores(room,'wr-scores');
+});
+socket.on('wordRaceWrong', () => {
+  const el=document.getElementById('wr-feedback'); el.style.color='var(--error)'; el.textContent='❌ Nie to słowo...';
   setTimeout(()=>el.textContent='',1500);
 });
-socket.on('wordRaceTimeout',({answer,room})=>{
-  S.room=room;clearInterval(wrTimerInterval);
-  document.getElementById('wr-feedback').style.color='var(--warning)';
-  document.getElementById('wr-feedback').textContent=`⏰ Czas minął! Słowo: ${answer.toUpperCase()}`;
-  document.getElementById('wr-answer').disabled=true;
-  renderLiveScores(room,'wr-scores');
+socket.on('wordRaceTimeout', ({answer,room}) => {
+  S.room=room; clearInterval(wrTimerInterval);
+  const el=document.getElementById('wr-feedback'); el.style.color='var(--warning)'; el.textContent=`⏰ Czas! Słowo: ${answer.toUpperCase()}`;
+  document.getElementById('wr-answer').disabled=true; renderLiveScores(room,'wr-scores');
 });
-
-socket.on('gameOver',(data)=>{S.room=data.room;showGameOver(data);});
-socket.on('gameReset',({room})=>{S.room=room;S.isHost=room.hostId===S.playerId;renderLobby(room);document.getElementById('play-again-btn').style.display='none';showScreen('lobby');});
+socket.on('gameOver', (data) => { S.room=data.room; showGameOver(data); });
+socket.on('gameReset', ({room}) => {
+  S.room=room; S.isHost=room.hostId===S.playerId; renderLobby(room);
+  document.getElementById('play-again-btn').style.display='none'; showScreen('lobby');
+});
+socket.on('chatMessage', (msg) => { appendChatMsg(msg); });
 
 // ── ADMIN ──────────────────────────────────────────────────────
-async function adminLogin(){
-  const pwd=document.getElementById('admin-password').value;
-  const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
-  const {ok}=await r.json();
-  if(!ok)return showToast('Złe hasło!','error');
-  adminPwd=pwd;await loadAdminContent();showScreen('admin');
+async function adminLogin() {
+  const pwd = document.getElementById('admin-password').value;
+  const r = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
+  const {ok} = await r.json();
+  if (!ok) return showToast('Złe hasło!','error');
+  adminPwd = pwd; await loadAdminContent(); showScreen('admin');
 }
-
-async function loadAdminContent(){
-  const r=await fetch('/api/content');content=await r.json();
+async function loadAdminContent() {
+  const r = await fetch('/api/content'); content = await r.json();
   renderAdminTabs();
 }
-
-let activeAdminTab='hangman';
-function renderAdminTabs(){
-  const tabsEl=document.getElementById('admin-tabs');
-  tabsEl.innerHTML=Object.keys(content).map(gameId=>{
-    const meta=games.find(g=>g.id===gameId)||{icon:'🎮',name:gameId};
-    return `<button class="tab-btn ${gameId===activeAdminTab?'active':''}" onclick="adminTab('${gameId}')">${meta.icon} ${meta.name}</button>`;
+function renderAdminTabs() {
+  const ids = Object.keys(content);
+  if (!activeAdminTab || !ids.includes(activeAdminTab)) activeAdminTab = ids[0];
+  document.getElementById('admin-tabs').innerHTML = ids.map(id => {
+    const meta = games.find(g=>g.id===id)||{icon:'🎮',name:id};
+    return `<button class="tab-btn ${id===activeAdminTab?'active':''}" onclick="adminTab('${id}')">${meta.icon} ${meta.name}</button>`;
   }).join('');
   renderAdminTabContent(activeAdminTab);
 }
-
-function adminTab(t){activeAdminTab=t;renderAdminTabs();}
-
-function renderAdminTabContent(gameId){
-  const el=document.getElementById('admin-tab-content');
-  const gameContent=content[gameId]||{};
-  if(gameId==='hangman')el.innerHTML=renderHangmanAdmin(gameContent);
-  else if(gameId==='quiz')el.innerHTML=renderQuizAdmin(gameContent);
-  else if(gameId==='wordrace')el.innerHTML=renderWordRaceAdmin(gameContent);
-  else el.innerHTML=`<p style="color:var(--muted)">Brak panelu admina dla tej gry.</p>`;
+function adminTab(t) { activeAdminTab=t; renderAdminTabs(); }
+function renderAdminTabContent(gameId) {
+  const el = document.getElementById('admin-tab-content');
+  const c = content[gameId]||{};
+  if(gameId==='hangman') el.innerHTML=renderHangmanAdmin(c);
+  else if(gameId==='quiz') el.innerHTML=renderQuizAdmin(c);
+  else if(gameId==='wordrace') el.innerHTML=renderWordRaceAdmin(c);
+  else el.innerHTML='<p style="color:var(--muted)">Brak panelu admina dla tej gry.</p>';
 }
-
 function renderHangmanAdmin(c){
-  const addCatForm=`<div class="admin-section"><h3>➕ Nowa kategoria</h3>
-    <div class="row">
-      <div class="input-group"><label>Klucz</label><input class="input" id="h-new-cat-key" placeholder="np. movies"></div>
-      <div class="input-group"><label>Nazwa</label><input class="input" id="h-new-cat-label" placeholder="np. 🎬 Filmy"></div>
-    </div>
-    <button class="btn btn-secondary btn-sm" onclick="addHangmanCategory()">Dodaj kategorię</button></div>`;
-  return addCatForm+Object.entries(c).map(([catKey,cat])=>`
-    <div class="admin-section"><h3>${cat.label}</h3>
-    ${['easy','medium','hard'].map(diff=>`
-      <div style="margin-bottom:14px">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${{easy:'😊 Łatwy',medium:'🔥 Średni',hard:'💀 Trudny'}[diff]}</div>
-        <div class="word-chips">${(cat[diff]||[]).map(w=>`<div class="word-chip">${w}<button onclick="deleteHangmanWord('${catKey}','${diff}','${w}')">×</button></div>`).join('')}</div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input class="input" id="new-word-${catKey}-${diff}" placeholder="Nowe słowo..." style="max-width:200px;padding:8px 12px;font-size:13px">
-          <button class="btn btn-secondary btn-sm" onclick="addHangmanWord('${catKey}','${diff}')">Dodaj</button>
-        </div>
-      </div>`).join('')}
-    </div>`).join('');
+  return `<div class="admin-section"><h3>➕ Nowa kategoria</h3><div class="row">
+    <div class="input-group"><label>Klucz</label><input class="input" id="h-new-cat-key" placeholder="np. movies"></div>
+    <div class="input-group"><label>Nazwa</label><input class="input" id="h-new-cat-label" placeholder="np. 🎬 Filmy"></div>
+    </div><button class="btn btn-secondary btn-sm" onclick="addHangmanCategory()">Dodaj</button></div>`
+  +Object.entries(c).map(([ck,cat])=>`<div class="admin-section"><h3>${cat.label}</h3>
+    ${['easy','medium','hard'].map(diff=>`<div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${{easy:'😊 Łatwy',medium:'🔥 Średni',hard:'💀 Trudny'}[diff]}</div>
+      <div class="word-chips">${(cat[diff]||[]).map(w=>`<div class="word-chip">${w}<button onclick="deleteHangmanWord('${ck}','${diff}','${w}')">×</button></div>`).join('')}</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input class="input" id="new-word-${ck}-${diff}" placeholder="Nowe słowo..." style="max-width:200px;padding:8px 12px;font-size:13px">
+        <button class="btn btn-secondary btn-sm" onclick="addHangmanWord('${ck}','${diff}')">Dodaj</button>
+      </div></div>`).join('')}</div>`).join('');
 }
-
 function renderQuizAdmin(c){
-  const addCatForm=`<div class="admin-section"><h3>➕ Nowa kategoria</h3>
-    <div class="row">
-      <div class="input-group"><label>Klucz</label><input class="input" id="q-new-cat-key" placeholder="np. history"></div>
-      <div class="input-group"><label>Nazwa</label><input class="input" id="q-new-cat-label" placeholder="np. 📜 Historia"></div>
-    </div>
-    <button class="btn btn-secondary btn-sm" onclick="addQuizCategory()">Dodaj kategorię</button></div>`;
-  return addCatForm+Object.entries(c).map(([catKey,cat])=>`
-    <div class="admin-section"><h3>${cat.label}</h3>
-    ${['easy','medium','hard'].map(diff=>`
-      <div style="margin-bottom:18px">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${{easy:'😊 Łatwy',medium:'🔥 Średni',hard:'💀 Trudny'}[diff]}</div>
-        ${(cat[diff]||[]).map((q,qi)=>`
-          <div class="question-item">
-            <div class="q-text">${q.question}</div>
-            <div class="q-answers">${q.answers.map((a,ai)=>`<span class="q-answer ${ai===q.correct?'correct':''}">${a}</span>`).join('')}</div>
-            <div class="q-meta"><span class="q-points">💰 ${q.points} pkt</span><button class="delete-btn" onclick="deleteQuizQuestion('${catKey}','${diff}',${qi})">×</button></div>
-          </div>`).join('')}
-        <div class="add-form"><h4>➕ Dodaj pytanie</h4>
-          <div class="input-group"><label>Pytanie</label><input class="input" id="qtext-${catKey}-${diff}" placeholder="Treść pytania..."></div>
-          <div class="answers-grid">${[0,1,2,3].map(i=>`<input class="input" id="qans-${catKey}-${diff}-${i}" placeholder="Odpowiedź ${i+1}">`).join('')}</div>
-          <div class="row">
-            <div class="input-group"><label>Poprawna</label><select class="input" id="qcorrect-${catKey}-${diff}"><option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option></select></div>
-            <div class="input-group"><label>Punkty</label><select class="input" id="qpoints-${catKey}-${diff}"><option value="100">100</option><option value="200">200</option><option value="300">300</option></select></div>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="addQuizQuestion('${catKey}','${diff}')">Dodaj pytanie</button>
-        </div>
+  return `<div class="admin-section"><h3>➕ Nowa kategoria</h3><div class="row">
+    <div class="input-group"><label>Klucz</label><input class="input" id="q-new-cat-key" placeholder="np. history"></div>
+    <div class="input-group"><label>Nazwa</label><input class="input" id="q-new-cat-label" placeholder="np. 📜 Historia"></div>
+    </div><button class="btn btn-secondary btn-sm" onclick="addQuizCategory()">Dodaj</button></div>`
+  +Object.entries(c).map(([ck,cat])=>`<div class="admin-section"><h3>${cat.label}</h3>
+    ${['easy','medium','hard'].map(diff=>`<div style="margin-bottom:18px">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${{easy:'😊 Łatwy',medium:'🔥 Średni',hard:'💀 Trudny'}[diff]}</div>
+      ${(cat[diff]||[]).map((q,qi)=>`<div class="question-item"><div class="q-text">${q.question}</div>
+        <div class="q-answers">${q.answers.map((a,ai)=>`<span class="q-answer ${ai===q.correct?'correct':''}">${a}</span>`).join('')}</div>
+        <div class="q-meta"><span class="q-points">💰 ${q.points} pkt</span><button class="delete-btn" onclick="deleteQuizQuestion('${ck}','${diff}',${qi})">×</button></div>
       </div>`).join('')}
-    </div>`).join('');
+      <div class="add-form"><h4>➕ Dodaj pytanie</h4>
+        <div class="input-group"><label>Pytanie</label><input class="input" id="qtext-${ck}-${diff}" placeholder="Treść pytania..."></div>
+        <div class="answers-grid">${[0,1,2,3].map(i=>`<input class="input" id="qans-${ck}-${diff}-${i}" placeholder="Odpowiedź ${i+1}">`).join('')}</div>
+        <div class="row">
+          <div class="input-group"><label>Poprawna</label><select class="input" id="qcorrect-${ck}-${diff}"><option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option></select></div>
+          <div class="input-group"><label>Punkty</label><select class="input" id="qpoints-${ck}-${diff}"><option value="100">100</option><option value="200">200</option><option value="300">300</option></select></div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="addQuizQuestion('${ck}','${diff}')">Dodaj pytanie</button>
+      </div></div>`).join('')}</div>`).join('');
 }
-
 function renderWordRaceAdmin(c){
-  const addCatForm=`<div class="admin-section"><h3>➕ Nowa kategoria</h3>
-    <div class="row">
-      <div class="input-group"><label>Klucz</label><input class="input" id="wr-new-cat-key" placeholder="np. history"></div>
-      <div class="input-group"><label>Nazwa</label><input class="input" id="wr-new-cat-label" placeholder="np. 📜 Historia"></div>
-    </div>
-    <button class="btn btn-secondary btn-sm" onclick="addWrCategory()">Dodaj kategorię</button></div>`;
-  return addCatForm+Object.entries(c).map(([catKey,cat])=>`
-    <div class="admin-section"><h3>${cat.label}</h3>
-    ${['easy','medium','hard'].map(diff=>`
-      <div style="margin-bottom:14px">
-        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${{easy:'😊 Łatwy',medium:'🔥 Średni',hard:'💀 Trudny'}[diff]}</div>
-        ${(cat[diff]||[]).map((item,idx)=>`
-          <div class="word-chip" style="margin-bottom:5px;width:fit-content">
-            <span style="color:var(--muted)">${item.clue}</span>
-            <span style="margin:0 4px">→</span>
-            <strong>${item.answer}</strong>
-            <button onclick="deleteWrWord('${catKey}','${diff}',${idx})">×</button>
-          </div>`).join('')}
-        <div class="add-form" style="margin-top:10px"><h4>➕ Dodaj parę wskazówka → odpowiedź</h4>
-          <div class="row">
-            <div class="input-group"><label>Wskazówka</label><input class="input" id="wr-clue-${catKey}-${diff}" placeholder="np. Stolica Niemiec"></div>
-            <div class="input-group"><label>Odpowiedź</label><input class="input" id="wr-ans-${catKey}-${diff}" placeholder="np. berlin"></div>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="addWrWord('${catKey}','${diff}')">Dodaj</button>
-        </div>
-      </div>`).join('')}
-    </div>`).join('');
+  return `<div class="admin-section"><h3>➕ Nowa kategoria</h3><div class="row">
+    <div class="input-group"><label>Klucz</label><input class="input" id="wr-new-cat-key" placeholder="np. history"></div>
+    <div class="input-group"><label>Nazwa</label><input class="input" id="wr-new-cat-label" placeholder="np. 📜 Historia"></div>
+    </div><button class="btn btn-secondary btn-sm" onclick="addWrCategory()">Dodaj</button></div>`
+  +Object.entries(c).map(([ck,cat])=>`<div class="admin-section"><h3>${cat.label}</h3>
+    ${['easy','medium','hard'].map(diff=>`<div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${{easy:'😊 Łatwy',medium:'🔥 Średni',hard:'💀 Trudny'}[diff]}</div>
+      ${(cat[diff]||[]).map((item,idx)=>`<div class="word-chip" style="margin-bottom:5px;width:fit-content">
+        <span style="color:var(--muted)">${item.clue}</span><span style="margin:0 4px">→</span><strong>${item.answer}</strong>
+        <button onclick="deleteWrWord('${ck}','${diff}',${idx})">×</button></div>`).join('')}
+      <div class="add-form" style="margin-top:10px"><h4>➕ Dodaj</h4><div class="row">
+        <div class="input-group"><label>Wskazówka</label><input class="input" id="wr-clue-${ck}-${diff}" placeholder="np. Stolica Niemiec"></div>
+        <div class="input-group"><label>Odpowiedź</label><input class="input" id="wr-ans-${ck}-${diff}" placeholder="np. berlin"></div>
+      </div><button class="btn btn-secondary btn-sm" onclick="addWrWord('${ck}','${diff}')">Dodaj</button></div>
+      </div>`).join('')}</div>`).join('');
 }
 
-// Admin actions
-async function addHangmanCategory(){
-  const key=document.getElementById('h-new-cat-key').value.trim().replace(/\s/g,'');
-  const label=document.getElementById('h-new-cat-label').value.trim();
-  if(!key||!label)return showToast('Wypełnij oba pola!','error');
-  await fetch('/api/admin/hangman/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,key,label})});
-  await loadAdminContent();showToast('Dodano!','success');
-}
-async function addHangmanWord(cat,diff){
-  const word=document.getElementById(`new-word-${cat}-${diff}`).value.trim();
-  if(!word)return showToast('Wpisz słowo!','error');
-  await fetch('/api/admin/hangman/word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,word})});
-  await loadAdminContent();showToast(`"${word}" dodane!`,'success');
-}
-async function deleteHangmanWord(cat,diff,word){
-  await fetch('/api/admin/hangman/word',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,word})});
-  await loadAdminContent();showToast('Usunięto','success');
-}
-async function addQuizCategory(){
-  const key=document.getElementById('q-new-cat-key').value.trim().replace(/\s/g,'');
-  const label=document.getElementById('q-new-cat-label').value.trim();
-  if(!key||!label)return showToast('Wypełnij oba pola!','error');
-  await fetch('/api/admin/quiz/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,key,label})});
-  await loadAdminContent();showToast('Dodano!','success');
-}
-async function addQuizQuestion(cat,diff){
-  const question=document.getElementById(`qtext-${cat}-${diff}`).value.trim();
-  const answers=[0,1,2,3].map(i=>document.getElementById(`qans-${cat}-${diff}-${i}`).value.trim());
-  const correct=document.getElementById(`qcorrect-${cat}-${diff}`).value;
-  const points=document.getElementById(`qpoints-${cat}-${diff}`).value;
-  if(!question||answers.some(a=>!a))return showToast('Wypełnij wszystkie pola!','error');
-  await fetch('/api/admin/quiz/question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,question,answers,correct,points})});
-  await loadAdminContent();showToast('Dodano!','success');
-}
-async function deleteQuizQuestion(cat,diff,index){
-  await fetch('/api/admin/quiz/question',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,index})});
-  await loadAdminContent();showToast('Usunięto','success');
-}
-async function addWrCategory(){
-  const key=document.getElementById('wr-new-cat-key').value.trim().replace(/\s/g,'');
-  const label=document.getElementById('wr-new-cat-label').value.trim();
-  if(!key||!label)return showToast('Wypełnij oba pola!','error');
-  await fetch('/api/admin/wordrace/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,key,label})});
-  await loadAdminContent();showToast('Dodano!','success');
-}
-async function addWrWord(cat,diff){
-  const clue=document.getElementById(`wr-clue-${cat}-${diff}`).value.trim();
-  const answer=document.getElementById(`wr-ans-${cat}-${diff}`).value.trim();
-  if(!clue||!answer)return showToast('Wypełnij wskazówkę i odpowiedź!','error');
-  await fetch('/api/admin/wordrace/word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,clue,answer})});
-  await loadAdminContent();showToast('Dodano!','success');
-}
-async function deleteWrWord(cat,diff,index){
-  await fetch('/api/admin/wordrace/word',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,index})});
-  await loadAdminContent();showToast('Usunięto','success');
-}
-async function adminReset(){
-  if(!confirm('Zresetować do domyślnych treści?'))return;
-  await fetch('/api/admin/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd})});
-  await loadAdminContent();showToast('Zresetowano!','success');
-}
+async function addHangmanCategory(){const key=document.getElementById('h-new-cat-key').value.trim().replace(/\s/g,'');const label=document.getElementById('h-new-cat-label').value.trim();if(!key||!label)return showToast('Wypełnij oba pola!','error');await fetch('/api/admin/hangman/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,key,label})});await loadAdminContent();showToast('Dodano!','success');}
+async function addHangmanWord(cat,diff){const word=document.getElementById(`new-word-${cat}-${diff}`).value.trim();if(!word)return showToast('Wpisz słowo!','error');await fetch('/api/admin/hangman/word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,word})});await loadAdminContent();showToast(`"${word}" dodane!`,'success');}
+async function deleteHangmanWord(cat,diff,word){await fetch('/api/admin/hangman/word',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,word})});await loadAdminContent();showToast('Usunięto','success');}
+async function addQuizCategory(){const key=document.getElementById('q-new-cat-key').value.trim().replace(/\s/g,'');const label=document.getElementById('q-new-cat-label').value.trim();if(!key||!label)return showToast('Wypełnij oba pola!','error');await fetch('/api/admin/quiz/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,key,label})});await loadAdminContent();showToast('Dodano!','success');}
+async function addQuizQuestion(cat,diff){const question=document.getElementById(`qtext-${cat}-${diff}`).value.trim();const answers=[0,1,2,3].map(i=>document.getElementById(`qans-${cat}-${diff}-${i}`).value.trim());const correct=document.getElementById(`qcorrect-${cat}-${diff}`).value;const points=document.getElementById(`qpoints-${cat}-${diff}`).value;if(!question||answers.some(a=>!a))return showToast('Wypełnij wszystkie pola!','error');await fetch('/api/admin/quiz/question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,question,answers,correct,points})});await loadAdminContent();showToast('Dodano!','success');}
+async function deleteQuizQuestion(cat,diff,index){await fetch('/api/admin/quiz/question',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,index})});await loadAdminContent();showToast('Usunięto','success');}
+async function addWrCategory(){const key=document.getElementById('wr-new-cat-key').value.trim().replace(/\s/g,'');const label=document.getElementById('wr-new-cat-label').value.trim();if(!key||!label)return showToast('Wypełnij oba pola!','error');await fetch('/api/admin/wordrace/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,key,label})});await loadAdminContent();showToast('Dodano!','success');}
+async function addWrWord(cat,diff){const clue=document.getElementById(`wr-clue-${cat}-${diff}`).value.trim();const answer=document.getElementById(`wr-ans-${cat}-${diff}`).value.trim();if(!clue||!answer)return showToast('Wypełnij wskazówkę i odpowiedź!','error');await fetch('/api/admin/wordrace/word',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,clue,answer})});await loadAdminContent();showToast('Dodano!','success');}
+async function deleteWrWord(cat,diff,index){await fetch('/api/admin/wordrace/word',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd,category:cat,difficulty:diff,index})});await loadAdminContent();showToast('Usunięto','success');}
+async function adminReset(){if(!confirm('Zresetować do domyślnych treści?'))return;await fetch('/api/admin/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd})});await loadAdminContent();showToast('Zresetowano!','success');}
+async function adminResetLb(){if(!confirm('Wyczyścić cały leaderboard?'))return;await fetch('/api/admin/leaderboard',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd})});showToast('Leaderboard wyczyszczony!','success');}
 
 // ── TOAST ──────────────────────────────────────────────────────
 let toastTimer;
