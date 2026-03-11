@@ -148,6 +148,8 @@ function createRoom(roomId, gameType, hostId, hostName, isGameMaster, config) {
     gameMasterId:   isGameMaster ? hostId   : null,
     gameMasterName: isGameMaster ? hostName : null,
     status: 'waiting',
+    observers: [],
+    createdAt: Date.now(),
     gameState: mod ? mod.createState(config || {}) : {},
   };
 }
@@ -155,6 +157,28 @@ function createRoom(roomId, gameType, hostId, hostName, isGameMaster, config) {
 // ─── PUBLIC API ────────────────────────────────────────────────
 app.get('/api/games', (req, res) => res.json(Object.values(GAMES).map(m => m.meta)));
 app.get('/api/content', (req, res) => res.json(CONTENT));
+
+// ─── ACTIVE ROOMS API ──────────────────────────────────────────
+app.get('/api/rooms', (req, res) => {
+  const publicRooms = Object.values(rooms).map(r => {
+    const meta = GAMES[r.gameType]?.meta || {};
+    return {
+      id: r.id,
+      gameType: r.gameType,
+      gameName: meta.name || r.gameType,
+      gameIcon: meta.icon || '🎮',
+      gameColor: meta.color || '#7c5cfc',
+      status: r.status,
+      playerCount: r.players.length,
+      maxPlayers: Number(r.config?.maxPlayers) || meta.maxPlayers || 8,
+      hasGameMaster: !!r.gameMasterId,
+      gameMasterName: r.gameMasterName || null,
+      hostName: r.players[0]?.name || null,
+      createdAt: r.createdAt || Date.now(),
+    };
+  });
+  res.json(publicRooms);
+});
 app.get('/api/config-schemas', (req, res) => {
   const schemas = {};
   for (const [id, mod] of Object.entries(GAMES)) {
@@ -266,6 +290,16 @@ io.on('connection', (socket) => {
     socket.emit('roomCreated', { roomId, room: rooms[roomId] });
   });
 
+  socket.on('observeRoom', ({ roomId, observerName }) => {
+    const room = rooms[roomId];
+    if (!room) return socket.emit('error', { message: 'Pokój nie istnieje!' });
+    room.observers = room.observers || [];
+    room.observers.push({ id: socket.id, name: observerName || 'Obserwator' });
+    socket.join(roomId);
+    socket.emit('roomObserved', { roomId, room });
+    io.to(roomId).emit('observerJoined', { observerName: observerName || 'Obserwator', room });
+  });
+
   socket.on('joinRoom', ({ roomId, playerName }) => {
     const room = rooms[roomId];
     if (!room) return socket.emit('error', { message: 'Pokój nie istnieje!' });
@@ -295,6 +329,11 @@ io.on('connection', (socket) => {
     'jeopardyPick','jeopardyBuzz','jeopardyAnswer','jeopardyJudge',
     'familyFeudAnswer',
     'kalamburyDraw','kalamburyGuess','kalamburyClearCanvas',
+    // New games
+    'tttMove',
+    'chessMove',
+    'pokerFold','pokerCall','pokerRaise','pokerCheck','pokerBet',
+    'bjBet','bjHit','bjStand','bjDouble',
   ];
   for (const event of GAME_EVENTS) {
     socket.on(event, (data) => {
@@ -308,6 +347,21 @@ io.on('connection', (socket) => {
   // ── HANGMAN: record scores on gameOver ──
   // (hangman module emits gameOver directly, so we hook into the socket event)
   socket.on('_hangmanOver', () => {}); // placeholder — handled below via module patch
+
+  // ── CHESS: legal moves query ──
+  socket.on('chessRequestMoves', ({ roomId, from }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameType !== 'chess') return;
+    const gs = room.gameState;
+    const chessmod = GAMES['chess'];
+    if (!chessmod || !chessmod.getLegalMoves) return;
+    try {
+      const moves = chessmod.getLegalMoves(gs.board, from.r, from.c);
+      socket.emit('chessLegalMoves', { moves });
+    } catch(e) {
+      socket.emit('chessLegalMoves', { moves: [] });
+    }
+  });
 
   socket.on('playAgain', ({ roomId }) => {
     const room = rooms[roomId]; if (!room || room.hostId !== socket.id) return;
@@ -337,6 +391,10 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     for (const roomId in rooms) {
       const room = rooms[roomId];
+      // Remove from observers
+      if (room.observers) {
+        room.observers = room.observers.filter(o => o.id !== socket.id);
+      }
       const idx  = room.players.findIndex(p => p.id === socket.id);
       if (idx !== -1) {
         const name = room.players[idx].name;
