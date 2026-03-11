@@ -1,282 +1,347 @@
-const express = require('express');
-const http = require('http');
+/**
+ * ═══════════════════════════════════════════════════════════
+ *  GameNight — Modularny serwer gier
+ * ═══════════════════════════════════════════════════════════
+ *
+ *  Aby dodać nową grę:
+ *  1. Stwórz folder: games/<nazwa-gry>/
+ *  2. Dodaj plik:    games/<nazwa-gry>/index.js
+ *  3. Zrestartuj serwer — gra pojawi się automatycznie!
+ *
+ *  Struktura modułu gry → patrz games/hangman/index.js
+ * ═══════════════════════════════════════════════════════════
+ */
+
+const express  = require('express');
+const http     = require('http');
 const { Server } = require('socket.io');
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
+const path     = require('path');
+const fs       = require('fs');
 
-const app = express();
+const app    = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*' }
-});
+const io     = new Server(server, { cors: { origin: '*' } });
 
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── GAME STATE ───────────────────────────────────────────────
-const rooms = {}; // roomId -> room object
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
-// ─── HANGMAN DATA ─────────────────────────────────────────────
-const HANGMAN_WORDS = [
-  'javascript', 'programowanie', 'komputer', 'internet', 'algorytm',
-  'baza', 'serwer', 'klawiatura', 'monitor', 'procesor',
-  'python', 'reaktywny', 'framework', 'biblioteka', 'funkcja',
-  'zmienna', 'petla', 'tablica', 'obiekt', 'klasa'
-];
+// ─── AUTO-LOAD GAME MODULES ───────────────────────────────────
+const GAMES = {};   // { gameId: module }
+const CONTENT = {}; // { gameId: { ...mutable content } }
 
-// ─── QUIZ DATA ─────────────────────────────────────────────────
-const QUIZ_QUESTIONS = [
-  { question: 'Stolica Polski?', answers: ['Warszawa', 'Kraków', 'Gdańsk', 'Wrocław'], correct: 0, points: 100 },
-  { question: 'Ile to 7 × 8?', answers: ['54', '56', '64', '48'], correct: 1, points: 100 },
-  { question: 'Który rok to rok założenia Google?', answers: ['1994', '1996', '1998', '2000'], correct: 2, points: 200 },
-  { question: 'Najdłuższa rzeka świata?', answers: ['Amazonka', 'Nil', 'Jangcy', 'Missisipi'], correct: 1, points: 200 },
-  { question: 'Ile planet ma Układ Słoneczny?', answers: ['7', '8', '9', '10'], correct: 1, points: 100 },
-  { question: 'Kto namalował Monę Lisę?', answers: ['Michał Anioł', 'Rembrandt', 'Da Vinci', 'Picasso'], correct: 2, points: 300 },
-  { question: 'Symbol chemiczny złota?', answers: ['Go', 'Gd', 'Au', 'Ag'], correct: 2, points: 300 },
-  { question: 'Ile bitów ma 1 bajt?', answers: ['4', '8', '16', '32'], correct: 1, points: 100 },
-  { question: 'Rok lądowania na księżycu?', answers: ['1965', '1967', '1969', '1971'], correct: 2, points: 200 },
-  { question: 'Autor "Pana Tadeusza"?', answers: ['Słowacki', 'Mickiewicz', 'Norwid', 'Krasicki'], correct: 1, points: 200 },
-];
+function loadGameModules() {
+  const gamesDir = path.join(__dirname, 'games');
+  if (!fs.existsSync(gamesDir)) return;
 
-// ─── HELPERS ──────────────────────────────────────────────────
-function createRoom(roomId, gameType, hostId, hostName) {
-  const base = {
+  const dirs = fs.readdirSync(gamesDir).filter(d => {
+    const indexPath = path.join(gamesDir, d, 'index.js');
+    return fs.existsSync(indexPath);
+  });
+
+  for (const dir of dirs) {
+    try {
+      const mod = require(path.join(gamesDir, dir, 'index.js'));
+      const id  = mod.meta?.id || dir;
+      GAMES[id]   = mod;
+      CONTENT[id] = JSON.parse(JSON.stringify(mod.defaultContent || {}));
+      console.log(`  ✅ Załadowano grę: ${mod.meta?.icon || '🎮'} ${mod.meta?.name || id}`);
+    } catch (err) {
+      console.error(`  ❌ Błąd ładowania gry "${dir}":`, err.message);
+    }
+  }
+
+  console.log(`\n🎮 Załadowano ${Object.keys(GAMES).length} gier: ${Object.keys(GAMES).join(', ')}\n`);
+}
+
+loadGameModules();
+
+// ─── HELPERS przekazywane do modułów ──────────────────────────
+function makeHelpers(roomId) {
+  return {
+    emitError(targetRoomId, message) {
+      io.to(targetRoomId).emit('error', { message });
+    },
+
+    // Quiz helpers
+    startQuizQuestion(rId) {
+      const room = rooms[rId];
+      if (!room) return;
+      const gs = room.gameState;
+      gs.answeredPlayers = [];
+      const q = gs.questions[gs.currentQuestion];
+      io.to(rId).emit('quizQuestion', {
+        questionIndex: gs.currentQuestion,
+        total: gs.questions.length,
+        question: q.question,
+        answers: q.answers,
+        points: q.points,
+        timeLimit: 15,
+      });
+      gs.questionTimer = setTimeout(() => this.endQuizQuestion(rId), 15000);
+    },
+
+    endQuizQuestion(rId) {
+      const room = rooms[rId];
+      if (!room) return;
+      const gs = room.gameState;
+      const q  = gs.questions[gs.currentQuestion];
+      io.to(rId).emit('quizReveal', { correctIndex: q.correct, room });
+      gs.currentQuestion++;
+      setTimeout(() => {
+        if (gs.currentQuestion >= gs.questions.length) {
+          room.status = 'finished';
+          io.to(rId).emit('gameOver', { room, sorted: [...room.players].sort((a,b)=>b.score-a.score) });
+        } else {
+          this.startQuizQuestion(rId);
+        }
+      }, 3000);
+    },
+
+    // WordRace helpers
+    startWordRaceRound(rId) {
+      const room = rooms[rId];
+      if (!room) return;
+      const gs = room.gameState;
+      gs.answered = [];
+      gs.roundWinner = null;
+      const round = gs.rounds[gs.currentRound];
+      io.to(rId).emit('wordRaceRound', {
+        roundIndex: gs.currentRound,
+        total: gs.rounds.length,
+        clue: round.clue,
+        timeLimit: 20,
+        room,
+      });
+      gs.roundTimer = setTimeout(() => {
+        io.to(rId).emit('wordRaceTimeout', { answer: round.answer, room });
+        setTimeout(() => this.nextWordRaceRound(rId), 2500);
+      }, 20000);
+    },
+
+    nextWordRaceRound(rId) {
+      const room = rooms[rId];
+      if (!room) return;
+      const gs = room.gameState;
+      gs.currentRound++;
+      if (gs.currentRound >= gs.rounds.length) {
+        room.status = 'finished';
+        io.to(rId).emit('gameOver', { room, sorted: [...room.players].sort((a,b)=>b.score-a.score) });
+      } else {
+        this.startWordRaceRound(rId);
+      }
+    },
+  };
+}
+
+// ─── ROOM STATE ────────────────────────────────────────────────
+const rooms = {};
+
+function createRoom(roomId, gameType, hostId, hostName, isGameMaster, config) {
+  const mod = GAMES[gameType];
+  return {
     id: roomId,
     gameType,
     hostId,
-    players: [{ id: hostId, name: hostName, score: 0 }],
-    status: 'waiting', // waiting | playing | finished
+    isGameMaster: !!isGameMaster,
+    config: config || {},
+    players: isGameMaster ? [] : [{ id: hostId, name: hostName, score: 0 }],
+    gameMasterId:   isGameMaster ? hostId   : null,
+    gameMasterName: isGameMaster ? hostName : null,
+    status: 'waiting',
+    gameState: mod ? mod.createState(config || {}) : {},
   };
+}
 
-  if (gameType === 'hangman') {
-    return {
-      ...base,
-      word: '',
-      guessed: [],
-      wrongGuesses: [],
-      currentTurn: hostId,
-      maxWrong: 6,
-    };
-  } else if (gameType === 'quiz') {
-    return {
-      ...base,
-      questions: [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, 8),
-      currentQuestion: 0,
-      answeredPlayers: [],
-      questionTimer: null,
-    };
+// ─── PUBLIC API ────────────────────────────────────────────────
+app.get('/api/games', (req, res) => {
+  res.json(Object.values(GAMES).map(m => m.meta));
+});
+
+app.get('/api/content', (req, res) => {
+  res.json(CONTENT);
+});
+
+// ─── ADMIN API ────────────────────────────────────────────────
+function adminCheck(password, res) {
+  if (password !== ADMIN_PASSWORD) { res.status(403).json({ error: 'Brak dostępu' }); return false; }
+  return true;
+}
+
+app.post('/api/admin/login', (req, res) => {
+  res.json({ ok: req.body.password === ADMIN_PASSWORD });
+});
+
+app.post('/api/admin/reset', (req, res) => {
+  if (!adminCheck(req.body.password, res)) return;
+  for (const id of Object.keys(GAMES)) {
+    CONTENT[id] = JSON.parse(JSON.stringify(GAMES[id].defaultContent || {}));
   }
-  return base;
-}
+  res.json({ ok: true });
+});
 
-function getHangmanMask(word, guessed) {
-  return word.split('').map(l => guessed.includes(l) ? l : '_').join(' ');
-}
+// Hangman words
+app.post('/api/admin/hangman/word', (req, res) => {
+  const { password, category, difficulty, word } = req.body;
+  if (!adminCheck(password, res)) return;
+  const c = CONTENT.hangman;
+  if (!c[category]) c[category] = { label: category, easy:[], medium:[], hard:[] };
+  const w = word.toLowerCase().trim();
+  if (!c[category][difficulty].includes(w)) c[category][difficulty].push(w);
+  res.json({ ok: true });
+});
 
-function checkHangmanWin(word, guessed) {
-  return word.split('').every(l => guessed.includes(l));
-}
+app.delete('/api/admin/hangman/word', (req, res) => {
+  const { password, category, difficulty, word } = req.body;
+  if (!adminCheck(password, res)) return;
+  CONTENT.hangman[category][difficulty] = CONTENT.hangman[category][difficulty].filter(w => w !== word);
+  res.json({ ok: true });
+});
 
-// ─── SOCKET HANDLERS ──────────────────────────────────────────
+app.post('/api/admin/hangman/category', (req, res) => {
+  const { password, key, label } = req.body;
+  if (!adminCheck(password, res)) return;
+  if (!CONTENT.hangman[key]) CONTENT.hangman[key] = { label, easy:[], medium:[], hard:[] };
+  res.json({ ok: true });
+});
+
+// Quiz questions
+app.post('/api/admin/quiz/question', (req, res) => {
+  const { password, category, difficulty, question, answers, correct, points } = req.body;
+  if (!adminCheck(password, res)) return;
+  const c = CONTENT.quiz;
+  if (!c[category]) c[category] = { label: category, easy:[], medium:[], hard:[] };
+  c[category][difficulty].push({ question, answers, correct: +correct, points: +points });
+  res.json({ ok: true });
+});
+
+app.delete('/api/admin/quiz/question', (req, res) => {
+  const { password, category, difficulty, index } = req.body;
+  if (!adminCheck(password, res)) return;
+  CONTENT.quiz[category][difficulty].splice(index, 1);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/quiz/category', (req, res) => {
+  const { password, key, label } = req.body;
+  if (!adminCheck(password, res)) return;
+  if (!CONTENT.quiz[key]) CONTENT.quiz[key] = { label, easy:[], medium:[], hard:[] };
+  res.json({ ok: true });
+});
+
+// WordRace words
+app.post('/api/admin/wordrace/word', (req, res) => {
+  const { password, category, difficulty, clue, answer } = req.body;
+  if (!adminCheck(password, res)) return;
+  const c = CONTENT.wordrace;
+  if (!c[category]) c[category] = { label: category, easy:[], medium:[], hard:[] };
+  c[category][difficulty].push({ clue, answer: answer.toLowerCase().trim() });
+  res.json({ ok: true });
+});
+
+app.delete('/api/admin/wordrace/word', (req, res) => {
+  const { password, category, difficulty, index } = req.body;
+  if (!adminCheck(password, res)) return;
+  CONTENT.wordrace[category][difficulty].splice(index, 1);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/wordrace/category', (req, res) => {
+  const { password, key, label } = req.body;
+  if (!adminCheck(password, res)) return;
+  if (!CONTENT.wordrace[key]) CONTENT.wordrace[key] = { label, easy:[], medium:[], hard:[] };
+  res.json({ ok: true });
+});
+
+// ─── SOCKET ────────────────────────────────────────────────────
 io.on('connection', (socket) => {
-  console.log('🔌 Connected:', socket.id);
 
-  // ── CREATE ROOM ──
-  socket.on('createRoom', ({ gameType, playerName }) => {
+  socket.on('createRoom', ({ gameType, playerName, isGameMaster, config }) => {
+    if (!GAMES[gameType]) return socket.emit('error', { message: `Nieznana gra: ${gameType}` });
     const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-    rooms[roomId] = createRoom(roomId, gameType, socket.id, playerName);
+    rooms[roomId] = createRoom(roomId, gameType, socket.id, playerName, isGameMaster, config || {});
     socket.join(roomId);
     socket.emit('roomCreated', { roomId, room: rooms[roomId] });
-    console.log(`🏠 Room ${roomId} created (${gameType}) by ${playerName}`);
   });
 
-  // ── JOIN ROOM ──
   socket.on('joinRoom', ({ roomId, playerName }) => {
     const room = rooms[roomId];
     if (!room) return socket.emit('error', { message: 'Pokój nie istnieje!' });
     if (room.status !== 'waiting') return socket.emit('error', { message: 'Gra już trwa!' });
-    if (room.players.length >= 6) return socket.emit('error', { message: 'Pokój jest pełny!' });
-
+    const meta = GAMES[room.gameType]?.meta;
+    if (room.players.length >= (meta?.maxPlayers || 8)) return socket.emit('error', { message: 'Pokój jest pełny!' });
     room.players.push({ id: socket.id, name: playerName, score: 0 });
     socket.join(roomId);
     socket.emit('roomJoined', { roomId, room });
     io.to(roomId).emit('playerJoined', { room });
-    console.log(`👤 ${playerName} joined room ${roomId}`);
   });
 
-  // ── START GAME ──
-  socket.on('startGame', ({ roomId }) => {
+  socket.on('startGame', ({ roomId, customWord }) => {
     const room = rooms[roomId];
-    if (!room || room.hostId !== socket.id) return;
-    if (room.players.length < 1) return socket.emit('error', { message: 'Potrzeba co najmniej 1 gracza!' });
-
+    if (!room) return;
+    if (room.hostId !== socket.id && room.gameMasterId !== socket.id) return;
+    const meta = GAMES[room.gameType]?.meta;
+    if (room.players.length < (meta?.minPlayers || 1)) {
+      return socket.emit('error', { message: `Potrzeba min. ${meta?.minPlayers || 1} graczy!` });
+    }
     room.status = 'playing';
-
-    if (room.gameType === 'hangman') {
-      room.word = HANGMAN_WORDS[Math.floor(Math.random() * HANGMAN_WORDS.length)];
-      room.guessed = [];
-      room.wrongGuesses = [];
-      room.currentTurn = room.players[0].id;
-      io.to(roomId).emit('gameStarted', {
+    const mod = GAMES[room.gameType];
+    if (mod?.onStart) {
+      mod.onStart({
         room,
-        mask: getHangmanMask(room.word, room.guessed),
-        wordLength: room.word.length,
-      });
-    } else if (room.gameType === 'quiz') {
-      room.currentQuestion = 0;
-      room.answeredPlayers = [];
-      io.to(roomId).emit('gameStarted', { room });
-      startQuizQuestion(roomId);
-    }
-  });
-
-  // ── HANGMAN: GUESS LETTER ──
-  socket.on('guessLetter', ({ roomId, letter }) => {
-    const room = rooms[roomId];
-    if (!room || room.status !== 'playing' || room.gameType !== 'hangman') return;
-    if (room.currentTurn !== socket.id) return socket.emit('error', { message: 'Nie twoja kolej!' });
-    if (room.guessed.includes(letter) || room.wrongGuesses.includes(letter)) return;
-
-    const playerIndex = room.players.findIndex(p => p.id === socket.id);
-    const nextPlayerIndex = (playerIndex + 1) % room.players.length;
-
-    if (room.word.includes(letter)) {
-      room.guessed.push(letter);
-      const occurrences = room.word.split('').filter(l => l === letter).length;
-      room.players[playerIndex].score += occurrences * 10;
-    } else {
-      room.wrongGuesses.push(letter);
-    }
-
-    const mask = getHangmanMask(room.word, room.guessed);
-    const won = checkHangmanWin(room.word, room.guessed);
-    const lost = room.wrongGuesses.length >= room.maxWrong;
-
-    if (won || lost) {
-      room.status = 'finished';
-      io.to(roomId).emit('gameOver', {
-        room,
-        word: room.word,
-        won,
-        mask,
-      });
-    } else {
-      room.currentTurn = room.players[nextPlayerIndex].id;
-      io.to(roomId).emit('letterGuessed', {
-        room,
-        letter,
-        correct: room.word.includes(letter),
-        mask,
-        currentTurn: room.currentTurn,
+        content: CONTENT[room.gameType] || {},
+        customWord,
+        io,
+        helpers: makeHelpers(roomId),
       });
     }
   });
 
-  // ── QUIZ: ANSWER ──
-  socket.on('quizAnswer', ({ roomId, answerIndex }) => {
-    const room = rooms[roomId];
-    if (!room || room.status !== 'playing' || room.gameType !== 'quiz') return;
-    if (room.answeredPlayers.includes(socket.id)) return;
-
-    room.answeredPlayers.push(socket.id);
-    const q = room.questions[room.currentQuestion];
-    const playerIndex = room.players.findIndex(p => p.id === socket.id);
-
-    if (answerIndex === q.correct) {
-      // Bonus za szybkość
-      const speedBonus = Math.max(0, 3 - room.answeredPlayers.length) * 50;
-      room.players[playerIndex].score += q.points + speedBonus;
-      socket.emit('answerResult', { correct: true, points: q.points + speedBonus });
-    } else {
-      socket.emit('answerResult', { correct: false, points: 0 });
-    }
-
-    io.to(roomId).emit('playerAnswered', {
-      playerName: room.players[playerIndex]?.name,
-      answeredCount: room.answeredPlayers.length,
-      totalPlayers: room.players.length,
+  // ── Forward all game events to the right module ──
+  const GAME_EVENTS = ['guessLetter','quizAnswer','wordRaceAnswer'];
+  for (const event of GAME_EVENTS) {
+    socket.on(event, (data) => {
+      const room = rooms[data.roomId];
+      if (!room || room.status !== 'playing') return;
+      const mod = GAMES[room.gameType];
+      if (mod?.onEvent) {
+        mod.onEvent({
+          event, data, socket, room, io,
+          helpers: makeHelpers(data.roomId),
+        });
+      }
     });
+  }
 
-    if (room.answeredPlayers.length === room.players.length) {
-      clearTimeout(room.questionTimer);
-      endQuizQuestion(roomId);
-    }
-  });
-
-  // ── PLAY AGAIN ──
   socket.on('playAgain', ({ roomId }) => {
     const room = rooms[roomId];
     if (!room || room.hostId !== socket.id) return;
-
-    const newRoom = createRoom(roomId, room.gameType, room.hostId, room.players.find(p => p.id === room.hostId)?.name || 'Host');
-    newRoom.players = room.players.map(p => ({ ...p, score: 0 }));
-    rooms[roomId] = newRoom;
+    const nr = createRoom(roomId, room.gameType, room.hostId, room.gameMasterName || '', room.isGameMaster, room.config);
+    nr.players = room.players.map(p => ({ ...p, score: 0 }));
+    if (room.isGameMaster) { nr.gameMasterId = room.gameMasterId; nr.gameMasterName = room.gameMasterName; }
+    rooms[roomId] = nr;
     io.to(roomId).emit('gameReset', { room: rooms[roomId] });
   });
 
-  // ── DISCONNECT ──
   socket.on('disconnect', () => {
     for (const roomId in rooms) {
       const room = rooms[roomId];
-      const idx = room.players.findIndex(p => p.id === socket.id);
+      const idx  = room.players.findIndex(p => p.id === socket.id);
       if (idx !== -1) {
         const name = room.players[idx].name;
         room.players.splice(idx, 1);
-        if (room.players.length === 0) {
-          delete rooms[roomId];
-        } else {
-          if (room.hostId === socket.id) room.hostId = room.players[0].id;
-          io.to(roomId).emit('playerLeft', { room, playerName: name });
-        }
+        if (room.players.length === 0 && room.gameMasterId !== socket.id) { delete rooms[roomId]; continue; }
+        if (room.hostId === socket.id && room.players[0]) room.hostId = room.players[0].id;
+        io.to(roomId).emit('playerLeft', { room, playerName: name });
+      } else if (room.gameMasterId === socket.id) {
+        io.to(roomId).emit('playerLeft', { room, playerName: room.gameMasterName + ' (GM)' });
+        delete rooms[roomId];
       }
     }
   });
 });
 
-// ── QUIZ HELPERS ──
-function startQuizQuestion(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
-
-  room.answeredPlayers = [];
-  const q = room.questions[room.currentQuestion];
-
-  io.to(roomId).emit('quizQuestion', {
-    questionIndex: room.currentQuestion,
-    total: room.questions.length,
-    question: q.question,
-    answers: q.answers,
-    points: q.points,
-    timeLimit: 15,
-  });
-
-  room.questionTimer = setTimeout(() => endQuizQuestion(roomId), 15000);
-}
-
-function endQuizQuestion(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
-
-  const q = room.questions[room.currentQuestion];
-  io.to(roomId).emit('quizReveal', {
-    correctIndex: q.correct,
-    room,
-  });
-
-  room.currentQuestion++;
-
-  setTimeout(() => {
-    if (room.currentQuestion >= room.questions.length) {
-      room.status = 'finished';
-      const sorted = [...room.players].sort((a, b) => b.score - a.score);
-      io.to(roomId).emit('gameOver', { room, sorted });
-    } else {
-      startQuizQuestion(roomId);
-    }
-  }, 3000);
-}
-
-// ─── START ────────────────────────────────────────────────────
+// ─── START ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🎮 Game server running on http://localhost:${PORT}`);
-});
+server.listen(PORT, () => console.log(`\n🚀 GameNight server na http://localhost:${PORT}\n`));
