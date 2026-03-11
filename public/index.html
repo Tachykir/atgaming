@@ -94,9 +94,10 @@ select.input option{background:var(--surface2);}
 .chat-toggle{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--accent);border:none;color:white;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(124,92,252,.5);z-index:500;transition:all .2s;display:none;}
 .chat-toggle:hover{transform:scale(1.08);}
 .chat-toggle.has-unread::after{content:attr(data-count);position:absolute;top:-4px;right:-4px;background:var(--error);color:white;font-size:11px;font-weight:700;font-family:'Syne',sans-serif;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
-.chat-panel{position:fixed;bottom:88px;right:24px;width:320px;height:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:499;display:none;flex-direction:column;overflow:hidden;}
+.chat-panel{position:fixed;bottom:88px;right:24px;width:420px;height:560px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:499;display:none;flex-direction:column;overflow:hidden;min-width:280px;min-height:300px;resize:both;}
 .chat-panel.open{display:flex;}
-.chat-header{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between;}
+.chat-header{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between;cursor:grab;user-select:none;background:var(--surface2);border-radius:20px 20px 0 0;}
+.chat-header:active{cursor:grabbing;}
 .chat-header span{color:var(--accent3);font-size:12px;}
 .chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth;}
 .chat-msg{max-width:100%;}
@@ -234,6 +235,58 @@ select.input option{background:var(--surface2);}
 .toast.success{border-color:var(--success);color:var(--success);}
 .toast.error{border-color:var(--error);color:var(--error);}
 @media(max-width:600px){.quiz-answers,.answers-grid{grid-template-columns:1fr;}.card{padding:22px;}.row{flex-direction:column;}.chat-panel{width:calc(100vw - 32px);right:16px;}}
+
+/* ── NICK SAVE ── */
+.nick-saved{font-size:11px;color:var(--accent3);margin-top:4px;}
+
+/* ── JEOPARDY ── */
+.jeopardy-board{width:100%;max-width:900px;border-collapse:collapse;}
+.jeopardy-board th{background:var(--accent);color:white;padding:14px 10px;font-size:13px;text-align:center;border:2px solid var(--surface);}
+.jeopardy-board td{background:var(--surface2);border:2px solid var(--surface);text-align:center;cursor:pointer;transition:all .15s;font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--warning);height:80px;vertical-align:middle;}
+.jeopardy-board td:hover:not(.answered){background:rgba(124,92,252,.2);color:var(--accent);}
+.jeopardy-board td.answered{background:var(--surface);color:var(--border);cursor:not-allowed;font-size:30px;}
+.jeopardy-board td.not-your-pick{cursor:not-allowed;}
+.jeopardy-container{max-width:960px;width:100%;}
+.jeopardy-question-box{background:var(--accent);color:white;border-radius:18px;padding:32px;text-align:center;margin-bottom:20px;}
+.jeopardy-question-box .value{font-size:28px;font-weight:800;margin-bottom:12px;font-family:'DM Mono',monospace;}
+.jeopardy-question-box .clue{font-size:clamp(18px,3vw,28px);font-weight:700;line-height:1.3;}
+.buzz-btn{background:var(--warning);color:#000;font-size:22px;font-weight:800;padding:20px 40px;border-radius:16px;border:none;cursor:pointer;margin:20px auto;display:block;transition:all .15s;font-family:'Syne',sans-serif;}
+.buzz-btn:hover{transform:scale(1.04);}
+
+/* ── FAMILY FEUD ── */
+.feud-container{max-width:700px;width:100%;}
+.feud-question{background:var(--surface2);border:2px solid var(--accent);border-radius:18px;padding:28px;text-align:center;margin-bottom:24px;}
+.feud-question-text{font-size:clamp(18px,3vw,26px);font-weight:700;line-height:1.3;}
+.feud-board{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.feud-answer-slot{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:16px;font-size:16px;transition:all .3s;}
+.feud-answer-slot.revealed{background:rgba(92,240,200,.1);border-color:var(--accent3);color:var(--accent3);}
+.feud-answer-slot .feud-rank{width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.feud-answer-slot .feud-pts{margin-left:auto;font-family:'DM Mono',monospace;color:var(--warning);font-weight:700;}
+.feud-strikes{display:flex;gap:8px;justify-content:center;margin-bottom:16px;}
+.feud-strike{font-size:28px;}
+.feud-input-row{display:flex;gap:10px;}
+.feud-input-row .input{flex:1;font-size:16px;}
+
+/* ── KALAMBURY ── */
+.kalambury-container{max-width:900px;width:100%;display:flex;gap:20px;align-items:flex-start;}
+.kalambury-canvas-wrap{flex:1;min-width:0;}
+.kalambury-sidebar{width:260px;flex-shrink:0;}
+.drawing-canvas{width:100%;aspect-ratio:4/3;background:#fff;border-radius:16px;cursor:crosshair;touch-action:none;display:block;}
+.kalambury-toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.color-btn{width:32px;height:32px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all .15s;}
+.color-btn.active{border-color:white;box-shadow:0 0 0 2px var(--accent);}
+.size-btn{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;}
+.size-btn.active{border-color:var(--accent);}
+.kalambury-word-box{background:var(--accent);color:white;border-radius:14px;padding:18px;text-align:center;margin-bottom:14px;font-size:22px;font-weight:800;letter-spacing:2px;}
+.kalambury-info{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+.kalambury-guess-row{display:flex;gap:8px;}
+.kalambury-guess-row .input{flex:1;}
+.kalambury-chat{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:12px;max-height:200px;overflow-y:auto;margin-bottom:8px;display:flex;flex-direction:column;gap:4px;}
+.kalambury-guess-item{font-size:13px;padding:4px 0;}
+.kalambury-guess-item.correct{color:var(--success);font-weight:700;}
+.kalambury-guess-item.wrong{color:var(--muted);}
+.timer-circle{text-align:center;font-size:24px;font-weight:800;font-family:'DM Mono',monospace;margin-bottom:12px;}
+@media(max-width:768px){.kalambury-container{flex-direction:column;}.kalambury-sidebar{width:100%;}}
 </style>
 </head>
 <body>
@@ -264,7 +317,8 @@ select.input option{background:var(--surface2);}
     <p>Skonfiguruj grę i zaproś znajomych.</p>
     <div class="input-group">
       <label>Twój nick</label>
-      <input class="input" id="create-name" placeholder="np. Kamil123" maxlength="20">
+      <input class="input" id="create-name" placeholder="np. Kamil123" maxlength="20" oninput="saveNick(this.value)">
+      <div class="nick-saved" id="nick-saved-create" style="display:none">✓ Nick zapamiętany</div>
     </div>
     <div class="input-group">
       <label>Gra</label>
@@ -297,7 +351,7 @@ select.input option{background:var(--surface2);}
   <div class="card">
     <h2>Dołącz do pokoju</h2>
     <p>Wpisz kod od znajomego.</p>
-    <div class="input-group"><label>Twój nick</label><input class="input" id="join-name" placeholder="np. Ania99" maxlength="20"></div>
+    <div class="input-group"><label>Twój nick</label><input class="input" id="join-name" placeholder="np. Ania99" maxlength="20" oninput="saveNick(this.value)"><div class="nick-saved" id="nick-saved-join" style="display:none">✓ Nick zapamiętany</div></div>
     <div class="input-group"><label>Kod pokoju</label>
       <input class="input" id="join-code" placeholder="XXXXX" maxlength="5" style="text-transform:uppercase;font-family:'DM Mono',monospace;letter-spacing:5px;font-size:22px;text-align:center">
     </div>
@@ -449,7 +503,7 @@ select.input option{background:var(--surface2);}
 <!-- ══ CHAT (floating) ════════════════════════════════════════ -->
 <button class="chat-toggle" id="chat-toggle" onclick="toggleChat()" title="Czat">💬</button>
 <div class="chat-panel" id="chat-panel">
-  <div class="chat-header">
+  <div class="chat-header" id="chat-header">
     <span>💬 Czat pokoju</span>
     <span id="chat-room-label"></span>
   </div>
@@ -457,6 +511,66 @@ select.input option{background:var(--surface2);}
   <div class="chat-input-row">
     <input class="input" id="chat-input" placeholder="Napisz coś..." maxlength="200" onkeydown="if(event.key==='Enter')sendChat()">
     <button class="chat-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<!-- ══ JEOPARDY ═══════════════════════════════════════════════ -->
+<div class="screen" id="screen-jeopardy">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div class="jeopardy-container">
+    <div class="live-scores" id="jeopardy-scores" style="margin-bottom:16px"></div>
+    <div id="jeopardy-picker-info" style="text-align:center;margin-bottom:12px;font-size:14px;font-weight:700;color:var(--accent3)"></div>
+    <div id="jeopardy-content"></div>
+  </div>
+</div>
+
+<!-- ══ FAMILY FEUD ════════════════════════════════════════════ -->
+<div class="screen" id="screen-familyfeud">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div class="feud-container">
+    <div class="live-scores" id="feud-scores" style="margin-bottom:16px"></div>
+    <div class="feud-question">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px">Pytanie <span id="feud-q-num">1</span>/<span id="feud-q-total">5</span></div>
+      <div class="feud-question-text" id="feud-question">...</div>
+    </div>
+    <div class="feud-strikes" id="feud-strikes"></div>
+    <div class="feud-board" id="feud-board"></div>
+    <div class="feud-input-row">
+      <input class="input" id="feud-answer" placeholder="Twoja odpowiedź..." maxlength="80" onkeydown="if(event.key==='Enter')submitFeudAnswer()">
+      <button class="btn btn-primary" onclick="submitFeudAnswer()">→</button>
+    </div>
+    <div id="feud-feedback" style="text-align:center;margin-top:12px;font-weight:700;font-size:15px;min-height:22px"></div>
+  </div>
+</div>
+
+<!-- ══ KALAMBURY ═══════════════════════════════════════════════ -->
+<div class="screen" id="screen-kalambury">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div class="kalambury-container">
+    <div class="kalambury-canvas-wrap">
+      <div class="kalambury-toolbar" id="kalambury-toolbar">
+        <div style="display:flex;gap:6px" id="color-palette"></div>
+        <div style="display:flex;gap:4px" id="size-palette"></div>
+        <button class="btn btn-secondary btn-sm" id="clear-canvas-btn" onclick="clearCanvas()" style="display:none">🗑️ Wyczyść</button>
+      </div>
+      <canvas class="drawing-canvas" id="drawing-canvas"></canvas>
+      <div class="live-scores" id="kalam-scores" style="margin-top:12px"></div>
+    </div>
+    <div class="kalambury-sidebar">
+      <div id="kalam-word-box" class="kalambury-word-box" style="display:none"></div>
+      <div class="kalambury-info" id="kalam-info">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Runda <span id="kalam-round">1</span>/<span id="kalam-total">4</span></div>
+        <div id="kalam-drawer-info" style="font-size:14px;font-weight:700"></div>
+        <div class="timer-circle" id="kalam-timer">60</div>
+      </div>
+      <div class="kalambury-chat" id="kalam-chat"></div>
+      <div id="kalam-guess-area">
+        <div class="kalambury-guess-row">
+          <input class="input" id="kalam-guess" placeholder="Wpisz zgadywane słowo..." maxlength="50" onkeydown="if(event.key==='Enter')submitKalamGuess()">
+          <button class="btn btn-primary btn-sm" onclick="submitKalamGuess()">→</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -471,11 +585,30 @@ let content = {};
 let games = [];
 let timerInterval = null;
 let wrTimerInterval = null;
+let kalamTimer = null;
 let selectedAnswer = null;
 let chatOpen = false;
 let chatUnread = 0;
 let activeAdminTab = null;
 let activeLbTab = null;
+
+// ── NICK LOCALSTORAGE ─────────────────────────────────────────
+function saveNick(val) {
+  if (val.trim()) {
+    try { localStorage.setItem('atgaming_nick', val.trim()); } catch(e){}
+  }
+}
+function loadSavedNick() {
+  try {
+    const n = localStorage.getItem('atgaming_nick');
+    if (n) {
+      const cn = document.getElementById('create-name');
+      const jn = document.getElementById('join-name');
+      if (cn) { cn.value = n; document.getElementById('nick-saved-create').style.display='block'; }
+      if (jn) { jn.value = n; document.getElementById('nick-saved-join').style.display='block'; }
+    }
+  } catch(e){}
+}
 
 // ── SCREENS ────────────────────────────────────────────────────
 function showScreen(id) {
@@ -502,6 +635,8 @@ async function init() {
   document.getElementById('create-game').innerHTML = games.map(g =>
     `<option value="${g.id}">${g.icon} ${g.name}</option>`).join('');
   onGameChange();
+  loadSavedNick();
+  initDraggableChat();
 }
 
 function selectGame(id, el) {
@@ -634,6 +769,60 @@ function appendChatMsg({ name, message, isGM, isSystem, time }) {
 }
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── DRAGGABLE CHAT ─────────────────────────────────────────────
+function initDraggableChat() {
+  const panel = document.getElementById('chat-panel');
+  const header = document.getElementById('chat-header');
+  let isDragging = false, startX, startY, startLeft, startTop;
+
+  header.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    const rect = panel.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeft = rect.left; startTop = rect.top;
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+    panel.style.left = startLeft + 'px';
+    panel.style.top = startTop + 'px';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    const newLeft = Math.max(0, Math.min(window.innerWidth - 100, startLeft + dx));
+    const newTop = Math.max(0, Math.min(window.innerHeight - 50, startTop + dy));
+    panel.style.left = newLeft + 'px';
+    panel.style.top = newTop + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    document.body.style.userSelect = '';
+  });
+
+  // Touch support
+  header.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    isDragging = true;
+    const rect = panel.getBoundingClientRect();
+    startX = t.clientX; startY = t.clientY;
+    startLeft = rect.left; startTop = rect.top;
+    panel.style.right = 'auto'; panel.style.bottom = 'auto';
+    panel.style.left = startLeft + 'px'; panel.style.top = startTop + 'px';
+  }, {passive:true});
+
+  document.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    const t = e.touches[0];
+    const newLeft = Math.max(0, Math.min(window.innerWidth - 100, startLeft + t.clientX - startX));
+    const newTop = Math.max(0, Math.min(window.innerHeight - 50, startTop + t.clientY - startY));
+    panel.style.left = newLeft + 'px'; panel.style.top = newTop + 'px';
+  }, {passive:true});
+
+  document.addEventListener('touchend', () => { isDragging = false; });
 }
 
 // ── HANGMAN ────────────────────────────────────────────────────
@@ -822,6 +1011,9 @@ socket.on('gameStarted', ({room,mask,wordLength}) => {
   if(room.gameType==='hangman'){ renderHangman(room,mask||Array(wordLength).fill('_').join(' '),room.gameState?.currentTurn===S.playerId); showScreen('hangman'); }
   else if(room.gameType==='quiz'){ showScreen('quiz'); }
   else if(room.gameType==='wordrace'){ showScreen('wordrace'); }
+  else if(room.gameType==='jeopardy'){ showScreen('jeopardy'); }
+  else if(room.gameType==='familyfeud'){ showScreen('familyfeud'); }
+  else if(room.gameType==='kalambury'){ initKalamburyCanvas(); showScreen('kalambury'); }
 });
 socket.on('letterGuessed', ({room,letter,correct,mask,currentTurn}) => {
   S.room=room; renderHangman(room,mask,currentTurn===S.playerId);
@@ -866,6 +1058,343 @@ socket.on('gameReset', ({room}) => {
   document.getElementById('play-again-btn').style.display='none'; showScreen('lobby');
 });
 socket.on('chatMessage', (msg) => { appendChatMsg(msg); });
+
+// ── JEOPARDY ───────────────────────────────────────────────────
+function renderJeopardyBoard(board, currentPicker, scores, cats) {
+  S.room && renderLiveScores(S.room, 'jeopardy-scores');
+  const amIPicker = currentPicker === S.playerId;
+  const pickerName = S.room?.players.find(p => p.id === currentPicker)?.name || '?';
+  document.getElementById('jeopardy-picker-info').textContent = amIPicker ? '🎯 Twoja kolej — wybierz pytanie!' : `⏳ Wybiera: ${pickerName}`;
+
+  const catKeys = Object.keys(board);
+  const catMeta = cats || {};
+  const tableHTML = `<div style="overflow-x:auto"><table class="jeopardy-board">
+    <thead><tr>${catKeys.map(k => `<th>${catMeta[k]?.label || k}</th>`).join('')}</tr></thead>
+    <tbody>
+      ${[100,200,300,400,500].map(val => `<tr>${catKeys.map(k => {
+        const answered = board[k]?.[val];
+        const canClick = amIPicker && !answered;
+        return `<td class="${answered?'answered':''} ${!canClick?'not-your-pick':''}" 
+          onclick="${canClick?`pickJeopardy('${k}',${val})`:''}">
+          ${answered ? '✓' : '$'+val}
+        </td>`;
+      }).join('')}</tr>`).join('')}
+    </tbody>
+  </table></div>`;
+  document.getElementById('jeopardy-content').innerHTML = tableHTML;
+}
+
+function pickJeopardy(catKey, value) {
+  socket.emit('jeopardyPick', { roomId: S.roomId, catKey, value });
+}
+function buzzJeopardy() {
+  socket.emit('jeopardyBuzz', { roomId: S.roomId });
+}
+function submitJeopardyAnswer() {
+  const a = document.getElementById('jeopardy-ans-input');
+  if (!a || !a.value.trim()) return;
+  socket.emit('jeopardyAnswer', { roomId: S.roomId, answer: a.value.trim() });
+  a.value = '';
+}
+
+socket.on('jeopardyBoard', ({board, currentPicker, scores, phase}) => {
+  if (S.room) {
+    S.room.gameState = S.room.gameState || {};
+    Object.assign(S.room.gameState, { board, currentPicker, scores });
+  }
+  renderJeopardyBoard(board, currentPicker, scores, content.jeopardy);
+});
+
+socket.on('jeopardyQuestion', ({catKey, value, clue, scores}) => {
+  const amIBuzzer = true; // everyone can buzz
+  document.getElementById('jeopardy-content').innerHTML = `
+    <div class="jeopardy-question-box">
+      <div class="value">$${value}</div>
+      <div class="clue">${escHtml(clue)}</div>
+    </div>
+    <button class="buzz-btn" onclick="buzzJeopardy()">🔔 BUZZ!</button>
+  `;
+  document.getElementById('jeopardy-picker-info').textContent = 'Kto pierwszy wciśnie BUZZ?';
+});
+
+socket.on('jeopardyBuzzed', ({playerId, playerName}) => {
+  const isMe = playerId === S.playerId;
+  document.getElementById('jeopardy-picker-info').textContent = isMe ? '🎙️ Twoja odpowiedź!' : `🎙️ Odpowiada: ${playerName}`;
+  const box = document.querySelector('.jeopardy-question-box');
+  if (box) {
+    const buzzBtn = document.querySelector('.buzz-btn');
+    if (buzzBtn) buzzBtn.remove();
+    if (isMe) {
+      box.insertAdjacentHTML('afterend', `
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <input class="input" id="jeopardy-ans-input" placeholder="Odpowiedź (zacznij od 'Co to jest...')" style="flex:1" onkeydown="if(event.key==='Enter')submitJeopardyAnswer()">
+          <button class="btn btn-primary" onclick="submitJeopardyAnswer()">→</button>
+        </div>`);
+      document.getElementById('jeopardy-ans-input')?.focus();
+    }
+  }
+});
+
+socket.on('jeopardyAnswerResult', ({correct, answer, correctAnswer, scores, board, currentPicker}) => {
+  showToast(correct ? `✅ Poprawnie! "${answer}"` : `❌ Błąd! Odpowiedź: ${correctAnswer}`, correct?'success':'error');
+  if (S.room) { S.room.gameState = S.room.gameState || {}; S.room.gameState.board = board; }
+  renderJeopardyBoard(board, currentPicker, scores, content.jeopardy);
+  renderLiveScores(S.room, 'jeopardy-scores');
+});
+
+socket.on('jeopardyTimeout', ({answer, board, currentPicker, scores}) => {
+  showToast(`⏰ Czas! Odpowiedź: ${answer}`, 'error');
+  if (S.room) { S.room.gameState = S.room.gameState || {}; S.room.gameState.board = board; }
+  renderJeopardyBoard(board, currentPicker, scores, content.jeopardy);
+});
+
+// ── FAMILY FEUD ────────────────────────────────────────────────
+function submitFeudAnswer() {
+  const inp = document.getElementById('feud-answer');
+  if (!inp || !inp.value.trim()) return;
+  socket.emit('familyFeudAnswer', { roomId: S.roomId, answer: inp.value.trim() });
+  inp.value = '';
+}
+
+function renderFeudBoard(answerCount, revealedAnswers, answers) {
+  const slots = [];
+  for (let i = 0; i < (answers?.length || answerCount); i++) {
+    const revealed = revealedAnswers && revealedAnswers.includes(i);
+    const ans = answers?.[i];
+    slots.push(`<div class="feud-answer-slot ${revealed?'revealed':''}">
+      <div class="feud-rank">${i+1}</div>
+      <div style="flex:1">${revealed ? escHtml(ans?.text||'') : '?????'}</div>
+      ${revealed ? `<div class="feud-pts">${ans?.points||0} pkt</div>` : ''}
+    </div>`);
+  }
+  document.getElementById('feud-board').innerHTML = slots.join('');
+}
+
+function renderFeudStrikes(strikes, max) {
+  document.getElementById('feud-strikes').innerHTML = Array.from({length:max},(_,i) => 
+    `<span class="feud-strike">${i < strikes ? '❌' : '⬜'}</span>`).join('');
+}
+
+socket.on('familyFeudQuestion', ({questionIndex, total, question, answerCount, room}) => {
+  S.room = room;
+  document.getElementById('feud-q-num').textContent = questionIndex + 1;
+  document.getElementById('feud-q-total').textContent = total;
+  document.getElementById('feud-question').textContent = question;
+  renderFeudBoard(answerCount, [], null);
+  renderFeudStrikes(0, 3);
+  renderLiveScores(room, 'feud-scores');
+  document.getElementById('feud-feedback').textContent = '';
+  document.getElementById('feud-answer').disabled = false;
+  document.getElementById('feud-answer').focus();
+});
+
+socket.on('familyFeudCorrect', ({playerName, answerIndex, answer, points, revealedAnswers, room}) => {
+  S.room = room;
+  const q = room.gameState;
+  renderFeudBoard(null, revealedAnswers, null); // will be re-rendered with reveal
+  const isMe = room.players.find(p=>p.id===S.playerId)?.name === playerName;
+  const fb = document.getElementById('feud-feedback');
+  fb.style.color = 'var(--success)';
+  fb.textContent = isMe ? `✅ Dobrze! +${points} pkt` : `✅ ${playerName}: ${answer}`;
+  renderLiveScores(room, 'feud-scores');
+  // Update board
+  const slots = document.querySelectorAll('.feud-answer-slot');
+  if (slots[answerIndex]) {
+    slots[answerIndex].classList.add('revealed');
+    slots[answerIndex].innerHTML = `<div class="feud-rank">${answerIndex+1}</div><div style="flex:1">${escHtml(answer)}</div><div class="feud-pts">${points} pkt</div>`;
+  }
+});
+
+socket.on('familyFeudWrong', ({playerName, strikes, maxStrikes}) => {
+  renderFeudStrikes(strikes, maxStrikes);
+  const fb = document.getElementById('feud-feedback');
+  fb.style.color = 'var(--error)';
+  fb.textContent = `❌ ${playerName}: nie ma takiej odpowiedzi!`;
+  setTimeout(() => { if(fb) fb.textContent=''; }, 2000);
+});
+
+socket.on('familyFeudRevealAll', ({answers, room}) => {
+  S.room = room;
+  const slots = document.querySelectorAll('.feud-answer-slot');
+  answers.forEach((ans, i) => {
+    if (slots[i]) {
+      slots[i].classList.add('revealed');
+      slots[i].innerHTML = `<div class="feud-rank">${i+1}</div><div style="flex:1">${escHtml(ans.text)}</div><div class="feud-pts">${ans.points} pkt</div>`;
+    }
+  });
+  document.getElementById('feud-answer').disabled = true;
+  renderLiveScores(room, 'feud-scores');
+});
+
+// ── KALAMBURY ─────────────────────────────────────────────────
+let canvas, ctx, drawing = false, currentColor = '#000000', currentSize = 4, isDrawer = false;
+const COLORS = ['#000000','#ffffff','#ff4757','#ffa502','#2ed573','#1e90ff','#a55eea','#ff6b9d','#eccc68','#747d8c'];
+
+function initKalamburyCanvas() {
+  canvas = document.getElementById('drawing-canvas');
+  ctx = canvas.getContext('2d');
+
+  // Set canvas resolution
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = Math.max(600, rect.width - 20);
+  canvas.height = Math.floor(canvas.width * 3/4);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Color palette
+  document.getElementById('color-palette').innerHTML = COLORS.map(c =>
+    `<div class="color-btn ${c===currentColor?'active':''}" style="background:${c}" onclick="setColor('${c}',this)"></div>`
+  ).join('');
+
+  // Size palette
+  document.getElementById('size-palette').innerHTML = [2,5,10,20].map(s =>
+    `<button class="size-btn ${s===currentSize?'active':''}" onclick="setSize(${s},this)">${s}px</button>`
+  ).join('');
+
+  // Mouse events
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+  // Touch
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); startDraw(e.touches[0]); }, {passive:false});
+  canvas.addEventListener('touchmove', e => { e.preventDefault(); draw(e.touches[0]); }, {passive:false});
+  canvas.addEventListener('touchend', stopDraw);
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
+
+function startDraw(e) {
+  if (!isDrawer) return;
+  drawing = true;
+  const pos = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+}
+
+function draw(e) {
+  if (!drawing || !isDrawer) return;
+  const pos = getPos(e);
+  ctx.lineWidth = currentSize;
+  ctx.strokeStyle = currentColor;
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  socket.emit('kalamburyDraw', { roomId: S.roomId, drawData: { x: pos.x, y: pos.y, color: currentColor, size: currentSize, type: 'draw' } });
+}
+
+function stopDraw() {
+  if (!drawing) return;
+  drawing = false;
+  ctx.beginPath();
+  socket.emit('kalamburyDraw', { roomId: S.roomId, drawData: { type: 'end' } });
+}
+
+function setColor(c, el) {
+  currentColor = c;
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function setSize(s, el) {
+  currentSize = s;
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function clearCanvas() {
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  socket.emit('kalamburyClearCanvas', { roomId: S.roomId });
+}
+
+function submitKalamGuess() {
+  const inp = document.getElementById('kalam-guess');
+  if (!inp || !inp.value.trim()) return;
+  socket.emit('kalamburyGuess', { roomId: S.roomId, guess: inp.value.trim() });
+  inp.value = '';
+}
+
+let kalamDrawing = false;
+
+socket.on('kalamburyRound', ({roundIndex, total, drawerId, drawerName, room}) => {
+  S.room = room;
+  isDrawer = drawerId === S.playerId;
+  document.getElementById('kalam-round').textContent = roundIndex + 1;
+  document.getElementById('kalam-total').textContent = total;
+  document.getElementById('kalam-drawer-info').textContent = isDrawer ? '✏️ Ty rysujesz!' : `✏️ Rysuje: ${drawerName}`;
+  document.getElementById('clear-canvas-btn').style.display = isDrawer ? 'inline-flex' : 'none';
+  document.getElementById('kalam-guess-area').style.display = isDrawer ? 'none' : 'block';
+  document.getElementById('kalam-word-box').style.display = 'none';
+  document.getElementById('kalam-chat').innerHTML = '';
+  // clear canvas
+  if (ctx) { ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+  renderLiveScores(room, 'kalam-scores');
+  // Start timer
+  let t = 60;
+  clearInterval(kalamTimer);
+  kalamTimer = setInterval(() => {
+    t--;
+    const el = document.getElementById('kalam-timer');
+    if (el) el.textContent = t;
+    if (el) el.style.color = t < 15 ? 'var(--error)' : t < 30 ? 'var(--warning)' : 'var(--text)';
+    if (t <= 0) clearInterval(kalamTimer);
+  }, 1000);
+});
+
+socket.on('kalamburyYourWord', ({word}) => {
+  const box = document.getElementById('kalam-word-box');
+  box.textContent = word.toUpperCase();
+  box.style.display = 'block';
+});
+
+socket.on('kalamburyDrawUpdate', ({drawData}) => {
+  if (!ctx) return;
+  if (drawData.type === 'end') { ctx.beginPath(); return; }
+  ctx.lineWidth = drawData.size || 4;
+  ctx.strokeStyle = drawData.color || '#000';
+  ctx.lineTo(drawData.x, drawData.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(drawData.x, drawData.y);
+});
+
+socket.on('kalamburyClearCanvas', () => {
+  if (ctx) { ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+});
+
+socket.on('kalamburyGuessResult', ({playerName, guess, correct, playerId}) => {
+  const chat = document.getElementById('kalam-chat');
+  if (!chat) return;
+  const div = document.createElement('div');
+  div.className = `kalambury-guess-item ${correct?'correct':'wrong'}`;
+  div.textContent = `${playerName}: ${guess}${correct?' ✅':''}`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+});
+
+socket.on('kalamburyCorrect', ({playerName, points, room}) => {
+  S.room = room;
+  renderLiveScores(room, 'kalam-scores');
+});
+
+socket.on('kalamburyReveal', ({word, room}) => {
+  S.room = room;
+  clearInterval(kalamTimer);
+  document.getElementById('kalam-timer').textContent = '⏰';
+  const box = document.getElementById('kalam-word-box');
+  box.textContent = word.toUpperCase();
+  box.style.display = 'block';
+  box.style.background = 'var(--accent2)';
+  renderLiveScores(room, 'kalam-scores');
+});
 
 // ── ADMIN ──────────────────────────────────────────────────────
 async function adminLogin() {
@@ -971,6 +1500,7 @@ function showToast(msg,type=''){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
 }
 
+// ── INIT ───────────────────────────────────────────────────────
 // ── INIT ───────────────────────────────────────────────────────
 document.getElementById('join-code').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');});
 document.getElementById('join-code').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});

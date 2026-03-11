@@ -259,7 +259,12 @@ io.on('connection', (socket) => {
   });
 
   // ── GAME EVENTS → forward to module ──
-  const GAME_EVENTS = ['guessLetter','quizAnswer','wordRaceAnswer'];
+  const GAME_EVENTS = [
+    'guessLetter','quizAnswer','wordRaceAnswer',
+    'jeopardyPick','jeopardyBuzz','jeopardyAnswer',
+    'familyFeudAnswer',
+    'kalamburyDraw','kalamburyGuess','kalamburyClearCanvas',
+  ];
   for (const event of GAME_EVENTS) {
     socket.on(event, (data) => {
       const room = rooms[data.roomId];
