@@ -292,7 +292,7 @@ io.on('connection', (socket) => {
   // ── GAME EVENTS → forward to module ──
   const GAME_EVENTS = [
     'guessLetter','quizAnswer','wordRaceAnswer',
-    'jeopardyPick','jeopardyBuzz','jeopardyAnswer',
+    'jeopardyPick','jeopardyBuzz','jeopardyAnswer','jeopardyJudge',
     'familyFeudAnswer',
     'kalamburyDraw','kalamburyGuess','kalamburyClearCanvas',
   ];

@@ -267,27 +267,45 @@ select.input option{background:var(--surface2);}
 .jeopardy-board{width:100%;max-width:900px;border-collapse:collapse;}
 .jeopardy-board th{background:var(--accent);color:white;padding:14px 10px;font-size:13px;text-align:center;border:2px solid var(--surface);}
 .jeopardy-board td{background:var(--surface2);border:2px solid var(--surface);text-align:center;cursor:pointer;transition:all .15s;font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:var(--warning);height:80px;vertical-align:middle;}
-.jeopardy-board td:hover:not(.answered){background:rgba(124,92,252,.2);color:var(--accent);}
+.jeopardy-board td:hover:not(.answered):not(.not-your-pick){background:rgba(124,92,252,.2);color:var(--accent);}
 .jeopardy-board td.answered{background:var(--surface);color:var(--border);cursor:not-allowed;font-size:30px;}
-.jeopardy-board td.not-your-pick{cursor:not-allowed;}
+.jeopardy-board td.not-your-pick{cursor:not-allowed;opacity:.7;}
 .jeopardy-container{max-width:960px;width:100%;}
 .jeopardy-question-box{background:var(--accent);color:white;border-radius:18px;padding:32px;text-align:center;margin-bottom:20px;}
 .jeopardy-question-box .value{font-size:28px;font-weight:800;margin-bottom:12px;font-family:'DM Mono',monospace;}
 .jeopardy-question-box .clue{font-size:clamp(18px,3vw,28px);font-weight:700;line-height:1.3;}
-.buzz-btn{background:var(--warning);color:#000;font-size:22px;font-weight:800;padding:20px 40px;border-radius:16px;border:none;cursor:pointer;margin:20px auto;display:block;transition:all .15s;font-family:'Syne',sans-serif;}
-.buzz-btn:hover{transform:scale(1.04);}
+.jeopardy-status-bar{text-align:center;padding:8px 16px;font-size:14px;font-weight:700;color:var(--accent3);min-height:36px;margin-bottom:8px;}
+.jeop-timer-bar{width:100%;height:6px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:12px;}
+.jeop-timer-fill{height:100%;background:var(--accent3);transition:width .25s linear;border-radius:4px;}
+.jeop-timer-fill.warning{background:var(--warning);}
+.jeop-timer-fill.danger{background:var(--error);}
+.gm-judge-panel{background:rgba(252,192,92,.08);border:2px solid rgba(252,192,92,.3);border-radius:18px;padding:24px;margin-top:20px;text-align:center;}
+.btn-danger{background:rgba(252,92,125,.15);color:var(--error);border:1px solid var(--error);padding:12px 24px;border-radius:12px;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .15s;}
+.btn-danger:hover{background:rgba(252,92,125,.25);}
+.jeopardy-buzz-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:12px;}
+.buzz-btn{background:var(--error);color:white;border:none;padding:18px 48px;border-radius:16px;font-size:22px;font-weight:800;cursor:pointer;font-family:'Syne',sans-serif;transition:all .15s;letter-spacing:1px;}
+.buzz-btn:hover{transform:scale(1.05);filter:brightness(1.1);}
+.buzz-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.jeop-awaiting{color:var(--warning);font-size:14px;text-align:center;padding:12px;}
 
-/* ── FAMILY FEUD ── */
+/* ── FAMILIADA ── */
 .feud-container{max-width:700px;width:100%;}
-.feud-question{background:var(--surface2);border:2px solid var(--accent);border-radius:18px;padding:28px;text-align:center;margin-bottom:24px;}
+.feud-question{background:var(--surface2);border:2px solid var(--accent);border-radius:18px;padding:28px;text-align:center;margin-bottom:16px;}
 .feud-question-text{font-size:clamp(18px,3vw,26px);font-weight:700;line-height:1.3;}
-.feud-board{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.feud-board{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
 .feud-answer-slot{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:16px;font-size:16px;transition:all .3s;}
 .feud-answer-slot.revealed{background:rgba(92,240,200,.1);border-color:var(--accent3);color:var(--accent3);}
+.feud-answer-slot.reveal-anim{animation:revealPop .4s ease;}
+@keyframes revealPop{0%{transform:scale(.95);opacity:.5}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
 .feud-answer-slot .feud-rank{width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
 .feud-answer-slot .feud-pts{margin-left:auto;font-family:'DM Mono',monospace;color:var(--warning);font-weight:700;}
-.feud-strikes{display:flex;gap:8px;justify-content:center;margin-bottom:16px;}
-.feud-strike{font-size:28px;}
+.feud-responder-bar{background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:12px;padding:10px 18px;text-align:center;font-size:14px;font-weight:700;margin-bottom:12px;min-height:40px;}
+.feud-players-strikes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px;}
+.feud-player-strike-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 14px;text-align:center;font-size:12px;}
+.feud-player-strike-card.active{border-color:var(--accent);background:rgba(124,92,252,.1);}
+.feud-player-strike-card.eliminated{opacity:.35;border-color:var(--error);}
+.feud-player-name{font-weight:700;margin-bottom:2px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.feud-player-hearts{font-size:13px;}
 .feud-input-row{display:flex;gap:10px;}
 .feud-input-row .input{flex:1;font-size:16px;}
 
@@ -547,28 +565,42 @@ select.input option{background:var(--surface2);}
 
 <!-- ══ JEOPARDY ═══════════════════════════════════════════════ -->
 <div class="screen" id="screen-jeopardy">
-  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <button class="back-btn" onclick="goHome()">&#8592; Wr&#243;&#263;</button>
   <div class="jeopardy-container">
     <div class="live-scores" id="jeopardy-scores" style="margin-bottom:16px"></div>
-    <div id="jeopardy-picker-info" style="text-align:center;margin-bottom:12px;font-size:14px;font-weight:700;color:var(--accent3)"></div>
+    <div id="jeopardy-status-bar" class="jeopardy-status-bar"></div>
+    <div id="jeopardy-timer-wrap" style="display:none">
+      <div class="jeop-timer-bar"><div class="jeop-timer-fill" id="jeop-timer-fill"></div></div>
+    </div>
     <div id="jeopardy-content"></div>
+    <div id="jeopardy-gm-judge" style="display:none" class="gm-judge-panel">
+      <h3>&#127917; Oce&#324; odpowied&#378;</h3>
+      <div id="gm-judge-info" style="margin:10px 0;font-size:15px"></div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn btn-primary" onclick="judgeAnswer(true)">&#9989; Poprawna</button>
+        <button class="btn btn-danger" onclick="judgeAnswer(false)">&#10060; B&#322;&#281;dna</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- ══ FAMILY FEUD ════════════════════════════════════════════ -->
+<!-- &#9552;&#9552; FAMILY FEUD &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; -->
 <div class="screen" id="screen-familyfeud">
-  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <button class="back-btn" onclick="goHome()">&#8592; Wr&#243;&#263;</button>
   <div class="feud-container">
     <div class="live-scores" id="feud-scores" style="margin-bottom:16px"></div>
     <div class="feud-question">
       <div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px">Pytanie <span id="feud-q-num">1</span>/<span id="feud-q-total">5</span></div>
       <div class="feud-question-text" id="feud-question">...</div>
     </div>
-    <div class="feud-strikes" id="feud-strikes"></div>
+    <div id="feud-responder-bar" class="feud-responder-bar"></div>
+    <div id="feud-players-strikes" class="feud-players-strikes"></div>
     <div class="feud-board" id="feud-board"></div>
-    <div class="feud-input-row">
-      <input class="input" id="feud-answer" placeholder="Twoja odpowiedź..." maxlength="80" onkeydown="if(event.key==='Enter')submitFeudAnswer()">
-      <button class="btn btn-primary" onclick="submitFeudAnswer()">→</button>
+    <div id="feud-answer-wrap">
+      <div class="feud-input-row">
+        <input class="input" id="feud-answer" placeholder="Twoja odpowied&#378;..." maxlength="80" onkeydown="if(event.key==='Enter')submitFeudAnswer()">
+        <button class="btn btn-primary" id="feud-submit-btn" onclick="submitFeudAnswer()">&#8594;</button>
+      </div>
     </div>
     <div id="feud-feedback" style="text-align:center;margin-top:12px;font-weight:700;font-size:15px;min-height:22px"></div>
   </div>
@@ -1250,7 +1282,10 @@ socket.on('gameStarted', ({room,mask,wordLength,round,totalRounds,maxWrong,playe
   }
   else if(room.gameType==='quiz'){ showScreen('quiz'); }
   else if(room.gameType==='wordrace'){ showScreen('wordrace'); }
-  else if(room.gameType==='jeopardy'){ showScreen('jeopardy'); }
+  else if(room.gameType==='jeopardy'){
+    jeopardyCats = content.jeopardy || {};
+    showScreen('jeopardy');
+  }
   else if(room.gameType==='familyfeud'){ showScreen('familyfeud'); }
   else if(room.gameType==='kalambury'){ initKalamburyCanvas(); showScreen('kalambury'); }
 });
@@ -1306,34 +1341,64 @@ socket.on('gameReset', ({room}) => {
 socket.on('chatMessage', (msg) => { appendChatMsg(msg); });
 
 // ── JEOPARDY ───────────────────────────────────────────────────
-function renderJeopardyBoard(board, currentPicker, scores, cats) {
+let jeopardyTimerInterval = null;
+let jeopardyCats = {};
+
+function renderJeopardyBoard(board, currentPicker, room) {
   S.room && renderLiveScores(S.room, 'jeopardy-scores');
   const amIPicker = currentPicker === S.playerId;
   const pickerName = S.room?.players.find(p => p.id === currentPicker)?.name || '?';
-  document.getElementById('jeopardy-picker-info').textContent = amIPicker ? '🎯 Twoja kolej — wybierz pytanie!' : `⏳ Wybiera: ${pickerName}`;
+  const sb = document.getElementById('jeopardy-status-bar');
+  if (sb) sb.innerHTML = amIPicker
+    ? '🎯 Twoja kolej — wybierz pytanie!'
+    : `⏳ Wybiera: <strong>${escHtml(pickerName)}</strong>`;
 
   const catKeys = Object.keys(board);
-  const catMeta = cats || {};
+  const allValues = [100,200,300,400,500];
   const tableHTML = `<div style="overflow-x:auto"><table class="jeopardy-board">
-    <thead><tr>${catKeys.map(k => `<th>${catMeta[k]?.label || k}</th>`).join('')}</tr></thead>
+    <thead><tr>${catKeys.map(k => `<th>${escHtml(jeopardyCats[k]?.label || k)}</th>`).join('')}</tr></thead>
     <tbody>
-      ${[100,200,300,400,500].map(val => `<tr>${catKeys.map(k => {
-        const answered = board[k]?.[val];
-        const canClick = amIPicker && !answered;
-        return `<td class="${answered?'answered':''} ${!canClick?'not-your-pick':''}" 
-          onclick="${canClick?`pickJeopardy('${k}',${val})`:''}">
+      ${allValues.map(val => `<tr>${catKeys.map(k => {
+        const answered = board[k]?.[val] === true;
+        const canClick = amIPicker && !answered && !S.isGM;
+        return `<td class="${answered?'answered':''} ${!canClick&&!answered?'not-your-pick':''}"
+          onclick="${canClick ? `pickJeopardy('${k}',${val})` : ''}">
           ${answered ? '✓' : '$'+val}
         </td>`;
       }).join('')}</tr>`).join('')}
     </tbody>
   </table></div>`;
   document.getElementById('jeopardy-content').innerHTML = tableHTML;
+  document.getElementById('jeopardy-timer-wrap').style.display = 'none';
+  document.getElementById('jeopardy-gm-judge').style.display = 'none';
+  clearInterval(jeopardyTimerInterval);
+}
+
+function startJeopardyTimer(seconds, type) {
+  clearInterval(jeopardyTimerInterval);
+  const wrap = document.getElementById('jeopardy-timer-wrap');
+  const fill = document.getElementById('jeop-timer-fill');
+  if (!wrap || !fill) return;
+  wrap.style.display = 'block';
+  const start = Date.now();
+  const end = start + seconds * 1000;
+  function tick() {
+    const remaining = Math.max(0, end - Date.now());
+    const pct = (remaining / (seconds * 1000)) * 100;
+    fill.style.width = pct + '%';
+    fill.className = 'jeop-timer-fill' + (pct < 33 ? ' danger' : pct < 60 ? ' warning' : '');
+    if (remaining <= 0) clearInterval(jeopardyTimerInterval);
+  }
+  tick();
+  jeopardyTimerInterval = setInterval(tick, 100);
 }
 
 function pickJeopardy(catKey, value) {
   socket.emit('jeopardyPick', { roomId: S.roomId, catKey, value });
 }
 function buzzJeopardy() {
+  const btn = document.getElementById('buzz-btn-el');
+  if (btn) btn.disabled = true;
   socket.emit('jeopardyBuzz', { roomId: S.roomId });
 }
 function submitJeopardyAnswer() {
@@ -1342,59 +1407,98 @@ function submitJeopardyAnswer() {
   socket.emit('jeopardyAnswer', { roomId: S.roomId, answer: a.value.trim() });
   a.value = '';
 }
+function judgeAnswer(correct) {
+  socket.emit('jeopardyJudge', { roomId: S.roomId, correct });
+  document.getElementById('jeopardy-gm-judge').style.display = 'none';
+}
 
-socket.on('jeopardyBoard', ({board, currentPicker, scores, phase}) => {
-  if (S.room) {
-    S.room.gameState = S.room.gameState || {};
-    Object.assign(S.room.gameState, { board, currentPicker, scores });
-  }
-  renderJeopardyBoard(board, currentPicker, scores, content.jeopardy);
+socket.on('jeopardyBoard', ({board, currentPicker, room}) => {
+  S.room = room || S.room;
+  jeopardyCats = content[S.room?.gameType] || content.jeopardy || {};
+  renderJeopardyBoard(board, currentPicker, S.room);
 });
 
-socket.on('jeopardyQuestion', ({catKey, value, clue, scores}) => {
-  const amIBuzzer = true; // everyone can buzz
+socket.on('jeopardyQuestion', ({catKey, value, clue, timeLimit, room}) => {
+  S.room = room || S.room;
+  clearInterval(jeopardyTimerInterval);
+  document.getElementById('jeopardy-status-bar').innerHTML = 'Kto pierwszy wciśnie <strong>BUZZ</strong>?';
+  document.getElementById('jeopardy-gm-judge').style.display = 'none';
+  const alreadyBuzzed = false;
   document.getElementById('jeopardy-content').innerHTML = `
     <div class="jeopardy-question-box">
       <div class="value">$${value}</div>
       <div class="clue">${escHtml(clue)}</div>
     </div>
-    <button class="buzz-btn" onclick="buzzJeopardy()">🔔 BUZZ!</button>
-  `;
-  document.getElementById('jeopardy-picker-info').textContent = 'Kto pierwszy wciśnie BUZZ?';
+    <div class="jeopardy-buzz-wrap">
+      ${!S.isGM ? `<button class="buzz-btn" id="buzz-btn-el" onclick="buzzJeopardy()">🔔 BUZZ!</button>` : '<div class="jeop-awaiting">🎭 Obserwujesz jako Game Master</div>'}
+    </div>`;
+  startJeopardyTimer(timeLimit || 20, 'question');
 });
 
-socket.on('jeopardyBuzzed', ({playerId, playerName}) => {
+socket.on('jeopardyBuzzed', ({playerId, playerName, timeLimit}) => {
+  clearInterval(jeopardyTimerInterval);
   const isMe = playerId === S.playerId;
-  document.getElementById('jeopardy-picker-info').textContent = isMe ? '🎙️ Twoja odpowiedź!' : `🎙️ Odpowiada: ${playerName}`;
-  const box = document.querySelector('.jeopardy-question-box');
-  if (box) {
-    const buzzBtn = document.querySelector('.buzz-btn');
-    if (buzzBtn) buzzBtn.remove();
-    if (isMe) {
-      box.insertAdjacentHTML('afterend', `
-        <div style="display:flex;gap:10px;margin-top:16px">
-          <input class="input" id="jeopardy-ans-input" placeholder="Odpowiedź (zacznij od 'Co to jest...')" style="flex:1" onkeydown="if(event.key==='Enter')submitJeopardyAnswer()">
-          <button class="btn btn-primary" onclick="submitJeopardyAnswer()">→</button>
-        </div>`);
-      document.getElementById('jeopardy-ans-input')?.focus();
-    }
+  const sb = document.getElementById('jeopardy-status-bar');
+  if (sb) sb.innerHTML = isMe ? '🎙️ <strong>Twoja odpowiedź!</strong>' : `🎙️ Odpowiada: <strong>${escHtml(playerName)}</strong>`;
+
+  const buzzWrap = document.querySelector('.jeopardy-buzz-wrap');
+  if (buzzWrap) buzzWrap.innerHTML = isMe
+    ? `<div style="display:flex;gap:10px;width:100%;max-width:500px">
+        <input class="input" id="jeopardy-ans-input" placeholder="Twoja odpowiedź..." style="flex:1" onkeydown="if(event.key==='Enter')submitJeopardyAnswer()">
+        <button class="btn btn-primary" onclick="submitJeopardyAnswer()">→</button>
+       </div>`
+    : `<div class="jeop-awaiting">⌛ Czekam na odpowiedź ${escHtml(playerName)}...</div>`;
+
+  if (isMe) { setTimeout(() => document.getElementById('jeopardy-ans-input')?.focus(), 50); }
+  startJeopardyTimer(timeLimit || 10, 'buzz');
+});
+
+socket.on('jeopardyAwaitingJudge', ({playerName, answer}) => {
+  const sb = document.getElementById('jeopardy-status-bar');
+  if (sb) sb.innerHTML = `⚖️ Odpowiedź <strong>${escHtml(playerName)}</strong>: "<em>${escHtml(answer)}</em>" — czekam na ocenę GM`;
+  clearInterval(jeopardyTimerInterval);
+});
+
+socket.on('jeopardyJudgeRequest', ({playerName, answer, correctAnswer}) => {
+  // Only GM receives this
+  const panel = document.getElementById('jeopardy-gm-judge');
+  const info  = document.getElementById('gm-judge-info');
+  if (panel && info) {
+    info.innerHTML = `<strong>${escHtml(playerName)}</strong> odpowiedział: "<em>${escHtml(answer)}</em>"<br><span style="color:var(--muted);font-size:12px">Oczekiwana: ${escHtml(correctAnswer)}</span>`;
+    panel.style.display = 'block';
   }
 });
 
-socket.on('jeopardyAnswerResult', ({correct, answer, correctAnswer, scores, board, currentPicker}) => {
-  showToast(correct ? `✅ Poprawnie! "${answer}"` : `❌ Błąd! Odpowiedź: ${correctAnswer}`, correct?'success':'error');
-  if (S.room) { S.room.gameState = S.room.gameState || {}; S.room.gameState.board = board; }
-  renderJeopardyBoard(board, currentPicker, scores, content.jeopardy);
-  renderLiveScores(S.room, 'jeopardy-scores');
+socket.on('jeopardyAnswerResult', ({correct, answer, correctAnswer, board, currentPicker, remainingBuzzers, room}) => {
+  S.room = room || S.room;
+  clearInterval(jeopardyTimerInterval);
+  document.getElementById('jeopardy-gm-judge').style.display = 'none';
+  if (correctAnswer) {
+    showToast(correct ? `✅ Poprawnie!` : `❌ Błąd! Odpowiedź: ${correctAnswer}`, correct?'success':'error');
+    renderJeopardyBoard(board, currentPicker, S.room);
+  } else if (remainingBuzzers?.length) {
+    const sb = document.getElementById('jeopardy-status-bar');
+    if (sb) sb.innerHTML = `❌ Błąd! Mogą jeszcze buzzować: ${remainingBuzzers.map(escHtml).join(', ')}`;
+    const buzzWrap = document.querySelector('.jeopardy-buzz-wrap');
+    if (buzzWrap) buzzWrap.innerHTML = `<button class="buzz-btn" id="buzz-btn-el" onclick="buzzJeopardy()">🔔 BUZZ!</button>`;
+    startJeopardyTimer(S.room?.gameState?.questionTime || 20, 'question');
+  }
+  if (S.room) renderLiveScores(S.room, 'jeopardy-scores');
 });
 
-socket.on('jeopardyTimeout', ({answer, board, currentPicker, scores}) => {
+socket.on('jeopardyTimeout', ({answer, board, currentPicker, room}) => {
+  S.room = room || S.room;
+  clearInterval(jeopardyTimerInterval);
   showToast(`⏰ Czas! Odpowiedź: ${answer}`, 'error');
-  if (S.room) { S.room.gameState = S.room.gameState || {}; S.room.gameState.board = board; }
-  renderJeopardyBoard(board, currentPicker, scores, content.jeopardy);
+  renderJeopardyBoard(board, currentPicker, S.room);
 });
 
 // ── FAMILY FEUD ────────────────────────────────────────────────
+let feudCurrentResponder = null;
+let feudStrikesPerPlayer = 3;
+let feudAnswerCount = 0;
+let feudRevealedAnswers = [];
+
 function submitFeudAnswer() {
   const inp = document.getElementById('feud-answer');
   if (!inp || !inp.value.trim()) return;
@@ -1402,73 +1506,122 @@ function submitFeudAnswer() {
   inp.value = '';
 }
 
-function renderFeudBoard(answerCount, revealedAnswers, answers) {
+function renderFeudBoard(count, revealed, answers) {
+  const n = answers?.length || count || feudAnswerCount;
+  feudRevealedAnswers = revealed || feudRevealedAnswers;
   const slots = [];
-  for (let i = 0; i < (answers?.length || answerCount); i++) {
-    const revealed = revealedAnswers && revealedAnswers.includes(i);
+  for (let i = 0; i < n; i++) {
+    const isRevealed = feudRevealedAnswers.includes(i);
     const ans = answers?.[i];
-    slots.push(`<div class="feud-answer-slot ${revealed?'revealed':''}">
+    slots.push(`<div class="feud-answer-slot ${isRevealed?'revealed':''}">
       <div class="feud-rank">${i+1}</div>
-      <div style="flex:1">${revealed ? escHtml(ans?.text||'') : '?????'}</div>
-      ${revealed ? `<div class="feud-pts">${ans?.points||0} pkt</div>` : ''}
+      <div style="flex:1">${isRevealed ? escHtml(ans?.text||'') : '?????'}</div>
+      ${isRevealed ? `<div class="feud-pts">${ans?.points||0} pkt</div>` : ''}
     </div>`);
   }
   document.getElementById('feud-board').innerHTML = slots.join('');
 }
 
-function renderFeudStrikes(strikes, max) {
-  document.getElementById('feud-strikes').innerHTML = Array.from({length:max},(_,i) => 
-    `<span class="feud-strike">${i < strikes ? '❌' : '⬜'}</span>`).join('');
+function renderFeudResponderBar(responderId, responderName) {
+  feudCurrentResponder = responderId;
+  const isMe = responderId === S.playerId;
+  const bar = document.getElementById('feud-responder-bar');
+  if (bar) bar.innerHTML = isMe
+    ? '🎯 <strong>Twoja kolej — wpisz odpowiedź!</strong>'
+    : `⏳ Odpowiada: <strong>${escHtml(responderName || '')}</strong>`;
+  const inp = document.getElementById('feud-answer');
+  const btn = document.getElementById('feud-submit-btn');
+  if (inp) inp.disabled = !isMe;
+  if (btn) btn.disabled = !isMe;
+  if (isMe && inp) inp.focus();
 }
 
-socket.on('familyFeudQuestion', ({questionIndex, total, question, answerCount, room}) => {
+function renderFeudPlayerStrikes(room, playerStrikes, playerEliminated, responderId) {
+  const container = document.getElementById('feud-players-strikes');
+  if (!container || !room) return;
+  container.innerHTML = room.players.map(p => {
+    const strikes = playerStrikes?.[p.id] || 0;
+    const elim = playerEliminated?.[p.id];
+    const isActive = p.id === responderId;
+    const hearts = Array.from({length: feudStrikesPerPlayer}, (_,i) =>
+      i < (feudStrikesPerPlayer - strikes) ? '❤️' : '💔'
+    ).join('');
+    return `<div class="feud-player-strike-card ${isActive?'active':''} ${elim?'eliminated':''}">
+      <div class="feud-player-name">${escHtml(p.name)}</div>
+      <div class="feud-player-hearts">${hearts}</div>
+    </div>`;
+  }).join('');
+}
+
+socket.on('familyFeudQuestion', ({questionIndex, total, question, answerCount, currentResponder, responderName, strikesPerPlayer, room}) => {
   S.room = room;
+  feudAnswerCount = answerCount;
+  feudStrikesPerPlayer = strikesPerPlayer || 3;
+  feudRevealedAnswers = [];
   document.getElementById('feud-q-num').textContent = questionIndex + 1;
   document.getElementById('feud-q-total').textContent = total;
   document.getElementById('feud-question').textContent = question;
   renderFeudBoard(answerCount, [], null);
-  renderFeudStrikes(0, 3);
+  renderFeudResponderBar(currentResponder, responderName);
+  renderFeudPlayerStrikes(room, {}, {}, currentResponder);
   renderLiveScores(room, 'feud-scores');
   document.getElementById('feud-feedback').textContent = '';
-  document.getElementById('feud-answer').disabled = false;
-  document.getElementById('feud-answer').focus();
 });
 
 socket.on('familyFeudCorrect', ({playerName, answerIndex, answer, points, revealedAnswers, room}) => {
   S.room = room;
-  const q = room.gameState;
-  renderFeudBoard(null, revealedAnswers, null); // will be re-rendered with reveal
+  feudRevealedAnswers = revealedAnswers;
+  const slots = document.querySelectorAll('.feud-answer-slot');
+  if (slots[answerIndex]) {
+    slots[answerIndex].classList.add('revealed', 'reveal-anim');
+    slots[answerIndex].innerHTML = `<div class="feud-rank">${answerIndex+1}</div><div style="flex:1">${escHtml(answer)}</div><div class="feud-pts">${points} pkt</div>`;
+  }
   const isMe = room.players.find(p=>p.id===S.playerId)?.name === playerName;
   const fb = document.getElementById('feud-feedback');
   fb.style.color = 'var(--success)';
-  fb.textContent = isMe ? `✅ Dobrze! +${points} pkt` : `✅ ${playerName}: ${answer}`;
+  fb.textContent = isMe ? `✅ Dobrze! +${points} pkt` : `✅ ${escHtml(playerName)}: ${escHtml(answer)} (+${points})`;
+  setTimeout(() => { if(fb) fb.textContent=''; }, 2500);
   renderLiveScores(room, 'feud-scores');
-  // Update board
-  const slots = document.querySelectorAll('.feud-answer-slot');
-  if (slots[answerIndex]) {
-    slots[answerIndex].classList.add('revealed');
-    slots[answerIndex].innerHTML = `<div class="feud-rank">${answerIndex+1}</div><div style="flex:1">${escHtml(answer)}</div><div class="feud-pts">${points} pkt</div>`;
-  }
 });
 
-socket.on('familyFeudWrong', ({playerName, strikes, maxStrikes}) => {
-  renderFeudStrikes(strikes, maxStrikes);
+socket.on('familyFeudWrong', ({playerId, playerName, strikes, strikesPerPlayer, eliminated, playerStrikes, playerEliminated}) => {
+  const isMe = playerId === S.playerId;
   const fb = document.getElementById('feud-feedback');
   fb.style.color = 'var(--error)';
-  fb.textContent = `❌ ${playerName}: nie ma takiej odpowiedzi!`;
-  setTimeout(() => { if(fb) fb.textContent=''; }, 2000);
+  fb.textContent = eliminated
+    ? `💀 ${escHtml(playerName)} wyeliminowany! (${strikes}/${strikesPerPlayer} błędów)`
+    : `❌ ${escHtml(playerName)}: nie ma takiej odpowiedzi (${strikes}/${strikesPerPlayer})`;
+  setTimeout(() => { if(fb) fb.textContent=''; }, 2500);
+  if (S.room) renderFeudPlayerStrikes(S.room, playerStrikes, playerEliminated, feudCurrentResponder);
+});
+
+socket.on('familyFeudNextResponder', ({currentResponder, responderName, playerStrikes, playerEliminated}) => {
+  renderFeudResponderBar(currentResponder, responderName);
+  if (S.room) renderFeudPlayerStrikes(S.room, playerStrikes, playerEliminated, currentResponder);
+});
+
+socket.on('feudNotYourTurn', ({currentResponder}) => {
+  const respName = S.room?.players.find(p=>p.id===currentResponder)?.name || '?';
+  showToast(`Teraz odpowiada ${respName}!`, 'error');
+});
+
+socket.on('feudAlreadyRevealed', ({answer}) => {
+  showToast(`"${answer}" jest już odkryta!`, 'error');
 });
 
 socket.on('familyFeudRevealAll', ({answers, room}) => {
   S.room = room;
   const slots = document.querySelectorAll('.feud-answer-slot');
   answers.forEach((ans, i) => {
-    if (slots[i]) {
-      slots[i].classList.add('revealed');
+    if (slots[i] && !slots[i].classList.contains('revealed')) {
+      slots[i].classList.add('revealed', 'reveal-anim');
       slots[i].innerHTML = `<div class="feud-rank">${i+1}</div><div style="flex:1">${escHtml(ans.text)}</div><div class="feud-pts">${ans.points} pkt</div>`;
     }
   });
-  document.getElementById('feud-answer').disabled = true;
+  const inp = document.getElementById('feud-answer');
+  const btn = document.getElementById('feud-submit-btn');
+  if (inp) inp.disabled = true;
+  if (btn) btn.disabled = true;
   renderLiveScores(room, 'feud-scores');
 });
 
