@@ -22,44 +22,7 @@ module.exports = {
     },
   },
 
-  defaultContent: {
-    it: {
-      label: '💻 IT / Programowanie',
-      easy:   ['baza','serwer','petla','obiekt','klasa','zmienna','tablica','modul','interfejs','warunek'],
-      medium: ['javascript','komputer','algorytm','monitor','procesor','internet','klawiatura','programista','framework','debugger'],
-      hard:   ['programowanie','reaktywny','framework','biblioteka','rekurencja','asynchroniczny','mikroserwis','refaktoryzacja'],
-    },
-    geography: {
-      label: '🌍 Geografia',
-      easy:   ['polska','morze','rzeka','miasto','europa','ocean','pustynia','wyspa','jezioro','wulkan'],
-      medium: ['warszawa','kontynent','rownikowy','himalaje','atlantyk','sahara','amazonka','antarktyda','madagaskar'],
-      hard:   ['madagaskar','mezopotamia','geograficzny','archipelag','demograficzny','subsahara','skandynawia'],
-    },
-    animals: {
-      label: '🐾 Zwierzęta',
-      easy:   ['kot','pies','ryba','kon','kura','koza','wilk','zaba','orzel','bocian'],
-      medium: ['slon','jelen','pingwin','delfin','gepard','krokodyl','flaming','kangur','strus','hipopotam'],
-      hard:   ['kameleon','hipopotam','salamandra','platypus','axolotl','mantaraja','jaguarundi'],
-    },
-    sports: {
-      label: '⚽ Sport',
-      easy:   ['pilka','gol','bieg','skok','mecz','kort','basen','slalom','sprint','rekord'],
-      medium: ['koszykowka','siatkowka','plywanie','kolarska','szermierka','gimnastyka','lekkoatletyka'],
-      hard:   ['mistrzostwa','lekkoatletyka','olimpiada','kolarstwo','snowboard','wieloboj','pentatlon'],
-    },
-    food: {
-      label: '🍕 Jedzenie',
-      easy:   ['pizza','zupa','ciasto','jajko','chleb','mleko','herbata','owoce','warzywa','makaron'],
-      medium: ['hamburger','spaghetti','omlet','tiramisu','sushi','pierogi','bigos','risotto','guacamole'],
-      hard:   ['bruschetta','carpaccio','bouillabaisse','ratatouille','madeleine','creme brulee','profiterole'],
-    },
-    movies: {
-      label: '🎬 Filmy',
-      easy:   ['batman','titanic','avatar','shrek','matrix','frozen','hobbit'],
-      medium: ['gladiator','inception','joker','interstellar','parasite','forrest'],
-      hard:   ['kubrick','tarantino','bergman','godard','scorsese','kurosawa'],
-    },
-  },
+  defaultContent: require('./content'),
 
   createState(config) {
     return {

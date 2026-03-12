@@ -22,50 +22,7 @@ module.exports = {
     },
   },
 
-  defaultContent: {
-    animals: {
-      label: '🐾 Zwierzęta',
-      easy: ['kot', 'pies', 'ryba', 'kura', 'krowa', 'slon', 'zaba', 'orzel', 'lew', 'kon'],
-      medium: ['pingwin', 'delfin', 'gepard', 'kangur', 'krokodyl', 'flaming', 'hipopotam', 'struś', 'bison', 'rekien'],
-      hard: ['kameleon', 'platypus', 'axolotl', 'mantaraja', 'gnugnest', 'salamandra', 'jaguarundi'],
-    },
-    objects: {
-      label: '🏠 Przedmioty',
-      easy: ['krzeslo', 'stol', 'okno', 'drzwi', 'lampa', 'telefon', 'ksiazka', 'zegarek', 'klucz', 'butelka'],
-      medium: ['pralka', 'lodowka', 'rower', 'parasol', 'latarka', 'komputer', 'gitara', 'balon', 'kamera'],
-      hard: ['teleskop', 'periskop', 'akordeon', 'termometr', 'metronom', 'sejf', 'kalkulator'],
-    },
-    activities: {
-      label: '🏃 Czynności',
-      easy: ['bieganie', 'spanie', 'jedzenie', 'picie', 'pisanie', 'skakanie', 'plywanie', 'latanie', 'czytanie'],
-      medium: ['gotowanie', 'rysowanie', 'tańczenie', 'sprzatanie', 'majsterkowanie', 'ogrodnictwo'],
-      hard: ['żonglowanie', 'akrobatyka', 'nurkowanie', 'wspinaczka', 'medytowanie', 'kaligrafia'],
-    },
-    food: {
-      label: '🍕 Jedzenie',
-      easy: ['pizza', 'banan', 'jablko', 'chleb', 'jajko', 'ciasto', 'lody', 'zupa', 'ryba', 'herbata'],
-      medium: ['hamburger', 'spaghetti', 'waffel', 'omlet', 'sushi', 'pierogi', 'bigos', 'tiramisu'],
-      hard: ['guacamole', 'paella', 'croissant', 'bruschetta', 'ratatouille', 'creme brulee'],
-    },
-    movies: {
-      label: '🎬 Filmy',
-      easy: ['batman', 'titanic', 'lion king', 'toy story', 'frozen', 'avatar', 'shrek'],
-      medium: ['jurassic park', 'star wars', 'matrix', 'gladiator', 'inception', 'harry potter'],
-      hard: ['schindler\'s list', 'forrest gump', 'silence of the lambs', 'amadeus', 'blade runner'],
-    },
-    sports: {
-      label: '⚽ Sport',
-      easy: ['pilka nozna', 'koszykowka', 'tenis', 'golf', 'boks', 'narty', 'plywanie'],
-      medium: ['siatkowka', 'lekkoatletyka', 'szermierka', 'gimnastyka', 'judo', 'wioslowanie'],
-      hard: ['pentatlon', 'bobslej', 'curling', 'kolarstwo gorskie', 'triathlon', 'taekwondo'],
-    },
-    places: {
-      label: '🌍 Miejsca',
-      easy: ['szkola', 'kosciol', 'sklep', 'park', 'most', 'zamek', 'plaz', 'las', 'miasto', 'lotnisko'],
-      medium: ['muzeum', 'szpital', 'restauracja', 'biblioteka', 'stadion', 'teatr', 'cyrk', 'zoo'],
-      hard: ['piramida', 'wodospad', 'latarnia morska', 'wiezowiec', 'akwarium', 'obserwatorium'],
-    },
-  },
+  defaultContent: require('./content'),
 
   createState(config) {
     return {
