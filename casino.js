@@ -97,9 +97,13 @@ async function getWallet(discordId) {
   return jsonDb.wallets[discordId] || null;
 }
 
+const walletCache = {}; // discord_id → wallet (in-memory, czyszczony co godzinę)
+setInterval(() => { Object.keys(walletCache).forEach(k => delete walletCache[k]); }, 3600_000);
+
 async function ensureWallet(discordUser) {
   const { id, username } = discordUser;
   const globalName = discordUser.globalName || discordUser.username;
+  if (walletCache[id]) return walletCache[id]; // cache hit — nie bij w DB
   const avatar     = discordUser.avatar || null;
 
   if (pg) {
@@ -109,10 +113,11 @@ async function ensureWallet(discordUser) {
       ON CONFLICT (discord_id) DO UPDATE SET
         username=EXCLUDED.username, global_name=EXCLUDED.global_name,
         avatar=COALESCE(EXCLUDED.avatar,casino_wallets.avatar), last_seen=NOW()
-      RETURNING *`,[id,username,globalName,avatar]);
+      RETURNING *, (xmax=0) AS is_new`,[id,username,globalName,avatar]);
     const w = rowToWallet(r.rows[0]);
-    if (r.rows[0].games_played===0 && r.rows[0].balance===START_BALANCE)
+    if (r.rows[0].is_new)
       console.log(`💳 Nowy portfel: ${globalName} (${START_BALANCE} AT$)`);
+    walletCache[id] = w;
     return w;
   }
   if (!jsonDb.wallets[id]) {
@@ -122,10 +127,12 @@ async function ensureWallet(discordUser) {
     Object.assign(jsonDb.wallets[id], { username, globalName, avatar:avatar||jsonDb.wallets[id].avatar, lastSeen:new Date().toISOString() });
   }
   saveJsonDb();
+  walletCache[id] = jsonDb.wallets[id];
   return jsonDb.wallets[id];
 }
 
 async function updateBalance(discordId, delta) {
+  delete walletCache[discordId]; // unieważnij cache — saldo się zmieniło
   if (pg) {
     const r = await pg.query(`
       UPDATE casino_wallets SET
