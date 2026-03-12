@@ -40,6 +40,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── SOCKET.IO: przekaż sesję Express → socket ─────────────────
 // Musimy to zrobić po setupSession, więc używamy io.use po inicjalizacji
 // Opóźnione do czasu gdy session middleware jest gotowe
+// ─── SOCKET TOKEN STORE ────────────────────────────────────────
+// Prosty token → discordUser map, omija problemy z sesją przez WS
+const socketTokens = new Map(); // token → discordUser
+function createSocketToken(discordUser) {
+  // Jeden token per user (unieważnia poprzedni)
+  for (const [k, v] of socketTokens) if (v.id === discordUser.id) socketTokens.delete(k);
+  const token = require('crypto').randomBytes(32).toString('hex');
+  socketTokens.set(token, discordUser);
+  return token;
+}
+// Dodaj endpoint zwracający token
+function setupTokenEndpoint(app) {
+  app.get('/auth/socket-token', (req, res) => {
+    const user = req.session?.discordUser;
+    if (!user) return res.status(401).json({ error: 'not logged in' });
+    const token = createSocketToken(user);
+    res.json({ token });
+  });
+}
+
 let _sessionMiddleware = null;
 const origSetupSession = discordAuth.setupSession.bind(discordAuth);
 discordAuth.setupSession = function(app) {
@@ -60,6 +80,7 @@ discordAuth.setupSession = function(app) {
   app.use(_sessionMiddleware);
 };
 discordAuth.setupRoutes(app);
+setupTokenEndpoint(app);
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
@@ -418,15 +439,11 @@ setImmediate(() => {
 
 io.on('connection', (socket) => {
 
-  // Helper: pobierz discordUser z sesji LUB z danych przesłanych przez klienta
+  // Helper: pobierz discordUser z tokenu lub sesji
   socket.getDiscordUser = (data) => {
-    const fromSession = socket.request.session?.discordUser || socket.discordUser || null;
-    if (fromSession) return fromSession;
-    // Fallback: klient przesłał discordId w payload — szukamy w portfelach
-    if (data?.discordId) {
-      return { id: data.discordId, username: data.discordId, globalName: data.discordId, avatar: null };
-    }
-    return null;
+    if (data?.socketToken && socketTokens.has(data.socketToken))
+      return socketTokens.get(data.socketToken);
+    return socket.request.session?.discordUser || socket.discordUser || null;
   };
 
   socket.on('createRoom', ({ gameType, playerName, isGameMaster, config }) => {

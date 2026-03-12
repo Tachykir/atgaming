@@ -1421,8 +1421,11 @@ async function initDiscordAuth() {
     discordEnabled = data.enabled;
     discordUser = data.user;
 
-    // Zawsze ustaw casinoDiscordId jeśli zalogowany
-    if (data.user) casinoDiscordId = data.user.id;
+    // Zawsze ustaw casinoDiscordId i pobierz socket token jeśli zalogowany
+    if (data.user) {
+      casinoDiscordId = data.user.id;
+      fetch('/auth/socket-token').then(r=>r.json()).then(d=>{ if(d.token) casinoSocketToken=d.token; }).catch(()=>{});
+    }
 
     // Check URL params after OAuth callback
     const params = new URLSearchParams(window.location.search);
@@ -3132,6 +3135,7 @@ function showToast(msg,type=''){
 
 let casinoWallet     = null;   // { balance, globalName, ... }
 let casinoDiscordId  = null;
+let casinoSocketToken = null; // token do autoryzacji socketów kasyna
 let casinoTableId    = null;   // aktywny stół
 let casinoMyHand     = [];
 let casinoTableData  = null;   // ostatni stan stołu
@@ -3394,18 +3398,18 @@ async function openCasinoTable(tableId) {
       // Tylko obserwuj
       casinoIsObserver = true;
     } else {
-      socket.emit('casinoJoinTable', { tableId, buyIn: parseInt(buyIn)||minBI , discordId: casinoDiscordId });
+      socket.emit('casinoJoinTable', { tableId, buyIn: parseInt(buyIn)||minBI , discordId: casinoDiscordId, socketToken: casinoSocketToken });
     }
   }
 
   // Blackjack: dołącz od razu (zakład w grze)
   if (game === 'blackjack' && casinoWallet) {
-    socket.emit('casinoJoinTable', { tableId, buyIn: table.config.minBet * 20 , discordId: casinoDiscordId });
+    socket.emit('casinoJoinTable', { tableId, buyIn: table.config.minBet * 20 , discordId: casinoDiscordId, socketToken: casinoSocketToken });
   }
 
   // Ruletka: specjalny join
   if (game === 'roulette') {
-    socket.emit('casinoRouletteJoin', { tableId , discordId: casinoDiscordId });
+    socket.emit('casinoRouletteJoin', { tableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
     initRouletteUI(table);
   }
 
@@ -3413,7 +3417,7 @@ async function openCasinoTable(tableId) {
   if (game === 'slots') initSlotsUI(table);
   if (game === 'pachinko') initPachinkoUI(table);
 
-  socket.emit('casinoObserveTable', { tableId , discordId: casinoDiscordId });
+  socket.emit('casinoObserveTable', { tableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
   showScreen(GAME_SCREENS[game] || 'casino-lobby');
 
   if (game === 'poker') {
@@ -3427,7 +3431,7 @@ async function openCasinoTable(tableId) {
 
 function leaveCasinoTable() {
   if (casinoTableId) {
-    socket.emit('casinoLeaveTable', { tableId: casinoTableId , discordId: casinoDiscordId });
+    socket.emit('casinoLeaveTable', { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
     casinoTableId = null;
   }
   showScreen('casino-lobby');
@@ -3470,7 +3474,7 @@ async function casinoSlotsSpin() {
     }, 80);
   });
 
-  socket.emit('casinoSlotsSpin', { tableId: casinoTableId, bet , discordId: casinoDiscordId });
+  socket.emit('casinoSlotsSpin', { tableId: casinoTableId, bet , discordId: casinoDiscordId, socketToken: casinoSocketToken });
 }
 
 socket.on('casinoSlotsResult', ({ reels, multiplier, winAmount, bet, net, balance, label }) => {
@@ -3583,7 +3587,7 @@ function buildRouletteGrid() {
 function placeRouletteBet(type, value) {
   if (!casinoTableId) return;
   const amount = parseInt(document.getElementById('roulette-bet-input')?.value) || rouletteBetAmount;
-  socket.emit('casinoRouletteBet', { tableId: casinoTableId, type, value, amount , discordId: casinoDiscordId });
+  socket.emit('casinoRouletteBet', { tableId: casinoTableId, type, value, amount , discordId: casinoDiscordId, socketToken: casinoSocketToken });
   roulettePendingBets.push({type, value, amount});
   const myBets = document.getElementById('roulette-my-bets');
   if (myBets) {
@@ -3709,7 +3713,7 @@ async function casinoPachinkoDrop() {
   const btn = document.getElementById('pachinko-drop-btn');
   btn.disabled = true;
 
-  socket.emit('casinoPachinkoDrop', { tableId: casinoTableId, bet , discordId: casinoDiscordId });
+  socket.emit('casinoPachinkoDrop', { tableId: casinoTableId, bet , discordId: casinoDiscordId, socketToken: casinoSocketToken });
 }
 
 socket.on('casinoPachinkoResult', ({ path, finalSlot, slot, bet, winAmount, net, balance }) => {
@@ -4070,13 +4074,13 @@ function renderCasinoBJState(state) {
 // ── AKCJE POKER ───────────────────────────────────────────────
 function casinoPokerAction(type) {
   if (!casinoTableId) return;
-  if (type === 'fold')  socket.emit('casinoPokerFold',  { tableId: casinoTableId , discordId: casinoDiscordId });
-  else if (type==='check') socket.emit('casinoPokerCheck', { tableId: casinoTableId , discordId: casinoDiscordId });
-  else if (type==='call')  socket.emit('casinoPokerCall',  { tableId: casinoTableId , discordId: casinoDiscordId });
+  if (type === 'fold')  socket.emit('casinoPokerFold',  { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
+  else if (type==='check') socket.emit('casinoPokerCheck', { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
+  else if (type==='call')  socket.emit('casinoPokerCall',  { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
   else if (type==='raise') {
     const amt = parseInt(document.getElementById('cp-raise-input')?.value);
     if (!amt) return showToast('Podaj kwotę!', 'error');
-    socket.emit('casinoPokerRaise', { tableId: casinoTableId, amount: amt , discordId: casinoDiscordId });
+    socket.emit('casinoPokerRaise', { tableId: casinoTableId, amount: amt , discordId: casinoDiscordId, socketToken: casinoSocketToken });
     document.getElementById('cp-raise-row').style.display = 'none';
   }
 }
@@ -4091,7 +4095,7 @@ function casinoPokerAllIn() {
   if (!gs) return;
   const me = gs.table.players.find(p => p.socketId === socket.id);
   if (!me) return;
-  socket.emit('casinoPokerRaise', { tableId: casinoTableId, amount: me.sessionChips + (gs.currentBet?.[socket.id]||0) , discordId: casinoDiscordId });
+  socket.emit('casinoPokerRaise', { tableId: casinoTableId, amount: me.sessionChips + (gs.currentBet?.[socket.id]||0) , discordId: casinoDiscordId, socketToken: casinoSocketToken });
 }
 
 // ── AKCJE BLACKJACK ───────────────────────────────────────────
@@ -4111,15 +4115,15 @@ function casinoBJMaxBet() {
 function casinoBJPlaceBet() {
   const amount = parseInt(document.getElementById('casino-bj-bet-input')?.value);
   if (!amount) return showToast('Podaj kwotę zakładu!', 'error');
-  socket.emit('casinoBJBet', { tableId: casinoTableId, amount , discordId: casinoDiscordId });
+  socket.emit('casinoBJBet', { tableId: casinoTableId, amount , discordId: casinoDiscordId, socketToken: casinoSocketToken });
   document.getElementById('casino-bj-bet-status').textContent = `✅ Zakład: ${amount} AT$`;
 }
 
 function casinoBJAction(type) {
   if (!casinoTableId) return;
-  if      (type==='hit')    socket.emit('casinoBJHit',    { tableId: casinoTableId , discordId: casinoDiscordId });
-  else if (type==='stand')  socket.emit('casinoBJStand',  { tableId: casinoTableId , discordId: casinoDiscordId });
-  else if (type==='double') socket.emit('casinoBJDouble', { tableId: casinoTableId , discordId: casinoDiscordId });
+  if      (type==='hit')    socket.emit('casinoBJHit',    { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
+  else if (type==='stand')  socket.emit('casinoBJStand',  { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
+  else if (type==='double') socket.emit('casinoBJDouble', { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
 }
 
 // ── INIT ───────────────────────────────────────────────────────
