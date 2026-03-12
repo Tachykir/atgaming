@@ -107,7 +107,8 @@ function registerHandlers(socket, io, casino) {
     await casino.updateBalance(discordUser.id, -betAmt);
 
     const riskCfg = RISK_CONFIGS[risk] || RISK_CONFIGS.medium;
-    const {path, finalSlot} = generatePath(riskCfg.rows, riskCfg.slots.length, riskCfg.centerBias);
+    const centerBias = 0.50 + Math.random() * 0.15; // losowy bias 50–65% w stronę środka
+    const {path, finalSlot} = generatePath(riskCfg.rows, riskCfg.slots.length, centerBias);
     const slot = riskCfg.slots[finalSlot];
     const winAmount = Math.floor(betAmt * slot.mult);
     if (winAmount > 0) await casino.updateBalance(discordUser.id, winAmount);

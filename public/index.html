@@ -1793,6 +1793,10 @@ function showScreen(id) {
   if (el) el.classList.add('active');
   if (id === 'active-rooms') loadActiveRooms();
   if (id === 'casino-lobby') loadCasinoLobby();
+  if (id === 'create' && S.selectedGame) {
+    const sel = document.getElementById('create-game');
+    if (sel) { sel.value = S.selectedGame; onGameChange(); }
+  }
 }
 function goHome() { location.reload(); }
 
