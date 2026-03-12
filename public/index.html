@@ -1265,13 +1265,16 @@ select.input option{background:var(--surface2);}
     <!-- Crash -->
     <div class="casino-lb-section">
       <h3>🚀 Crash</h3>
-      <div class="casino-tables-grid" id="casino-crash-tables"></div>
+      <div class="casino-tables-grid" id="casino-crash-tables"><div style="color:var(--muted);padding:16px;font-size:13px">Ładowanie…</div></div>
     </div>
 
     <!-- Coinflip -->
     <div class="casino-lb-section">
-      <h3>🪙 Coinflip</h3>
-      <div class="casino-tables-grid" id="casino-coinflip-tables"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <h3 style="margin:0">🪙 Coinflip</h3>
+        <button class="btn btn-primary btn-sm" onclick="showCreateTableDialog('coinflip')" id="create-coinflip-btn" style="display:none">+ Utwórz stół</button>
+      </div>
+      <div class="casino-tables-grid" id="casino-coinflip-tables"><div style="color:var(--muted);padding:16px">Brak aktywnych stołów</div></div>
     </div>
 
     <div style="background:rgba(255,200,0,.06);border:1px solid rgba(255,200,0,.2);border-radius:14px;padding:16px;font-size:13px;color:var(--muted);text-align:center;">
@@ -3781,7 +3784,7 @@ function renderCasinoTables(tables) {
 
   // Pokaż przyciski tworzenia stołów jeśli zalogowany
   const hasDiscord = !!casinoWallet;
-  ['create-poker-btn','create-bj-btn'].forEach(id => {
+  ['create-poker-btn','create-bj-btn','create-coinflip-btn'].forEach(id => {
     const btn = el(id);
     if (btn) btn.style.display = hasDiscord ? 'inline-flex' : 'none';
   });
@@ -3823,8 +3826,15 @@ function showCreateTableDialog(game) {
   if (!casinoDiscordId && discordUser) casinoDiscordId = discordUser.id;
   _createTableGame = game;
   const el = document.getElementById('modal-create-table');
-  document.getElementById('create-table-title').textContent = game==='poker' ? '🃏 Utwórz stół pokera' : '🎰 Utwórz stół Blackjacka';
+  document.getElementById('create-table-title').textContent = game==='poker' ? '🃏 Utwórz stół pokera' : game==='coinflip' ? '🪙 Utwórz stół Coinflip' : '🎰 Utwórz stół Blackjacka';
   const form = document.getElementById('create-table-form');
+  if (game==='coinflip') {
+    form.innerHTML = `
+      <div class="create-table-input-group"><label>Nazwa stołu</label><input class="input" id="ct-name" placeholder="np. Mój Coinflip" maxlength="40" value="Stół coinflip"></div>
+      <div class="create-table-input-group"><label>Min zakład (AT$)</label><input class="input" id="ct-minbet" type="number" value="100" min="10"></div>`;
+    document.getElementById('modal-create-table').style.display = 'flex';
+    return;
+  }
   if (game==='poker') {
     form.innerHTML = `
       <div class="create-table-input-group"><label>Nazwa stołu</label><input class="input" id="ct-name" placeholder="np. Stół VIP" maxlength="40" value="Stół pokera"></div>
@@ -3856,6 +3866,8 @@ async function submitCreateTable() {
   let config = {};
   if (game==='poker') {
     config = { blindAmount:Number(document.getElementById('ct-blind')?.value)||50, minBuyIn:Number(document.getElementById('ct-minbi')?.value)||1000, maxBuyIn:Number(document.getElementById('ct-maxbi')?.value)||5000, maxPlayers:Number(document.getElementById('ct-maxp')?.value)||6 };
+  } else if (game==='coinflip') {
+    config = { minBet:Number(document.getElementById('ct-minbet')?.value)||100 };
   } else {
     config = { minBet:Number(document.getElementById('ct-minbet')?.value)||50, maxBet:Number(document.getElementById('ct-maxbet')?.value)||500, maxPlayers:Number(document.getElementById('ct-maxp')?.value)||5 };
   }

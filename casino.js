@@ -272,6 +272,8 @@ function initTables() {
   createTable({ game:'roulette', name:'Ruletka Europejska', config:{ minBet:50, maxBet:2000, maxPlayers:20 }});
   // Pachinko
   createTable({ game:'pachinko', name:'Pachinko',  config:{ minBet:25, maxBet:500, maxPlayers:99 }});
+  // Crash — stały stół (pętla startuje w server.js po init)
+  createTable({ game:'crash', name:'Crash 🚀', config:{ minBet:50 }});
   console.log(`🃏 Zainicjowano ${Object.keys(casinoTables).length} stołów kasyna`);
 }
 

@@ -138,6 +138,15 @@ casino.init().then(() => {
     console.log(`\n🚀 Serwer działa na porcie ${PORT}\n`);
   });
   casino.scheduleWeeklyTopup(io);
+
+  // Uruchom pętlę Crash dla stałego stołu
+  const crashTable = Object.values(casino.casinoTables).find(t => t.game === 'crash');
+  if (crashTable) {
+    crashTable._casino = casino;
+    crashTable.gameState = { phase: 'betting', bets: {}, currentMultiplier: 1.00, crashPoint: null, history: [], bettingTimeLeft: 5 };
+    casinoCrash.startCrashLoop(crashTable, io, casino);
+    console.log('🚀 Crash loop uruchomiony');
+  }
 }).catch(err => {
   console.error('Błąd inicjalizacji kasyna:', err);
   process.exit(1);
@@ -374,12 +383,14 @@ app.post('/api/casino/tables', async (req, res) => {
   const user = req.session?.discordUser;
   if (!user) return res.status(401).json({ error: 'Wymagane logowanie Discord' });
   const { game, name, config } = req.body;
-  if (!['poker','blackjack'].includes(game)) return res.status(400).json({ error: 'Nieprawidłowy typ gry' });
+  if (!['poker','blackjack','coinflip'].includes(game)) return res.status(400).json({ error: 'Nieprawidłowy typ gry' });
   const safeName = String(name||'').trim().slice(0,40) || `Stół ${user.globalName||user.username}`;
   let cfg = {};
   if (game === 'poker') {
     cfg = { blindAmount:Math.max(5,Math.min(1000,Number(config?.blindAmount)||50)), minBuyIn:Math.max(100,Math.min(50000,Number(config?.minBuyIn)||1000)), maxBuyIn:Math.max(500,Math.min(100000,Number(config?.maxBuyIn)||5000)), maxPlayers:Math.max(2,Math.min(8,Number(config?.maxPlayers)||6)) };
     cfg.minBuyIn = Math.min(cfg.minBuyIn, cfg.maxBuyIn);
+  } else if (game === 'coinflip') {
+    cfg = { minBet: Math.max(10, Number(config?.minBet)||100) };
   } else {
     cfg = { minBet:Math.max(10,Math.min(5000,Number(config?.minBet)||50)), maxBet:Math.max(50,Math.min(50000,Number(config?.maxBet)||500)), maxPlayers:Math.max(1,Math.min(7,Number(config?.maxPlayers)||5)) };
     cfg.minBet = Math.min(cfg.minBet, cfg.maxBet);
@@ -387,6 +398,7 @@ app.post('/api/casino/tables', async (req, res) => {
   const table = casino.createTable({ game, name: safeName, config: cfg });
   table.createdBy = { id: user.id, name: user.globalName||user.username };
   table._casino = casino;
+  if (game === 'coinflip') table.gameState = { challenges: {} };
   io.emit('casinoTablesUpdated');
   res.json({ table: casino.getTablePublic(table) });
 });
@@ -684,7 +696,7 @@ io.on('connection', (socket) => {
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
-    const VALID_GAMES = ['poker','blackjack','crash','coinflip'];
+    const VALID_GAMES = ['poker','blackjack','coinflip'];
     if (!VALID_GAMES.includes(game)) return socket.emit('casinoError',{message:'Nieprawidłowy typ gry'});
 
     const safeName = String(name||'').trim().slice(0,40) || `Stół ${discordUser.globalName||discordUser.username}`;
@@ -717,11 +729,8 @@ io.on('connection', (socket) => {
     // Inject casino ref
     table._casino = casino;
 
-    // Inicjalizuj gameState dla crash/coinflip
-    if (game === 'crash') {
-      table.gameState = { phase: 'betting', bets: {}, currentMultiplier: 1.00, crashPoint: null, history: [], bettingTimeLeft: 5 };
-      casinoCrash.startCrashLoop(table, io, casino);
-    } else if (game === 'coinflip') {
+    // Inicjalizuj gameState dla coinflip
+    if (game === 'coinflip') {
       table.gameState = { challenges: {} };
     }
 
