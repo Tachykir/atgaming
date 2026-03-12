@@ -182,7 +182,7 @@ function placeBet(table, socketId, amount, io) {
   if (!p) return;
 
   const cfg = table.config;
-  const bet = Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(amount) || cfg.minBet));
+  const bet = Math.max(cfg.minBet, Number(amount) || cfg.minBet);
   if (p.sessionChips < bet) return;
 
   gs.bets[socketId] = bet;

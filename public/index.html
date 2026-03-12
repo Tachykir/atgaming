@@ -604,6 +604,17 @@ select.input option{background:var(--surface2);}
 .risk-btn[data-risk="high"].active { border-color:#e74c3c; background:#2b0d0d; color:#ff6b6b; }
 .risk-btn:hover:not(.active) { border-color:#1a3a5a; color:#fff; }
 
+
+/* ── CRASH ──────────────────────────────────────────────────── */
+.casino-table-card.crash { border-color:#1a3a1a; }
+.casino-table-card.crash:hover { border-color:#00c853; }
+.casino-table-card.coinflip { border-color:#3a2a1a; }
+.casino-table-card.coinflip:hover { border-color:#ffd200; }
+@keyframes coinSpin { 0%{transform:rotateY(0deg)} 100%{transform:rotateY(1080deg)} }
+.coin-spinning { animation: coinSpin 1.2s ease-in-out; }
+@keyframes crashShake { 0%,100%{transform:translate(0)} 20%{transform:translate(-4px,2px)} 40%{transform:translate(4px,-2px)} 60%{transform:translate(-3px,3px)} 80%{transform:translate(3px,-1px)} }
+.crash-crashed { animation: crashShake .4s ease; }
+
 /* ── MODAL TWORZENIA STOŁU ─────────────────────────────────── */
 #modal-create-table.show { display:flex !important; }
 .create-table-input-group { display:flex; flex-direction:column; gap:6px; }
@@ -1076,6 +1087,52 @@ select.input option{background:var(--surface2);}
   </div>
 </div>
 
+
+<!-- ══ WAVELENGTH ════════════════════════════════════════════ -->
+<div class="screen" id="screen-wavelength">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:600px;margin:0 auto;padding:16px">
+    <div class="live-scores" id="wl-scores" style="margin-bottom:16px"></div>
+    <div id="wl-round-info" style="text-align:center;margin-bottom:12px;color:var(--muted);font-size:13px"></div>
+    <!-- Spektrum -->
+    <div id="wl-spectrum" style="display:none">
+      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-bottom:4px">
+        <span id="wl-left-label" style="color:#3498db"></span>
+        <span id="wl-right-label" style="color:#e74c3c"></span>
+      </div>
+      <div style="position:relative;height:52px;background:linear-gradient(to right,#1a2a4a,#4a1a1a);border-radius:10px;margin-bottom:8px;overflow:hidden" id="wl-scale">
+        <!-- Strefa celu (widoczna tylko w fazie reveal) -->
+        <div id="wl-target-zone" style="display:none;position:absolute;top:0;bottom:0;background:rgba(255,210,0,.25);border:2px solid #ffd200;border-radius:4px"></div>
+        <!-- Wskaźnik gracza -->
+        <div id="wl-indicator" style="position:absolute;top:4px;bottom:4px;width:4px;background:#fff;border-radius:2px;left:50%;transform:translateX(-50%);cursor:pointer;transition:left .1s"></div>
+        <!-- Marker optymalny -->
+        <div id="wl-target-marker" style="display:none;position:absolute;top:0;bottom:0;width:3px;background:#ffd200;border-radius:2px"></div>
+      </div>
+      <!-- Slider (dla nie-psychica w fazie guessing) -->
+      <input type="range" id="wl-slider" min="0" max="100" value="50" style="width:100%;accent-color:var(--accent)" oninput="onWlSlider(this.value)">
+      <div style="text-align:center;font-size:13px;color:var(--muted);margin-top:2px" id="wl-slider-val">50</div>
+    </div>
+    <!-- Wskazówka -->
+    <div id="wl-clue-area" style="text-align:center;margin:16px 0">
+      <div id="wl-clue-display" style="font-size:28px;font-weight:800;min-height:40px"></div>
+      <div id="wl-clue-hint" style="font-size:13px;color:var(--muted)"></div>
+    </div>
+    <!-- Akcje psychica -->
+    <div id="wl-psychic-actions" style="display:none;text-align:center">
+      <input class="input" id="wl-clue-input" placeholder="Twoja wskazówka…" maxlength="40" style="max-width:280px;margin-bottom:8px" onkeydown="if(event.key==='Enter')wlSubmitClue()">
+      <br><button class="btn btn-primary" onclick="wlSubmitClue()">📡 Podaj wskazówkę</button>
+    </div>
+    <!-- Lock button dla psychica -->
+    <div id="wl-lock-actions" style="display:none;text-align:center">
+      <button class="btn btn-primary" onclick="wlLock()">🔒 Zatwierdź odpowiedź drużyny</button>
+    </div>
+    <!-- Wyniki rundy -->
+    <div id="wl-round-result" style="text-align:center;min-height:40px;font-size:20px;font-weight:800;margin-top:12px"></div>
+    <!-- Gracze -->
+    <div id="wl-players-list" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px"></div>
+  </div>
+</div>
+
 <!-- ══ POKER ══════════════════════════════════════════════════ -->
 <div class="screen" id="screen-poker">
   <button class="back-btn" onclick="goHome()">← Wróć</button>
@@ -1203,6 +1260,18 @@ select.input option{background:var(--surface2);}
     <div class="casino-lb-section">
       <h3>🎯 Pachinko</h3>
       <div class="casino-tables-grid" id="casino-pachinko-tables"></div>
+    </div>
+
+    <!-- Crash -->
+    <div class="casino-lb-section">
+      <h3>🚀 Crash</h3>
+      <div class="casino-tables-grid" id="casino-crash-tables"></div>
+    </div>
+
+    <!-- Coinflip -->
+    <div class="casino-lb-section">
+      <h3>🪙 Coinflip</h3>
+      <div class="casino-tables-grid" id="casino-coinflip-tables"></div>
     </div>
 
     <div style="background:rgba(255,200,0,.06);border:1px solid rgba(255,200,0,.2);border-radius:14px;padding:16px;font-size:13px;color:var(--muted);text-align:center;">
@@ -1478,6 +1547,75 @@ select.input option{background:var(--surface2);}
       </div>
       <button class="btn btn-primary" style="padding:14px 40px;font-size:18px" onclick="casinoPachinkoDrop()" id="pachinko-drop-btn">🎯 Upuść kulkę!</button>
     </div>
+  </div>
+</div>
+
+
+<!-- CRASH -->
+<div class="screen" id="screen-casino-crash">
+  <div style="position:absolute;top:16px;left:16px;z-index:10">
+    <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
+  </div>
+  <div class="casino-game-screen" style="align-items:center">
+    <div class="casino-game-header">
+      <div><div style="font-size:20px;font-weight:800">🚀 Crash</div></div>
+      <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="casino-crash-balance">—</div></div></div>
+    </div>
+    <div id="crash-history" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;min-height:24px"></div>
+    <div id="crash-canvas-wrap" style="width:340px;height:220px;background:#0a1a0a;border:2px solid #1a3a1a;border-radius:14px;position:relative;overflow:hidden;margin:0 auto">
+      <canvas id="crash-canvas" width="340" height="220"></canvas>
+      <div id="crash-multiplier" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:48px;font-weight:900;color:#00ff88;text-shadow:0 0 30px rgba(0,255,136,.6);pointer-events:none">1.00×</div>
+      <div id="crash-phase-label" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:13px;color:var(--muted)"></div>
+    </div>
+    <div id="crash-result-msg" style="min-height:32px;text-align:center;font-size:18px;font-weight:800;margin:8px 0"></div>
+    <div id="crash-players" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;min-height:32px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center">
+      <span style="font-size:13px;color:var(--muted)">Zakład:</span>
+      <div class="casino-bet-chips" id="crash-chip-btns"></div>
+      <input class="input" type="number" id="crash-bet-input" style="width:100px;padding:8px 12px;font-size:14px" placeholder="AT$">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <button class="btn btn-primary" style="padding:12px 32px;font-size:16px" onclick="casinoCrashBet()" id="crash-bet-btn">🚀 Postaw</button>
+      <button class="btn btn-danger" style="padding:12px 32px;font-size:16px;display:none" onclick="casinoCrashCashOut()" id="crash-cashout-btn">💰 Cash Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- COINFLIP -->
+<div class="screen" id="screen-casino-coinflip">
+  <div style="position:absolute;top:16px;left:16px;z-index:10">
+    <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
+  </div>
+  <div class="casino-game-screen" style="align-items:center">
+    <div class="casino-game-header">
+      <div><div style="font-size:20px;font-weight:800">🪙 Coinflip</div></div>
+      <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="casino-coinflip-balance">—</div></div></div>
+    </div>
+    <!-- Moneta animacja -->
+    <div id="coinflip-coin-area" style="height:120px;display:flex;align-items:center;justify-content:center">
+      <div id="coinflip-coin" style="font-size:80px;line-height:1;filter:drop-shadow(0 0 16px rgba(255,210,0,.5))">🪙</div>
+    </div>
+    <!-- Stwórz wyzwanie -->
+    <div class="admin-section" style="max-width:360px;width:100%;padding:16px">
+      <h3 style="font-size:14px;margin-bottom:12px">➕ Nowe wyzwanie</h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;margin-bottom:10px">
+        <button id="cf-heads-btn" class="btn btn-primary" style="padding:8px 20px" onclick="setCoinflipSide('heads')">👑 Orzeł</button>
+        <button id="cf-tails-btn" class="btn" style="padding:8px 20px;background:var(--surface2);border:1px solid var(--border)" onclick="setCoinflipSide('tails')">🦅 Reszka</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center">
+        <div class="casino-bet-chips" id="coinflip-chip-btns"></div>
+        <input class="input" type="number" id="coinflip-bet-input" style="width:100px;padding:8px 12px;font-size:14px" placeholder="AT$">
+        <button class="btn btn-primary" onclick="casinoCoinflipCreate()">Rzuć wyzwanie!</button>
+      </div>
+    </div>
+    <!-- Lista wyzwań -->
+    <div style="max-width:400px;width:100%">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:6px;text-align:center">Aktywne wyzwania</div>
+      <div id="coinflip-challenges" style="display:flex;flex-direction:column;gap:6px;min-height:40px">
+        <p style="color:var(--muted);text-align:center;font-size:13px">Brak aktywnych wyzwań</p>
+      </div>
+    </div>
+    <div id="coinflip-result-msg" style="min-height:32px;text-align:center;font-size:18px;font-weight:800;margin:8px 0"></div>
   </div>
 </div>
 
@@ -3628,14 +3766,18 @@ function renderCasinoTables(tables) {
   const bj       = tables.filter(t => t.game === 'blackjack');
   const slots    = tables.filter(t => t.game === 'slots');
   const roulette = tables.filter(t => t.game === 'roulette');
-  const pachinko = tables.filter(t => t.game === 'pachinko');
+  const pachinko  = tables.filter(t => t.game === 'pachinko');
+  const crash     = tables.filter(t => t.game === 'crash');
+  const coinflip  = tables.filter(t => t.game === 'coinflip');
 
   const el = id => document.getElementById(id);
   el('casino-poker-tables').innerHTML    = poker.length    ? poker.map(t=>renderTableCard(t)).join('') : '<div style="color:var(--muted);padding:8px">Brak stołów — utwórz pierwszy!</div>';
   el('casino-bj-tables').innerHTML       = bj.length       ? bj.map(t=>renderTableCard(t)).join('')    : '<div style="color:var(--muted);padding:8px">Brak stołów — utwórz pierwszy!</div>';
   el('casino-slots-tables').innerHTML    = slots.map(t=>renderTableCard(t)).join('');
   el('casino-roulette-tables').innerHTML = roulette.map(t=>renderTableCard(t)).join('');
-  el('casino-pachinko-tables').innerHTML = pachinko.map(t=>renderTableCard(t)).join('');
+  el('casino-pachinko-tables').innerHTML  = pachinko.map(t=>renderTableCard(t)).join('');
+  if (el('casino-crash-tables'))    el('casino-crash-tables').innerHTML    = crash.map(t=>renderTableCard(t)).join('');
+  if (el('casino-coinflip-tables')) el('casino-coinflip-tables').innerHTML = coinflip.map(t=>renderTableCard(t)).join('');
 
   // Pokaż przyciski tworzenia stołów jeśli zalogowany
   const hasDiscord = !!casinoWallet;
@@ -3647,8 +3789,8 @@ function renderCasinoTables(tables) {
 
 function renderTableCard(t) {
   const statusLabels = { open:'Otwarty', betting:'Zakłady', playing:'Gra', results:'Wyniki', showdown:'Showdown', spinning:'Obrót' };
-  const gameIcons = { poker:'🃏', blackjack:'🃏', slots:'🎰', roulette:'🎡', pachinko:'🎯' };
-  const gameColors = { poker:'', blackjack:'bj', slots:'slots', roulette:'roulette', pachinko:'pachinko' };
+  const gameIcons = { poker:'🃏', blackjack:'🃏', slots:'🎰', roulette:'🎡', pachinko:'🎯', crash:'🚀', coinflip:'🪙' };
+  const gameColors = { poker:'', blackjack:'bj', slots:'slots', roulette:'roulette', pachinko:'pachinko', crash:'crash', coinflip:'coinflip' };
 
   const seats = t.maxPlayers < 50 ? Array(Math.min(t.maxPlayers,8)).fill(0).map((_, i) => {
     const p = t.players[i];
@@ -3658,7 +3800,7 @@ function renderTableCard(t) {
 
   let stakes = '';
   if (t.game==='poker')    stakes = `Blindy: ${t.config.blindAmount}/${t.config.blindAmount*2} AT$ · Buy-in: ${t.config.minBuyIn}–${t.config.maxBuyIn}`;
-  else if (t.config.minBet) stakes = `Zakład: ${t.config.minBet}–${t.config.maxBet} AT$`;
+  else if (t.config.minBet) stakes = `Zakład: min ${t.config.minBet} AT$`;
 
   const canDelete = t.createdBy?.id === casinoDiscordId;
   const deleteBtn = canDelete && t.playerCount===0 ? `<button class="btn btn-secondary btn-sm" style="background:rgba(200,50,50,.15);border-color:rgba(200,50,50,.3)" onclick="event.stopPropagation();deleteCasinoTable('${t.id}')">🗑️</button>` : '';
@@ -3743,7 +3885,7 @@ socket.on('casinoTablesUpdated', () => {
 });
 
 // ── OTWÓRZ STÓŁ ───────────────────────────────────────────────
-const GAME_SCREENS = { poker:'casino-poker', blackjack:'casino-blackjack', slots:'casino-slots', roulette:'casino-roulette', pachinko:'casino-pachinko' };
+const GAME_SCREENS = { poker:'casino-poker', blackjack:'casino-blackjack', slots:'casino-slots', roulette:'casino-roulette', pachinko:'casino-pachinko', crash:'casino-crash', coinflip:'casino-coinflip' };
 
 async function openCasinoTable(tableId) {
   let table;
@@ -3791,6 +3933,8 @@ async function openCasinoTable(tableId) {
   // Slots / Pachinko: solo gry, nie potrzeba join
   if (game === 'slots') initSlotsUI(table);
   if (game === 'pachinko') initPachinkoUI(table);
+  if (game === 'crash') initCrashUI(table);
+  if (game === 'coinflip') initCoinflipUI(table);
 
   socket.emit('casinoObserveTable', { tableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
   showScreen(GAME_SCREENS[game] || 'casino-lobby');
@@ -3818,8 +3962,8 @@ function initSlotsUI(table) {
   document.getElementById('casino-slots-name').textContent = table.name;
   document.getElementById('casino-slots-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
   // Chip buttons
-  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.minBet*10, table.config.maxBet];
-  renderChipBtns('slots-chip-btns', [...new Set(chips)].filter(c=>c<=table.config.maxBet), 'slots-bet-input');
+  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.minBet*10];
+  renderChipBtns('slots-chip-btns', [...new Set(chips)], 'slots-bet-input');
   document.getElementById('slots-bet-input').value = table.config.minBet;
   document.getElementById('slots-result-msg').textContent = '';
   document.getElementById('slots-history').innerHTML = '';
@@ -3919,8 +4063,8 @@ function initRouletteUI(table) {
   document.getElementById('casino-roulette-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
   rouletteBetAmount = table.config.minBet;
   roulettePendingBets = [];
-  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.minBet*10, table.config.maxBet];
-  renderChipBtns('roulette-chip-btns', [...new Set(chips)].filter(c=>c<=table.config.maxBet), 'roulette-bet-input', v=>{ rouletteBetAmount=v; });
+  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.minBet*10];
+  renderChipBtns('roulette-chip-btns', [...new Set(chips)], 'roulette-bet-input', v=>{ rouletteBetAmount=v; });
   document.getElementById('roulette-bet-input').value = rouletteBetAmount;
   document.getElementById('roulette-bet-input').oninput = e => rouletteBetAmount = parseInt(e.target.value)||rouletteBetAmount;
   buildRouletteGrid();
@@ -4082,8 +4226,8 @@ function setPachinkoRisk(risk) {
 
 function initPachinkoUI(table) {
   document.getElementById('casino-pachinko-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
-  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.maxBet];
-  renderChipBtns('pachinko-chip-btns', [...new Set(chips)].filter(c=>c<=table.config.maxBet), 'pachinko-bet-input');
+  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.minBet*10];
+  renderChipBtns('pachinko-chip-btns', [...new Set(chips)], 'pachinko-bet-input');
   document.getElementById('pachinko-bet-input').value = table.config.minBet;
   document.getElementById('pachinko-result-msg').textContent = '';
   currentPachinkoRisk = 'low';
@@ -4240,12 +4384,351 @@ socket.on('casinoPachinkoResult', ({ path, finalSlot, slot, bet, winAmount, net,
   setTimeout(animateStep, 80);
 });
 
+
+// ── CRASH ──────────────────────────────────────────────────────
+let crashMyBet = 0;
+let crashPhase = 'betting';
+let crashAnimFrame = null;
+let crashPoints = [];
+let crashCanvas = null;
+let crashCtx = null;
+
+function initCrashUI(table) {
+  document.getElementById('casino-crash-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
+  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.minBet*10];
+  renderChipBtns('crash-chip-btns', [...new Set(chips)], 'crash-bet-input');
+  document.getElementById('crash-bet-input').value = table.config.minBet;
+  crashMyBet = 0;
+  crashPoints = [];
+  crashCanvas = document.getElementById('crash-canvas');
+  crashCtx = crashCanvas ? crashCanvas.getContext('2d') : null;
+  drawCrashGraph();
+}
+
+function drawCrashGraph() {
+  if (!crashCtx) return;
+  const W = 340, H = 220;
+  crashCtx.clearRect(0,0,W,H);
+  if (crashPoints.length < 2) return;
+  const maxM = Math.max(...crashPoints, 2);
+  crashCtx.strokeStyle = '#00c853';
+  crashCtx.lineWidth = 2.5;
+  crashCtx.shadowColor = '#00c853';
+  crashCtx.shadowBlur = 8;
+  crashCtx.beginPath();
+  crashPoints.forEach((m, i) => {
+    const x = (i / (crashPoints.length - 1)) * (W - 20) + 10;
+    const y = H - 10 - ((m - 1) / (maxM - 1 || 1)) * (H - 30);
+    i === 0 ? crashCtx.moveTo(x, y) : crashCtx.lineTo(x, y);
+  });
+  crashCtx.stroke();
+  crashCtx.shadowBlur = 0;
+}
+
+socket.on('casinoCrashState', (state) => {
+  if (state.tableId !== casinoTableId) return;
+  crashPhase = state.phase;
+  const multEl = document.getElementById('crash-multiplier');
+  const phaseEl = document.getElementById('crash-phase-label');
+  const betBtn = document.getElementById('crash-bet-btn');
+  const cashBtn = document.getElementById('crash-cashout-btn');
+  const resultEl = document.getElementById('crash-result-msg');
+
+  if (state.phase === 'betting') {
+    crashPoints = [];
+    drawCrashGraph();
+    if (multEl) { multEl.textContent = '1.00×'; multEl.style.color = '#00ff88'; }
+    if (phaseEl) phaseEl.textContent = `⏳ Czas na zakłady: ${state.bettingTimeLeft}s`;
+    if (betBtn) betBtn.style.display = '';
+    if (cashBtn) cashBtn.style.display = 'none';
+    if (resultEl) resultEl.textContent = '';
+    crashMyBet = state.bets?.[casinoDiscordId]?.amount || 0;
+    if (crashMyBet > 0 && betBtn) betBtn.disabled = true;
+    else if (betBtn) betBtn.disabled = false;
+  } else if (state.phase === 'crashed') {
+    if (multEl) { multEl.textContent = state.crashPoint.toFixed(2) + '×'; multEl.style.color = '#ff4444'; }
+    if (phaseEl) phaseEl.textContent = '💥 CRASH!';
+    if (betBtn) { betBtn.style.display = ''; betBtn.disabled = false; }
+    if (cashBtn) cashBtn.style.display = 'none';
+    const myBet = state.bets?.[casinoDiscordId];
+    if (myBet && !myBet.cashedOut && resultEl) {
+      resultEl.innerHTML = `<span style="color:var(--error)">💥 CRASH @ ${state.crashPoint.toFixed(2)}× — przegrałeś ${myBet.amount.toLocaleString('pl-PL')} AT$</span>`;
+    }
+    // Historia
+    if (state.history?.length) {
+      const hist = document.getElementById('crash-history');
+      if (hist) hist.innerHTML = state.history.map(h => {
+        const c = h.crashPoint < 1.5 ? '#ff4444' : h.crashPoint < 3 ? '#ffd200' : '#00c853';
+        return `<span style="background:${c}22;border:1px solid ${c};color:${c};padding:2px 7px;border-radius:8px;font-size:12px;font-weight:700">${h.crashPoint.toFixed(2)}×</span>`;
+      }).join('');
+    }
+  }
+
+  // Aktualizuj graczy
+  renderCrashPlayers(state.bets);
+});
+
+socket.on('casinoCrashTick', ({ tableId, multiplier }) => {
+  if (tableId !== casinoTableId) return;
+  crashPoints.push(multiplier);
+  if (crashPoints.length > 100) crashPoints = crashPoints.slice(-100);
+  drawCrashGraph();
+  const el = document.getElementById('crash-multiplier');
+  if (el) { el.textContent = multiplier.toFixed(2) + '×'; el.style.color = '#00ff88'; }
+});
+
+socket.on('casinoCrashCashedOut', ({ multiplier, winAmount, net, balance }) => {
+  const resultEl = document.getElementById('crash-result-msg');
+  if (resultEl) resultEl.innerHTML = `<span style="color:#00c853" class="result-pop">✅ Cash Out @ ${multiplier.toFixed(2)}× → +${winAmount.toLocaleString('pl-PL')} AT$</span>`;
+  document.getElementById('casino-crash-balance').textContent = balance.toLocaleString('pl-PL') + ' AT$';
+  if (casinoWallet) casinoWallet.balance = balance;
+  const cashBtn = document.getElementById('crash-cashout-btn');
+  if (cashBtn) cashBtn.style.display = 'none';
+  spawnCoinFloat(winAmount);
+});
+
+function renderCrashPlayers(bets) {
+  const el = document.getElementById('crash-players');
+  if (!el || !bets) return;
+  const entries = Object.values(bets);
+  if (!entries.length) { el.innerHTML = ''; return; }
+  el.innerHTML = entries.map(b => {
+    let icon = b.cashedOut ? `✅ ${b.cashOutAt?.toFixed(2)}×` : '⏳';
+    let color = b.cashedOut ? '#00c853' : 'var(--muted)';
+    return `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-size:12px;color:${color}">
+      ${escHtml(b.name)} — ${b.amount.toLocaleString('pl-PL')} AT$ ${icon}
+    </span>`;
+  }).join('');
+}
+
+function casinoCrashBet() {
+  const bet = parseInt(document.getElementById('crash-bet-input').value) || 0;
+  if (!bet) return showToast('Ustaw kwotę!', 'error');
+  if (crashPhase !== 'betting') return showToast('Zakłady tylko przed rundą!', 'error');
+  socket.emit('casinoCrashBet', { tableId: casinoTableId, bet, discordId: casinoDiscordId, socketToken: casinoSocketToken });
+  document.getElementById('crash-bet-btn').disabled = true;
+  document.getElementById('crash-cashout-btn').style.display = '';
+}
+
+function casinoCrashCashOut() {
+  socket.emit('casinoCrashCashOut', { tableId: casinoTableId, discordId: casinoDiscordId, socketToken: casinoSocketToken });
+}
+
+// ── COINFLIP ──────────────────────────────────────────────────
+let coinflipSide = 'heads';
+
+function initCoinflipUI(table) {
+  document.getElementById('casino-coinflip-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
+  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.minBet*10];
+  renderChipBtns('coinflip-chip-btns', [...new Set(chips)], 'coinflip-bet-input');
+  document.getElementById('coinflip-bet-input').value = table.config.minBet;
+  coinflipSide = 'heads';
+  document.getElementById('cf-heads-btn').className = 'btn btn-primary';
+  document.getElementById('cf-tails-btn').className = 'btn';
+  document.getElementById('coinflip-result-msg').textContent = '';
+}
+
+function setCoinflipSide(side) {
+  coinflipSide = side;
+  document.getElementById('cf-heads-btn').className = side === 'heads' ? 'btn btn-primary' : 'btn';
+  document.getElementById('cf-tails-btn').className = side === 'tails' ? 'btn btn-primary' : 'btn';
+  document.getElementById('cf-heads-btn').style.borderColor = side === 'heads' ? '' : 'var(--border)';
+  document.getElementById('cf-tails-btn').style.borderColor = side === 'tails' ? 'var(--accent)' : 'var(--border)';
+}
+
+function casinoCoinflipCreate() {
+  const bet = parseInt(document.getElementById('coinflip-bet-input').value) || 0;
+  if (!bet) return showToast('Ustaw kwotę!', 'error');
+  socket.emit('casinoCoinflipCreate', { tableId: casinoTableId, bet, side: coinflipSide, discordId: casinoDiscordId, socketToken: casinoSocketToken });
+}
+
+socket.on('casinoCoinflipState', ({ challenges }) => {
+  const el = document.getElementById('coinflip-challenges');
+  if (!el) return;
+  if (!challenges?.length) {
+    el.innerHTML = '<p style="color:var(--muted);text-align:center;font-size:13px">Brak aktywnych wyzwań</p>';
+    return;
+  }
+  el.innerHTML = challenges.map(c => {
+    const isOwn = c.creator.id === casinoDiscordId;
+    const sideLabel = c.side === 'heads' ? '👑 Orzeł' : '🦅 Reszka';
+    const oppSide = c.side === 'heads' ? '🦅 Reszka' : '👑 Orzeł';
+    if (c.status === 'flipping') {
+      return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:28px" class="coin-spinning">🪙</span>
+        <span>${escHtml(c.creator.name)} vs ${escHtml(c.opponent?.name||'?')} — <b>${c.bet.toLocaleString('pl-PL')} AT$</b> — rzut w toku…</span>
+      </div>`;
+    }
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <div>
+        <span style="font-weight:700">${escHtml(c.creator.name)}</span>
+        <span style="color:var(--muted);font-size:12px"> stawia ${c.bet.toLocaleString('pl-PL')} AT$ na <b>${sideLabel}</b></span>
+      </div>
+      <div style="display:flex;gap:6px">
+        ${isOwn
+          ? `<button class="btn btn-danger btn-sm" onclick="casinoCoinflipCancel('${c.id}')">Anuluj</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="casinoCoinflipAccept('${c.id}')">Przyjmij (${oppSide})</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+});
+
+socket.on('casinoCoinflipResult', ({ challengeId, result, winner, loser, bet, totalPot, creatorSide, creatorBalance, opponentBalance }) => {
+  const resultEmoji = result === 'heads' ? '👑 Orzeł' : '🦅 Reszka';
+  const coin = document.getElementById('coinflip-coin');
+  if (coin) {
+    coin.classList.add('coin-spinning');
+    setTimeout(() => { coin.classList.remove('coin-spinning'); coin.textContent = result === 'heads' ? '👑' : '🦅'; setTimeout(() => { coin.textContent = '🪙'; }, 3000); }, 1200);
+  }
+  const isWinner = winner.id === casinoDiscordId;
+  const resultEl = document.getElementById('coinflip-result-msg');
+  if (resultEl) {
+    if (isWinner) {
+      const newBalance = winner.id === casinoDiscordId ? creatorBalance : opponentBalance;
+      resultEl.innerHTML = `<span style="color:#00c853" class="result-pop">🎉 Wygrałeś! ${resultEmoji} — +${bet.toLocaleString('pl-PL')} AT$</span>`;
+      spawnCoinFloat(totalPot);
+      document.getElementById('casino-coinflip-balance').textContent = newBalance.toLocaleString('pl-PL') + ' AT$';
+      if (casinoWallet) casinoWallet.balance = newBalance;
+    } else if (loser.id === casinoDiscordId) {
+      resultEl.innerHTML = `<span style="color:var(--error)" class="result-pop">💀 Przegrałeś. ${resultEmoji} — wygrał ${escHtml(winner.name)}</span>`;
+      const newBalance = loser.id === casinoDiscordId ? (winner.id === casinoDiscordId ? opponentBalance : creatorBalance) : creatorBalance;
+      document.getElementById('casino-coinflip-balance').textContent = newBalance.toLocaleString('pl-PL') + ' AT$';
+      if (casinoWallet) casinoWallet.balance = newBalance;
+    }
+  }
+});
+
+function casinoCoinflipAccept(challengeId) {
+  socket.emit('casinoCoinflipAccept', { tableId: casinoTableId, challengeId, discordId: casinoDiscordId, socketToken: casinoSocketToken });
+}
+function casinoCoinflipCancel(challengeId) {
+  socket.emit('casinoCoinflipCancel', { tableId: casinoTableId, challengeId, discordId: casinoDiscordId, socketToken: casinoSocketToken });
+}
+socket.on('casinoCoinflipCancelled', ({ challengeId, refund }) => {
+  showToast(`↩️ Wyzwanie anulowane, zwrócono ${refund.toLocaleString('pl-PL')} AT$`, 'success');
+});
+
 // ── HELPER: chip buttons ──────────────────────────────────────
 function renderChipBtns(containerId, values, inputId, onSelect) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = values.map(v => `<button class="casino-chip-btn" onclick="(function(){document.getElementById('${inputId}').value=${v};${onSelect?'('+onSelect.toString()+')('+v+')':''}})()">${v>=1000?(v/1000)+'k':v}</button>`).join('');
 }
+
+
+// ── WAVELENGTH ─────────────────────────────────────────────────
+let wlState = null;
+let wlMyId = null;
+
+function onWlSlider(val) {
+  document.getElementById('wl-slider-val').textContent = val;
+  const ind = document.getElementById('wl-indicator');
+  if (ind) ind.style.left = val + '%';
+  // Wyślij guess w czasie rzeczywistym
+  if (wlState?.phase === 'guessing' && wlState?.psychic !== wlMyId) {
+    socket.emit('wavelengthGuess', { roomId: S.roomId, value: parseInt(val) });
+  }
+}
+
+function wlSubmitClue() {
+  const clue = document.getElementById('wl-clue-input')?.value?.trim();
+  if (!clue) return showToast('Wpisz wskazówkę!', 'error');
+  socket.emit('wavelengthClue', { roomId: S.roomId, clue });
+  document.getElementById('wl-psychic-actions').style.display = 'none';
+}
+
+function wlLock() {
+  socket.emit('wavelengthLock', { roomId: S.roomId });
+}
+
+socket.on('wavelengthState', (state) => {
+  wlState = state;
+  wlMyId = S.myId || socket.id;
+  const isPsychic = state.psychic === wlMyId;
+  const psychicPlayer = state.players?.find(p => p.id === state.psychic);
+
+  // Round info
+  const ri = document.getElementById('wl-round-info');
+  if (ri) ri.textContent = `Runda ${state.round} / ${state.maxRounds} · Psychic: ${psychicPlayer?.name || '?'}`;
+
+  // Spektrum
+  const specEl = document.getElementById('wl-spectrum');
+  if (specEl && state.spectrum) {
+    specEl.style.display = '';
+    document.getElementById('wl-left-label').textContent = '← ' + state.spectrum[0];
+    document.getElementById('wl-right-label').textContent = state.spectrum[1] + ' →';
+  }
+
+  // Target zone (tylko reveal)
+  const tz = document.getElementById('wl-target-zone');
+  const tm = document.getElementById('wl-target-marker');
+  if (state.targetZone !== null && state.phase === 'reveal') {
+    if (tz) { tz.style.display = ''; tz.style.left = Math.max(0, state.targetZone - 10) + '%'; tz.style.width = '20%'; }
+    if (tm) { tm.style.display = ''; tm.style.left = state.targetZone + '%'; }
+  } else {
+    if (tz) tz.style.display = 'none';
+    if (tm) tm.style.display = 'none';
+  }
+
+  // Slider
+  const slider = document.getElementById('wl-slider');
+  if (slider) {
+    slider.disabled = isPsychic || state.phase !== 'guessing';
+    if (state.phase === 'betting' || state.phase === 'clue') { slider.value = 50; document.getElementById('wl-indicator').style.left = '50%'; document.getElementById('wl-slider-val').textContent = '50'; }
+  }
+
+  // Team guess indicator
+  if (state.teamGuess !== null) {
+    const ind = document.getElementById('wl-indicator');
+    if (ind) ind.style.left = state.teamGuess + '%';
+  }
+
+  // Clue display
+  const cd = document.getElementById('wl-clue-display');
+  const ch = document.getElementById('wl-clue-hint');
+  if (state.phase === 'clue' && isPsychic) {
+    if (cd) cd.textContent = '';
+    if (ch) ch.textContent = 'Podaj wskazówkę — jedno słowo pasujące do punktu na skali';
+    document.getElementById('wl-psychic-actions').style.display = '';
+    document.getElementById('wl-lock-actions').style.display = 'none';
+  } else if (state.clue) {
+    if (cd) cd.textContent = '📡 ' + state.clue;
+    if (ch) ch.textContent = state.phase === 'guessing' ? (isPsychic ? 'Czekaj aż drużyna ustawi wskaźnik' : 'Ustaw wskaźnik na skali') : '';
+    document.getElementById('wl-psychic-actions').style.display = 'none';
+    document.getElementById('wl-lock-actions').style.display = (isPsychic && state.phase === 'guessing') ? '' : 'none';
+  } else {
+    if (cd) cd.textContent = '';
+    if (ch) ch.textContent = state.phase === 'clue' ? `Czekaj na wskazówkę od ${psychicPlayer?.name || '?'}…` : '';
+    document.getElementById('wl-psychic-actions').style.display = 'none';
+    document.getElementById('wl-lock-actions').style.display = 'none';
+  }
+
+  // Wyniki rundy
+  if (state.phase !== 'reveal') document.getElementById('wl-round-result').textContent = '';
+
+  // Scores
+  const sc = document.getElementById('wl-scores');
+  if (sc && state.scores) {
+    sc.innerHTML = state.players?.map(p => `<div class="live-score-item"><span>${escHtml(p.name)}</span><span class="pts">${state.scores[p.id] || 0} pkt</span></div>`).join('') || '';
+  }
+
+  // Guesses list
+  const pl = document.getElementById('wl-players-list');
+  if (pl) {
+    pl.innerHTML = state.players?.map(p => {
+      const g = state.guesses?.[p.id];
+      const mark = p.id === state.psychic ? '📡' : (g !== undefined ? `✅ ${g.value}` : '⏳');
+      return `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-size:12px">${escHtml(p.name)} ${mark}</span>`;
+    }).join('') || '';
+  }
+});
+
+socket.on('wavelengthReveal', ({ targetZone, teamGuess, pts, dist }) => {
+  const el = document.getElementById('wl-round-result');
+  const emoji = pts >= 4 ? '🎯' : pts >= 3 ? '✅' : pts >= 2 ? '👍' : pts >= 1 ? '🤏' : '❌';
+  if (el) el.innerHTML = `<span class="result-pop" style="color:${pts>=3?'#ffd200':'var(--muted)'}">${emoji} Cel: ${targetZone} · Drużyna: ${teamGuess} · Odległość: ${dist} → <b>+${pts} pkt</b></span>`;
+});
 
 // ── SOCKET EVENTS KASYNA ──────────────────────────────────────
 socket.on('casinoJoined', ({ tableId, sessionChips, walletBalance }) => {

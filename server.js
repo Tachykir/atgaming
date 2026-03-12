@@ -10,6 +10,8 @@ const casinoBJ      = require('./games/casino/blackjack');
 const casinoSlots   = require('./games/casino/slots');
 const casinoRoulette = require('./games/casino/roulette');
 const casinoPachinko = require('./games/casino/pachinko');
+const casinoCrash    = require('./games/casino/crash');
+const casinoCoinflip = require('./games/casino/coinflip');
 
 // Ładuj .env jeśli istnieje
 try {
@@ -673,7 +675,7 @@ io.on('connection', (socket) => {
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
-    const VALID_GAMES = ['poker','blackjack'];
+    const VALID_GAMES = ['poker','blackjack','crash','coinflip'];
     if (!VALID_GAMES.includes(game)) return socket.emit('casinoError',{message:'Nieprawidłowy typ gry'});
 
     const safeName = String(name||'').trim().slice(0,40) || `Stół ${discordUser.globalName||discordUser.username}`;
@@ -688,6 +690,10 @@ io.on('connection', (socket) => {
         maxPlayers:  Math.max(2, Math.min(8, Number(config?.maxPlayers)||6)),
       };
       cfg.minBuyIn = Math.min(cfg.minBuyIn, cfg.maxBuyIn);
+    } else if (game === 'crash') {
+      cfg = { minBet: Math.max(10, Number(config?.minBet)||50) };
+    } else if (game === 'coinflip') {
+      cfg = { minBet: Math.max(10, Number(config?.minBet)||50) };
     } else {
       cfg = {
         minBet:    Math.max(10, Math.min(5000, Number(config?.minBet)||50)),
@@ -701,6 +707,14 @@ io.on('connection', (socket) => {
     table.createdBy = { id: discordUser.id, name: discordUser.globalName||discordUser.username };
     // Inject casino ref
     table._casino = casino;
+
+    // Inicjalizuj gameState dla crash/coinflip
+    if (game === 'crash') {
+      table.gameState = { phase: 'betting', bets: {}, currentMultiplier: 1.00, crashPoint: null, history: [], bettingTimeLeft: 5 };
+      casinoCrash.startCrashLoop(table, io, casino);
+    } else if (game === 'coinflip') {
+      table.gameState = { challenges: {} };
+    }
 
     socket.emit('casinoTableCreated', { table: casino.getTablePublic(table) });
     io.emit('casinoTablesUpdated'); // sygnał żeby wszyscy odświeżyli lobby
@@ -748,6 +762,8 @@ io.on('connection', (socket) => {
   casinoSlots.registerHandlers(socket, io, casino);
   casinoRoulette.registerHandlers(socket, io, casino);
   casinoPachinko.registerHandlers(socket, io, casino);
+  casinoCrash.registerHandlers(socket, io, casino);
+  casinoCoinflip.registerHandlers(socket, io, casino);
 
   // ── Pomocnik opuszczania stołu ──
   function handleCasinoLeave(socket, tableId) {
