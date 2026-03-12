@@ -409,6 +409,8 @@ setImmediate(() => {
     });
     io.use((socket, next) => {
       socket.discordUser = socket.request.session?.discordUser || null;
+      // Helper: odczytaj świeżo z sesji (na wypadek gdyby login nastąpił po połączeniu)
+      socket.getDiscordUser = () => socket.request.session?.discordUser || socket.discordUser || null;
       next();
     });
   }
@@ -528,7 +530,7 @@ io.on('connection', (socket) => {
 
   // Pobierz portfel (klient musi być zalogowany przez Discord)
   socket.on('casinoGetWallet', async (_, cb) => {
-    const discordUser = socket.discordUser;
+    const discordUser = socket.getDiscordUser?.() || socket.discordUser;
     if (!discordUser) return (cb || (() => {}))({ error: 'Brak sesji Discord' });
     const wallet = await casino.ensureWallet(discordUser);
     (cb || (() => {}))({ wallet });
@@ -539,7 +541,7 @@ io.on('connection', (socket) => {
     const table = casino.casinoTables[tableId];
     if (!table) return socket.emit('casinoError', { message: 'Stół nie istnieje' });
 
-    const discordUser = socket.discordUser;
+    const discordUser = socket.getDiscordUser?.() || socket.discordUser;
     if (!discordUser) return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord, żeby grać!' });
 
     // Sprawdź czy już siedzi
@@ -620,7 +622,7 @@ io.on('connection', (socket) => {
 
   // Utwórz nowy stół (poker lub blackjack)
   socket.on('casinoCreateTable', async ({ game, name, config }) => {
-    const discordUser = socket.discordUser;
+    const discordUser = socket.getDiscordUser?.() || socket.discordUser;
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
     const VALID_GAMES = ['poker','blackjack'];
@@ -660,7 +662,7 @@ io.on('connection', (socket) => {
   socket.on('casinoDeleteTable', ({ tableId }) => {
     const table = casino.casinoTables[tableId];
     if (!table) return;
-    const discordUser = socket.discordUser;
+    const discordUser = socket.getDiscordUser?.() || socket.discordUser;
     if (!discordUser) return;
     if (table.createdBy?.id !== discordUser.id) return socket.emit('casinoError',{message:'Możesz usunąć tylko własny stół'});
     if (casino.deleteTable(tableId)) io.emit('casinoTablesUpdated');
