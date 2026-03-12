@@ -117,10 +117,11 @@ async function doSpin(table, io, casino, gs) {
 
 function registerHandlers(socket, io, casino) {
   // Dołącz do stołu ruletki
-  socket.on('casinoRouletteJoin', async ({ tableId }) => {
+  socket.on('casinoRouletteJoin', async (data) => {
+    const { tableId } = data;
     const table = casino.casinoTables[tableId];
     if (!table || table.game!=='roulette') return;
-    const discordUser = socket.discordUser;
+    const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
     const already = table.players.find(p=>p.discordId===discordUser.id);
@@ -138,10 +139,11 @@ function registerHandlers(socket, io, casino) {
   });
 
   // Postaw zakład
-  socket.on('casinoRouletteBet', async ({ tableId, type, value, amount }) => {
+  socket.on('casinoRouletteBet', async (data) => {
+    const { tableId, type, value, amount } = data;
     const table = casino.casinoTables[tableId];
     if (!table || !table.gameState || table.gameState.phase !== 'betting') return;
-    const discordUser = socket.discordUser;
+    const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return;
 
     const cfg = table.config;

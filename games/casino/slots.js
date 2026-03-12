@@ -47,11 +47,12 @@ function calcPayout(reels, bet) {
 }
 
 function registerHandlers(socket, io, casino) {
-  socket.on('casinoSlotsSpin', async ({ tableId, bet }) => {
+  socket.on('casinoSlotsSpin', async (data) => {
+    const { tableId, bet } = data;
     const table = casino.casinoTables[tableId];
     if (!table || table.game !== 'slots') return socket.emit('casinoError',{message:'Zły stół'});
 
-    const discordUser = socket.discordUser;
+    const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError',{message:'Musisz być zalogowany przez Discord!'});
 
     const betAmt = Math.max(table.config.minBet, Math.min(table.config.maxBet, Number(bet)||table.config.minBet));

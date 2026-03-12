@@ -36,10 +36,11 @@ function generatePath(rows=8) {
 }
 
 function registerHandlers(socket, io, casino) {
-  socket.on('casinoPachinkoDrop', async ({ tableId, bet }) => {
+  socket.on('casinoPachinkoDrop', async (data) => {
+    const { tableId, bet } = data;
     const table = casino.casinoTables[tableId];
     if (!table || table.game !== 'pachinko') return socket.emit('casinoError',{message:'Zły stół'});
-    const discordUser = socket.discordUser;
+    const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
     const cfg = table.config;

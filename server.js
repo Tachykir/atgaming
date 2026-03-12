@@ -30,16 +30,6 @@ const io     = new Server(server, { cors: { origin: '*' } });
 
 app.use(express.json());
 
-// ── DISCORD SESSION ───────────────────────────────────────────
-discordAuth.setupSession(app);
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ── DISCORD ROUTES ────────────────────────────────────────────
-
-// ── SOCKET.IO: przekaż sesję Express → socket ─────────────────
-// Musimy to zrobić po setupSession, więc używamy io.use po inicjalizacji
-// Opóźnione do czasu gdy session middleware jest gotowe
 // ─── SOCKET TOKEN STORE ────────────────────────────────────────
 // Prosty token → discordUser map, omija problemy z sesją przez WS
 const socketTokens = new Map(); // token → discordUser
@@ -50,18 +40,10 @@ function createSocketToken(discordUser) {
   socketTokens.set(token, discordUser);
   return token;
 }
-// Dodaj endpoint zwracający token
-function setupTokenEndpoint(app) {
-  app.get('/auth/socket-token', (req, res) => {
-    const user = req.session?.discordUser;
-    if (!user) return res.status(401).json({ error: 'not logged in' });
-    const token = createSocketToken(user);
-    res.json({ token });
-  });
-}
 
+// ── DISCORD SESSION ───────────────────────────────────────────
+// WAŻNE: nadpisujemy setupSession PRZED wywołaniem, żeby _sessionMiddleware był zapisany
 let _sessionMiddleware = null;
-const origSetupSession = discordAuth.setupSession.bind(discordAuth);
 discordAuth.setupSession = function(app) {
   const session = require('express-session');
   const cfg = {
@@ -79,8 +61,20 @@ discordAuth.setupSession = function(app) {
   app.set('trust proxy', 1);
   app.use(_sessionMiddleware);
 };
+discordAuth.setupSession(app); // wywołujemy już nadpisaną wersję
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ── DISCORD ROUTES ────────────────────────────────────────────
 discordAuth.setupRoutes(app);
-setupTokenEndpoint(app);
+
+// Endpoint zwracający token do autoryzacji socketów
+app.get('/auth/socket-token', (req, res) => {
+  const user = req.session?.discordUser;
+  if (!user) return res.status(401).json({ error: 'not logged in' });
+  const token = createSocketToken(user);
+  res.json({ token });
+});
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
@@ -650,7 +644,8 @@ io.on('connection', (socket) => {
   });
 
   // Utwórz nowy stół (poker lub blackjack)
-  socket.on('casinoCreateTable', async ({ game, name, config }) => {
+  socket.on('casinoCreateTable', async (data) => {
+    const { game, name, config } = data;
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
