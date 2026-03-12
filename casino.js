@@ -157,6 +157,44 @@ async function recordGame(discordId) {
   if (w) { w.gamesPlayed++; saveJsonDb(); }
 }
 
+// ─── WSZYSTKIE PORTFELE (admin) ─────────────────────────────────
+async function getAllWallets() {
+  if (pg) {
+    const r = await pg.query(`SELECT discord_id,username,global_name,avatar,balance,total_won,total_lost,games_played FROM casino_wallets ORDER BY balance DESC`);
+    const result = {};
+    for (const row of r.rows) {
+      result[row.discord_id] = {
+        balance: Number(row.balance),
+        username: row.username,
+        globalName: row.global_name,
+        avatar: row.avatar,
+        totalWon: Number(row.total_won),
+        totalLost: Number(row.total_lost),
+        gamesPlayed: Number(row.games_played),
+      };
+    }
+    return result;
+  }
+  return jsonDb.wallets;
+}
+
+// ─── ADMIN: bezpośredni SET salda (omija GREATEST) ─────────────
+async function adminSetBalance(discordId, newBalance) {
+  delete walletCache[discordId];
+  if (pg) {
+    const r = await pg.query(
+      'UPDATE casino_wallets SET balance=$1, last_seen=NOW() WHERE discord_id=$2 RETURNING discord_id',
+      [newBalance, discordId]
+    );
+    return r.rowCount > 0;
+  }
+  const w = jsonDb.wallets[discordId];
+  if (!w) return false;
+  w.balance = newBalance;
+  saveJsonDb();
+  return true;
+}
+
 // ─── RANKING ────────────────────────────────────────────────────
 async function getLeaderboard(limit=50) {
   if (pg) {
@@ -249,7 +287,7 @@ function getTablePublic(table) {
 }
 
 module.exports = {
-  init, getWallet, ensureWallet, updateBalance, recordGame, getLeaderboard,
+  init, getWallet, ensureWallet, updateBalance, recordGame, getLeaderboard, getAllWallets, adminSetBalance,
   scheduleWeeklyTopup, runWeeklyTopup,
   casinoTables, createTable, deleteTable, getTablePublic, initTables,
   START_BALANCE, WEEKLY_MINIMUM, WEEKLY_TOP_UP,

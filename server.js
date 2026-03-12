@@ -416,18 +416,27 @@ app.post('/api/admin/casino/set-balance', async (req, res) => {
   if (!adminCheck(password, res)) return;
   const newAmt = parseInt(amount);
   if (!discordId || isNaN(newAmt) || newAmt < 0) return res.status(400).json({ error: 'Nieprawidlowe dane' });
-  const current = await casino.getWallet(discordId);
-  if (!current) return res.status(404).json({ error: 'Portfel nie istnieje' });
-  const delta = newAmt - current.balance;
-  await casino.updateBalance(discordId, delta);
-  res.json({ ok: true, discordId, newBalance: newAmt });
+  try {
+    const ok = await casino.adminSetBalance(discordId, newAmt);
+    if (!ok) return res.status(404).json({ error: 'Portfel nie istnieje' });
+    res.json({ ok: true, discordId, newBalance: newAmt });
+  } catch(e) {
+    console.error('set-balance error:', e);
+    res.status(500).json({ error: 'Błąd bazy danych' });
+  }
 });
 
-// Admin: pobierz stan portfeli
+// Admin: pobierz stan portfeli (pg + json)
 app.get('/api/admin/casino/wallets', async (req, res) => {
   const { password } = req.query;
   if (password !== (process.env.ADMIN_PASSWORD || 'admin123')) return res.status(403).json({ error: 'Brak dostępu' });
-  res.json(casino.db.wallets);
+  try {
+    const wallets = await casino.getAllWallets();
+    res.json(wallets);
+  } catch(e) {
+    console.error('getAllWallets error:', e);
+    res.status(500).json({ error: 'Błąd bazy danych' });
+  }
 });
 
 // ─── SOCKET ────────────────────────────────────────────────────
