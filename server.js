@@ -408,6 +408,19 @@ app.post('/api/admin/casino/topup', async (req, res) => {
   res.json({ ok: true, count: topped.length, players: topped });
 });
 
+// Admin: ustaw saldo użytkownika
+app.post('/api/admin/casino/set-balance', async (req, res) => {
+  const { password, discordId, amount } = req.body;
+  if (!adminCheck(password, res)) return;
+  const newAmt = parseInt(amount);
+  if (!discordId || isNaN(newAmt) || newAmt < 0) return res.status(400).json({ error: 'Nieprawidlowe dane' });
+  const current = await casino.getWallet(discordId);
+  if (!current) return res.status(404).json({ error: 'Portfel nie istnieje' });
+  const delta = newAmt - current.balance;
+  await casino.updateBalance(discordId, delta);
+  res.json({ ok: true, discordId, newBalance: newAmt });
+});
+
 // Admin: pobierz stan portfeli
 app.get('/api/admin/casino/wallets', async (req, res) => {
   const { password } = req.query;
