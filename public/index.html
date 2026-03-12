@@ -3166,6 +3166,8 @@ async function loadCasinoLobby() {
 }
 
 function renderCasinoWallet() {
+  // Sync casinoDiscordId z discordUser jeśli jeszcze nie ustawione
+  if (!casinoDiscordId && discordUser) casinoDiscordId = discordUser.id;
   const w = casinoWallet;
   if (!w) return renderCasinoNoDiscord();
   const profit = w.totalWon - w.totalLost;
@@ -3295,7 +3297,8 @@ function renderTableCard(t) {
 // ── TWORZENIE STOŁU ───────────────────────────────────────────
 let _createTableGame = null;
 function showCreateTableDialog(game) {
-  if (!casinoWallet) return showToast('Wymagane logowanie Discord!', 'error');
+  if (!casinoWallet && !discordUser) return showToast('Wymagane logowanie Discord!', 'error');
+  if (!casinoDiscordId && discordUser) casinoDiscordId = discordUser.id;
   _createTableGame = game;
   const el = document.getElementById('modal-create-table');
   document.getElementById('create-table-title').textContent = game==='poker' ? '🃏 Utwórz stół pokera' : '🎰 Utwórz stół Blackjacka';
@@ -3367,9 +3370,9 @@ async function openCasinoTable(tableId) {
   try { table = await (await fetch(`/api/casino/tables/${tableId}`)).json(); }
   catch(e) { return showToast('Błąd połączenia z stołem', 'error'); }
 
-  // Sprawdź logowanie dla gier wymagających Discord
+  // Sprawdź logowanie - casinoDiscordId może być null jeśli lobby nie było otwarte
+  if (!casinoDiscordId && discordUser) casinoDiscordId = discordUser.id;
   if (!casinoDiscordId) {
-    // Dla slotów/pachinko/ruletki też wymagamy logowania
     showToast('Zaloguj się przez Discord, żeby grać!', 'error');
     return;
   }

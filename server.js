@@ -90,8 +90,10 @@ const CONTENT = {};
 function loadGameModules() {
   const gamesDir = path.join(__dirname, 'games');
   if (!fs.existsSync(gamesDir)) return;
+  // poker i blackjack dostępne tylko w kasynie (nie jako gry pokojowe)
+  const EXCLUDED = ['casino', 'poker', 'blackjack'];
   const dirs = fs.readdirSync(gamesDir).filter(d =>
-    fs.existsSync(path.join(gamesDir, d, 'index.js'))
+    fs.existsSync(path.join(gamesDir, d, 'index.js')) && !EXCLUDED.includes(d)
   );
   for (const dir of dirs) {
     try {
