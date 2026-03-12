@@ -9,15 +9,15 @@
 // Zasada: najniższe wartości w środku, najwyższe na bokach
 // Low risk: 9 pól
 const SLOTS_LOW = [
-  { label:'10×', mult:10  },
-  { label:'3×',  mult:3   },
-  { label:'1.5×',mult:1.5 },
-  { label:'1×',  mult:1   },
-  { label:'0.5×',mult:0.5 },
-  { label:'1×',  mult:1   },
-  { label:'1.5×',mult:1.5 },
-  { label:'3×',  mult:3   },
-  { label:'10×', mult:10  },
+  { label:'5×',   mult:5    },
+  { label:'1.5×', mult:1.5  },
+  { label:'0.75×',mult:0.75 },
+  { label:'0.5×', mult:0.5  },
+  { label:'0.25×',mult:0.25 },
+  { label:'0.5×', mult:0.5  },
+  { label:'0.75×',mult:0.75 },
+  { label:'1.5×', mult:1.5  },
+  { label:'5×',   mult:5    },
 ];
 
 // Medium risk: 15 pól

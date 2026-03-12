@@ -23,15 +23,23 @@ async function initPg() {
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
   });
+  // Migracja: INTEGER → BIGINT dla dużych sald (ignoruj błąd jeśli tabela nie istnieje)
+  await pg.query(`
+    ALTER TABLE casino_wallets
+      ALTER COLUMN balance    TYPE BIGINT,
+      ALTER COLUMN total_won  TYPE BIGINT,
+      ALTER COLUMN total_lost TYPE BIGINT
+  `).catch(()=>{});
+
   await pg.query(`
     CREATE TABLE IF NOT EXISTS casino_wallets (
       discord_id    TEXT PRIMARY KEY,
       username      TEXT NOT NULL,
       global_name   TEXT NOT NULL,
       avatar        TEXT,
-      balance       INTEGER NOT NULL DEFAULT ${START_BALANCE},
-      total_won     INTEGER NOT NULL DEFAULT 0,
-      total_lost    INTEGER NOT NULL DEFAULT 0,
+      balance       BIGINT NOT NULL DEFAULT ${START_BALANCE},
+      total_won     BIGINT NOT NULL DEFAULT 0,
+      total_lost    BIGINT NOT NULL DEFAULT 0,
       games_played  INTEGER NOT NULL DEFAULT 0,
       created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       last_seen     TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -86,7 +94,7 @@ async function init() {
 
 // ─── PORTFELE ────────────────────────────────────────────────────
 function rowToWallet(row) {
-  return { balance:row.balance, username:row.username, globalName:row.global_name, avatar:row.avatar, totalWon:row.total_won, totalLost:row.total_lost, gamesPlayed:row.games_played, createdAt:row.created_at, lastSeen:row.last_seen };
+  return { balance:Number(row.balance), username:row.username, globalName:row.global_name, avatar:row.avatar, totalWon:Number(row.total_won), totalLost:Number(row.total_lost), gamesPlayed:Number(row.games_played), createdAt:row.created_at, lastSeen:row.last_seen };
 }
 
 async function getWallet(discordId) {
@@ -141,7 +149,7 @@ async function updateBalance(discordId, delta) {
         total_lost  = CASE WHEN $2<0 THEN total_lost+(-$2) ELSE total_lost END,
         last_seen   = NOW()
       WHERE discord_id=$1 RETURNING balance`,[discordId,delta]);
-    return r.rows[0]?.balance ?? null;
+    return r.rows[0] ? Number(r.rows[0].balance) : null;
   }
   const w = jsonDb.wallets[discordId];
   if (!w) return null;

@@ -52,7 +52,11 @@ class FileSessionStore extends Store {
     } catch(e) { this.sessions = {}; }
   }
   _save() {
-    try { fs.writeFileSync(this.filePath, JSON.stringify(this.sessions)); } catch(e) {}
+    try {
+      // BigInt nie jest serializowalny przez JSON.stringify — konwertuj do string
+      const safe = JSON.stringify(this.sessions, (k, v) => typeof v === 'bigint' ? v.toString() : v);
+      fs.writeFileSync(this.filePath, safe);
+    } catch(e) { console.error('Session save error:', e.message); }
   }
   get(sid, cb) {
     const sess = this.sessions[sid];
