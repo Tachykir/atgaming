@@ -65,20 +65,23 @@ const SLOTS_HIGH = [
 ];
 
 const RISK_CONFIGS = {
-  low:    { slots: SLOTS_LOW,    rows: 8  },
-  medium: { slots: SLOTS_MEDIUM, rows: 12 },
-  high:   { slots: SLOTS_HIGH,   rows: 16 },
+  low:    { slots: SLOTS_LOW,    rows: 8,  centerBias: 0.65 },
+  medium: { slots: SLOTS_MEDIUM, rows: 12, centerBias: 0.65 },
+  high:   { slots: SLOTS_HIGH,   rows: 16, centerBias: 0.65 },
 };
 
 // Dla wstecznej kompatybilności (domyślny stary stół = medium)
 const SLOTS = SLOTS_MEDIUM;
 
 // Generuje ścieżkę kulki (seria L/R per rząd, dla animacji frontend)
-function generatePath(rows=12, slotCount=15) {
+// centerBias: prawdopodobieństwo ruchu w stronę środka (0.5 = brak biasu, 0.65 = 65% w stronę środka)
+function generatePath(rows=12, slotCount=15, centerBias=0.65) {
   const path = [];
-  let pos = Math.floor(slotCount/2);
+  const center = (slotCount - 1) / 2;
+  let pos = Math.floor(slotCount / 2);
   for (let r=0; r<rows; r++) {
-    const intendedDir = Math.random()<0.5 ? -1 : 1;
+    const towardsCenter = pos > center ? -1 : pos < center ? 1 : (Math.random()<0.5 ? -1 : 1);
+    const intendedDir = Math.random() < centerBias ? towardsCenter : -towardsCenter;
     const prevPos = pos;
     pos = Math.max(0, Math.min(slotCount-1, pos+intendedDir));
     const actualDelta = pos - prevPos;
@@ -104,7 +107,7 @@ function registerHandlers(socket, io, casino) {
     await casino.updateBalance(discordUser.id, -betAmt);
 
     const riskCfg = RISK_CONFIGS[risk] || RISK_CONFIGS.medium;
-    const {path, finalSlot} = generatePath(riskCfg.rows, riskCfg.slots.length);
+    const {path, finalSlot} = generatePath(riskCfg.rows, riskCfg.slots.length, riskCfg.centerBias);
     const slot = riskCfg.slots[finalSlot];
     const winAmount = Math.floor(betAmt * slot.mult);
     if (winAmount > 0) await casino.updateBalance(discordUser.id, winAmount);
