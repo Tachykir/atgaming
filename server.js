@@ -418,6 +418,17 @@ setImmediate(() => {
 
 io.on('connection', (socket) => {
 
+  // Helper: pobierz discordUser z sesji LUB z danych przesłanych przez klienta
+  socket.getDiscordUser = (data) => {
+    const fromSession = socket.request.session?.discordUser || socket.discordUser || null;
+    if (fromSession) return fromSession;
+    // Fallback: klient przesłał discordId w payload — szukamy w portfelach
+    if (data?.discordId) {
+      return { id: data.discordId, username: data.discordId, globalName: data.discordId, avatar: null };
+    }
+    return null;
+  };
+
   socket.on('createRoom', ({ gameType, playerName, isGameMaster, config }) => {
     if (!GAMES[gameType]) return socket.emit('error', { message: `Nieznana gra: ${gameType}` });
     const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -529,19 +540,20 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════
 
   // Pobierz portfel (klient musi być zalogowany przez Discord)
-  socket.on('casinoGetWallet', async (_, cb) => {
-    const discordUser = socket.getDiscordUser?.() || socket.discordUser;
+  socket.on('casinoGetWallet', async (data, cb) => {
+    const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return (cb || (() => {}))({ error: 'Brak sesji Discord' });
     const wallet = await casino.ensureWallet(discordUser);
     (cb || (() => {}))({ wallet });
   });
 
   // Dołącz do stołu kasyna
-  socket.on('casinoJoinTable', async ({ tableId, buyIn }) => {
+  socket.on('casinoJoinTable', async (data) => {
+    const { tableId, buyIn } = data;
     const table = casino.casinoTables[tableId];
     if (!table) return socket.emit('casinoError', { message: 'Stół nie istnieje' });
 
-    const discordUser = socket.getDiscordUser?.() || socket.discordUser;
+    const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord, żeby grać!' });
 
     // Sprawdź czy już siedzi
@@ -622,7 +634,7 @@ io.on('connection', (socket) => {
 
   // Utwórz nowy stół (poker lub blackjack)
   socket.on('casinoCreateTable', async ({ game, name, config }) => {
-    const discordUser = socket.getDiscordUser?.() || socket.discordUser;
+    const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
     const VALID_GAMES = ['poker','blackjack'];
@@ -662,7 +674,7 @@ io.on('connection', (socket) => {
   socket.on('casinoDeleteTable', ({ tableId }) => {
     const table = casino.casinoTables[tableId];
     if (!table) return;
-    const discordUser = socket.getDiscordUser?.() || socket.discordUser;
+    const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return;
     if (table.createdBy?.id !== discordUser.id) return socket.emit('casinoError',{message:'Możesz usunąć tylko własny stół'});
     if (casino.deleteTable(tableId)) io.emit('casinoTablesUpdated');
