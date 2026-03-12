@@ -17,7 +17,7 @@ module.exports = {
     supportsGameMaster: false,
     configSchema: {
       maxPlayers: { type: 'number', label: 'Maks. graczy',   min: 2, max: 16, default: 8 },
-      rounds:     { type: 'number', label: 'Liczba rund',    min: 1, max: 10, default: 0 },
+      rounds:     { type: 'number', label: 'Liczba rund',    min: 1, max: 10, default: 1 },
       roundTime:  { type: 'number', label: 'Czas rysowania (s)', min: 30, max: 180, default: 60 },
     },
   },
@@ -127,6 +127,8 @@ function _startRound(room, io) {
   gs.phase = 'guess';
 
   const drawerName = room.players[gs.drawerIndex]?.name;
+  // Czas rysowania z config (domyślnie 60s)
+  const roundTimeSec = Number(room.config?.roundTime) || 60;
 
   // Tell everyone who draws (but not the word)
   io.to(room.id).emit('kalamburyRound', {
@@ -134,6 +136,7 @@ function _startRound(room, io) {
     total: gs.totalRounds,
     drawerId: gs.currentDrawer,
     drawerName,
+    roundTime: roundTimeSec,
     room,
   });
 
@@ -142,10 +145,9 @@ function _startRound(room, io) {
     word: gs.currentWord,
   });
 
-  // 60 seconds to draw
   gs.roundTimer = setTimeout(() => {
     _endRound(room, io);
-  }, 60000);
+  }, roundTimeSec * 1000);
 }
 
 function _endRound(room, io) {

@@ -129,13 +129,24 @@ function registerHandlers(socket, io, casino) {
       const wallet = await casino.ensureWallet(discordUser);
       table.players.push({ socketId:socket.id, discordId:discordUser.id, name:discordUser.globalName||discordUser.username, avatar:discordUser.avatar });
     } else {
-      already.socketId = socket.id; // odśwież socket
+      already.socketId = socket.id; // odśwież socket po reconnect
     }
     socket.join('casino:'+tableId);
     socket.casinoTableId = tableId;
 
     if (!table.gameState && table.players.length >= 1) startRound(table, io, casino);
-    else if (table.gameState) broadcastState(table, io, table.gameState);
+    else if (table.gameState) {
+      broadcastState(table, io, table.gameState);
+      // Przy reconnect: jeśli gracz miał zakłady i runda jest w toku — poinformuj o stanie
+      const gs = table.gameState;
+      if (gs.bets[discordUser.id]?.length > 0) {
+        socket.emit('casinoRouletteMyBets', {
+          tableId,
+          bets: gs.bets[discordUser.id],
+          total: gs.bets[discordUser.id].reduce((s,b)=>s+b.amount, 0),
+        });
+      }
+    }
   });
 
   // Postaw zakład
@@ -159,6 +170,28 @@ function registerHandlers(socket, io, casino) {
     gs.bets[discordUser.id].push({type, value, amount:betAmt});
 
     broadcastState(table, io, gs);
+  });
+
+  // Opuść stół ruletki — zwróć AT$ jeśli gracz miał zakłady w fazie betting
+  socket.on('casinoRouletteLeave', async (data) => {
+    const { tableId } = data;
+    const table = casino.casinoTables[tableId];
+    if (!table) return;
+    const discordUser = socket.getDiscordUser(data);
+    if (!discordUser) return;
+
+    const gs = table.gameState;
+    // Zwróć zakłady tylko jeśli runda jest w fazie betting (spin jeszcze nie nastąpił)
+    if (gs && gs.phase === 'betting' && gs.bets[discordUser.id]?.length > 0) {
+      const refund = gs.bets[discordUser.id].reduce((s,b)=>s+b.amount, 0);
+      await casino.updateBalance(discordUser.id, refund).catch(()=>{});
+      delete gs.bets[discordUser.id];
+      broadcastState(table, io, gs);
+    }
+
+    // Usuń gracza ze stołu
+    table.players = table.players.filter(p=>p.discordId!==discordUser.id);
+    socket.leave('casino:'+tableId);
   });
 }
 

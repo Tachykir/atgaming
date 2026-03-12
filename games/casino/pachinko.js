@@ -24,13 +24,20 @@ const SLOTS = [
 ];
 
 // Generuje ścieżkę kulki (seria L/R per rząd, dla animacji frontend)
+// Zwraca rzeczywisty ruch kulki z uwzględnieniem odbicia od ścian planszy
 function generatePath(rows=8) {
   const path = [];
   let pos = Math.floor(SLOTS.length/2);
   for (let r=0; r<rows; r++) {
-    const dir = Math.random()<0.5 ? -1 : 1;
-    pos = Math.max(0, Math.min(SLOTS.length-1, pos+dir));
-    path.push({row:r, pos, dir: dir>0?'R':'L'});
+    const intendedDir = Math.random()<0.5 ? -1 : 1;
+    const prevPos = pos;
+    pos = Math.max(0, Math.min(SLOTS.length-1, pos+intendedDir));
+    // Rzeczywisty kierunek ruchu (0 jeśli odbiło od ściany i nie ruszyła)
+    const actualDelta = pos - prevPos;
+    // Dla animacji: jeśli kulka uderzyła w ścianę i nie ruszyła,
+    // pokazujemy kierunek zamierzony (kulka "próbuje" wyjść ale wraca)
+    const displayDir = actualDelta !== 0 ? (actualDelta > 0 ? 'R' : 'L') : (intendedDir > 0 ? 'R' : 'L');
+    path.push({row:r, pos, dir: displayDir, bounced: actualDelta === 0});
   }
   return { path, finalSlot: pos };
 }

@@ -25,6 +25,13 @@ function rankValue(card) {
   return RANKS.indexOf(card.slice(0, -1));
 }
 
+function compareTiebreak(a, b) {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return 0;
+}
+
 function evaluateHand(cards) {
   // Returns { rank: 0-8, name, tiebreak }
   const vals = cards.map(rankValue).sort((a,b) => b-a);
@@ -34,12 +41,17 @@ function evaluateHand(cards) {
   const groups = Object.entries(counts).map(([v,c]) => [+v,c]).sort((a,b) => b[1]-a[1]||b[0]-a[0]);
   const isFlush = suits.every(s => s === suits[0]);
   const isStraight = vals.length === 5 && vals[0]-vals[4] === 4 && new Set(vals).size === 5;
+  // Ace-low straight: A-2-3-4-5 (vals=[12,3,2,1,0])
+  const isAceLow = vals.length === 5 && vals[0] === 12 && vals[1] === 3 && vals[2] === 2 && vals[3] === 1 && vals[4] === 0;
+  const aceLowTb = [3, 2, 1, 0, -1]; // tiebreak dla A-2-3-4-5 (As liczy jako 1)
   // Royal/Straight flush
   if (isFlush && isStraight) return { rank: vals[0] === 12 ? 8 : 7, name: vals[0]===12?'Royal Flush':'Straight Flush', tiebreak: vals };
+  if (isFlush && isAceLow) return { rank: 7, name: 'Straight Flush', tiebreak: aceLowTb };
   if (groups[0][1] === 4) return { rank: 6, name: 'Kareta', tiebreak: vals };
   if (groups[0][1] === 3 && groups[1][1] === 2) return { rank: 5, name: 'Full House', tiebreak: vals };
   if (isFlush) return { rank: 4, name: 'Kolor', tiebreak: vals };
   if (isStraight) return { rank: 3, name: 'Strit', tiebreak: vals };
+  if (isAceLow) return { rank: 3, name: 'Strit', tiebreak: aceLowTb };
   if (groups[0][1] === 3) return { rank: 2, name: 'Trójka', tiebreak: vals };
   if (groups[0][1] === 2 && groups[1][1] === 2) return { rank: 1, name: 'Dwie pary', tiebreak: vals };
   if (groups[0][1] === 2) return { rank: 0.5, name: 'Para', tiebreak: vals };
@@ -56,7 +68,7 @@ function bestHand(hole, community) {
         for (let l = k+1; l < all.length - 1; l++)
           for (let m = l+1; m < all.length; m++) {
             const h = evaluateHand([all[i],all[j],all[k],all[l],all[m]]);
-            if (!best || h.rank > best.rank || (h.rank === best.rank && h.tiebreak[0] > best.tiebreak[0])) best = h;
+            if (!best || h.rank > best.rank || (h.rank === best.rank && compareTiebreak(h.tiebreak, best.tiebreak) > 0)) best = h;
           }
   return best;
 }
@@ -151,10 +163,10 @@ function finishRound(room, io) {
     const scored = notFolded.map(p => ({
       id: p.id,
       hand: bestHand(gs.hands[p.id], gs.community),
-    })).sort((a,b) => b.hand.rank - a.hand.rank || b.hand.tiebreak[0] - a.hand.tiebreak[0]);
+    })).sort((a,b) => b.hand.rank - a.hand.rank || compareTiebreak(b.hand.tiebreak, a.hand.tiebreak));
 
-    const topRank = scored[0].hand.rank;
-    winners = scored.filter(s => s.hand.rank === topRank).map(s => s.id);
+    const top = scored[0].hand;
+    winners = scored.filter(s => s.hand.rank === top.rank && compareTiebreak(s.hand.tiebreak, top.tiebreak) === 0).map(s => s.id);
   }
 
   const share = Math.floor(gs.pot / winners.length);
@@ -301,26 +313,35 @@ module.exports = {
       gs.callAmount = raiseTotal;
       gs.lastRaiser = playerId;
       if (gs.chips[playerId] === 0) gs.allIn[playerId] = true;
+
+      // Po raise: przebuduj kolejkę — wszyscy aktywni gracze oprócz raisera i all-in
+      // muszą dostać szansę odpowiedzi (nawet jeśli już zagrali w tej rundzie)
+      const allActive = room.players.filter(p => !gs.folded[p.id] && !gs.allIn[p.id] && p.id !== playerId);
+      // Kolejność: gracze po raiserze (wrap-around)
+      const allIds = room.players.map(p => p.id);
+      const raiserIdx = allIds.indexOf(playerId);
+      const orderedAfterRaiser = [
+        ...allIds.slice(raiserIdx + 1),
+        ...allIds.slice(0, raiserIdx),
+      ].filter(id => allActive.some(p => p.id === id));
+      gs.actingQueue = orderedAfterRaiser;
     }
 
-    // Advance queue
-    gs.actingQueue.shift();
-    const notFolded = gs.actingQueue.filter(id => !gs.folded[id] && !gs.allIn[id]);
+    // Advance queue — przesuń bieżącego gracza (chyba że to był raise, który już przebudował kolejkę)
+    if (event !== 'pokerRaise') {
+      gs.actingQueue.shift();
+    }
 
-    // If last raiser reached queue end, move to next phase
-    const allMatched = notFolded.every(id => (gs.currentBet[id]||0) >= gs.callAmount);
-    if (notFolded.length === 0 || (allMatched && !notFolded.length)) {
+    const remaining = gs.actingQueue.filter(id => !gs.folded[id] && !gs.allIn[id]);
+
+    if (remaining.length === 0) {
       return nextPhase(room, io);
     }
 
-    // Check if everyone still in has matched
-    const allActive = room.players.filter(p => !gs.folded[p.id] && !gs.allIn[p.id]);
-    const allCallMatch = allActive.every(p => (gs.currentBet[p.id]||0) >= gs.callAmount);
+    // Sprawdź czy wszyscy wyrównali
+    const allActive2 = room.players.filter(p => !gs.folded[p.id] && !gs.allIn[p.id]);
+    const allCallMatch = allActive2.every(p => (gs.currentBet[p.id]||0) >= gs.callAmount);
     if (allCallMatch && gs.actingQueue.length === 0) {
-      return nextPhase(room, io);
-    }
-
-    if (gs.actingQueue.length === 0) {
       return nextPhase(room, io);
     }
 

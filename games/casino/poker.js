@@ -375,11 +375,29 @@ function handleAction(table, socketId, event, data, io) {
     gs.callAmount               = raiseTotal;
     gs.lastRaiser               = socketId;
     if (p.sessionChips === 0) gs.allIn[socketId] = true;
+
+    // Po raise: przebuduj kolejkę — wszyscy aktywni gracze oprócz raisera i all-in
+    // muszą dostać kolejną szansę odpowiedzi (nawet jeśli już zagrali)
+    const allSeats = table.players.map(p => p.socketId);
+    const raiserIdx = allSeats.indexOf(socketId);
+    const newQueue = [
+      ...allSeats.slice(raiserIdx + 1),
+      ...allSeats.slice(0, raiserIdx),
+    ].filter(sid => !gs.folded[sid] && !gs.allIn[sid]);
+    gs.actingQueue = newQueue;
+
+    if (gs.actingQueue.length === 0) {
+      nextPhase(table, gs, io);
+    } else {
+      gs.actingPlayer = gs.actingQueue[0];
+      emitTableState(table, io);
+    }
+    return;
   } else {
     return;
   }
 
-  // Advance action queue
+  // Advance action queue (tylko dla fold/check/call — raise obsługuje sam)
   gs.actingQueue.shift();
 
   const activePlayers = table.players.filter(p => !gs.folded[p.socketId] && !gs.allIn[p.socketId]);

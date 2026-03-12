@@ -477,6 +477,8 @@ io.on('connection', (socket) => {
     const min = GAMES[room.gameType]?.meta?.minPlayers || 1;
     if (room.players.length < min) return socket.emit('error', { message: `Potrzeba min. ${min} graczy!` });
     room.status = 'playing';
+    // Zapisz content w pokoju żeby moduły mogły go używać (np. Jeopardy)
+    room._content = CONTENT[room.gameType] || {};
     const mod = GAMES[room.gameType];
     if (mod?.onStart) mod.onStart({ room, content: CONTENT[room.gameType] || {}, customWord, io, helpers: makeHelpers(roomId) });
   });
@@ -514,12 +516,21 @@ io.on('connection', (socket) => {
     const chessmod = GAMES['chess'];
     if (!chessmod || !chessmod.getLegalMoves) return;
     try {
-      const moves = chessmod.getLegalMoves(gs.board, from.r, from.c);
+      const moves = chessmod.getLegalMoves(gs.board, from.r, from.c, gs.enPassantSquare, gs.castlingRights);
       socket.emit('chessLegalMoves', { moves });
     } catch(e) {
       socket.emit('chessLegalMoves', { moves: [] });
     }
   });
+
+  // ── CHESS: promotion choice ──
+  socket.on('chessPromotion', (data) => {
+    const room = rooms[data.roomId];
+    if (!room || room.status !== 'playing') return;
+    const mod = GAMES[room.gameType];
+    if (mod?.onEvent) mod.onEvent({ event: 'chessPromotion', data, socket, room, io, helpers: makeHelpers(data.roomId) });
+  });
+
 
   socket.on('playAgain', ({ roomId }) => {
     const room = rooms[roomId]; if (!room || room.hostId !== socket.id) return;

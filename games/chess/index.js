@@ -21,7 +21,7 @@ function isWhite(p) { return p && p === p.toUpperCase(); }
 function isBlack(p) { return p && p === p.toLowerCase(); }
 function sameColor(a, b) { return (isWhite(a) && isWhite(b)) || (isBlack(a) && isBlack(b)); }
 
-function getPseudoMoves(board, r, c) {
+function getPseudoMoves(board, r, c, enPassantSquare) {
   const piece = board[r][c];
   if (!piece) return [];
   const moves = [];
@@ -48,6 +48,10 @@ function getPseudoMoves(board, r, c) {
     for (const dc of [-1, 1]) {
       const tr = r + dir, tc = c + dc;
       if (tr >= 0 && tr <= 7 && tc >= 0 && tc <= 7 && board[tr][tc] && !sameColor(piece, board[tr][tc])) {
+        moves.push([tr, tc]);
+      }
+      // En passant
+      if (enPassantSquare && tr === enPassantSquare[0] && tc === enPassantSquare[1]) {
         moves.push([tr, tc]);
       }
     }
@@ -87,6 +91,56 @@ function getPseudoMoves(board, r, c) {
   return moves;
 }
 
+// Roszada: sprawdza czy możliwa i zwraca docelowe pola króla
+function getCastlingMoves(board, r, c, castlingRights) {
+  const piece = board[r][c];
+  if (!piece) return [];
+  const type = piece.toLowerCase();
+  if (type !== 'k') return [];
+  const white = isWhite(piece);
+  const moves = [];
+  const rights = white ? castlingRights.white : castlingRights.black;
+  if (!rights) return [];
+
+  // Krótkia roszada (O-O): king g, wieża h
+  if (rights.kingSide) {
+    if (!board[r][5] && !board[r][6] &&
+        board[r][7] === (white ? 'R' : 'r')) {
+      // Sprawdź czy król nie przechodzi przez szach
+      if (!isInCheck(board, white) &&
+          !isInCheckAt(board, white, r, 5) &&
+          !isInCheckAt(board, white, r, 6)) {
+        moves.push([r, 6]);
+      }
+    }
+  }
+  // Długa roszada (O-O-O): king c, wieża a
+  if (rights.queenSide) {
+    if (!board[r][3] && !board[r][2] && !board[r][1] &&
+        board[r][0] === (white ? 'R' : 'r')) {
+      if (!isInCheck(board, white) &&
+          !isInCheckAt(board, white, r, 3) &&
+          !isInCheckAt(board, white, r, 2)) {
+        moves.push([r, 2]);
+      }
+    }
+  }
+  return moves;
+}
+
+// Sprawdź czy król byłby w szachu gdyby stał na (r,c)
+function isInCheckAt(board, white, r, c) {
+  const nb = deepCopy(board);
+  // Przesuń króla na docelowe pole (symulacja)
+  const king = white ? 'K' : 'k';
+  // Znajdź i usuń aktualną pozycję króla
+  for (let ir = 0; ir < 8; ir++)
+    for (let ic = 0; ic < 8; ic++)
+      if (nb[ir][ic] === king) nb[ir][ic] = null;
+  nb[r][c] = king;
+  return isInCheck(nb, white);
+}
+
 function findKing(board, white) {
   const king = white ? 'K' : 'k';
   for (let r = 0; r < 8; r++)
@@ -111,37 +165,75 @@ function isInCheck(board, white) {
   return false;
 }
 
-function getLegalMoves(board, r, c) {
+function getLegalMoves(board, r, c, enPassantSquare, castlingRights) {
   const piece = board[r][c];
   if (!piece) return [];
   const white = isWhite(piece);
-  const pseudo = getPseudoMoves(board, r, c);
-  return pseudo.filter(([tr, tc]) => {
+  const pseudo = getPseudoMoves(board, r, c, enPassantSquare);
+  const legal = pseudo.filter(([tr, tc]) => {
     const nb = deepCopy(board);
+    // En passant: usuń zbijanego pionka
+    if (piece.toLowerCase() === 'p' && tc !== c && !board[tr][tc]) {
+      nb[r][tc] = null; // zbity pionek stoi w tym samym rzędzie co atakujący
+    }
     nb[tr][tc] = piece;
     nb[r][c] = null;
     return !isInCheck(nb, white);
   });
+  // Roszada (osobno, bo wymaga specjalnych sprawdzeń)
+  if (castlingRights) {
+    for (const [cr, cc] of getCastlingMoves(board, r, c, castlingRights)) {
+      legal.push([cr, cc]);
+    }
+  }
+  return legal;
 }
 
-function applyMove(board, fr, fc, tr, tc) {
+function applyMove(board, fr, fc, tr, tc, promotionPiece, enPassantSquare) {
   const nb = deepCopy(board);
   const piece = nb[fr][fc];
+  const white = isWhite(piece);
+  const type = piece.toLowerCase();
+
+  // En passant: usuń zbijanego pionka
+  if (type === 'p' && tc !== fc && !nb[tr][tc]) {
+    nb[fr][tc] = null;
+  }
+
   nb[tr][tc] = piece;
   nb[fr][fc] = null;
-  // Pawn promotion
-  if (piece === 'P' && tr === 0) nb[tr][tc] = 'Q';
-  if (piece === 'p' && tr === 7) nb[tr][tc] = 'q';
+
+  // Roszada: przesuń wieżę
+  if (type === 'k' && Math.abs(tc - fc) === 2) {
+    if (tc > fc) { // krótkia
+      nb[tr][5] = nb[tr][7];
+      nb[tr][7] = null;
+    } else { // długa
+      nb[tr][3] = nb[tr][0];
+      nb[tr][0] = null;
+    }
+  }
+
+  // Awans pionka — wybór figury (domyślnie hetman)
+  if (type === 'p') {
+    if (white && tr === 0) {
+      nb[tr][tc] = (promotionPiece || 'Q').toUpperCase();
+    }
+    if (!white && tr === 7) {
+      nb[tr][tc] = (promotionPiece || 'q').toLowerCase();
+    }
+  }
+
   return nb;
 }
 
-function hasAnyLegalMove(board, white) {
+function hasAnyLegalMove(board, white, enPassantSquare, castlingRights) {
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       const p = board[r][c];
       if (!p) continue;
       if (white !== isWhite(p)) continue;
-      if (getLegalMoves(board, r, c).length > 0) return true;
+      if (getLegalMoves(board, r, c, enPassantSquare, castlingRights).length > 0) return true;
     }
   }
   return false;
@@ -178,6 +270,12 @@ module.exports = {
       moveHistory: [],
       capturedWhite: [],
       capturedBlack: [],
+      enPassantSquare: null,   // [r, c] pola bicia w przelocie lub null
+      castlingRights: {
+        white: { kingSide: true, queenSide: true },
+        black: { kingSide: true, queenSide: true },
+      },
+      pendingPromotion: null,  // { r, c } jeśli pionek doszedł do końca
     };
   },
 
@@ -188,13 +286,58 @@ module.exports = {
     gs.blackId = p2.id;
     gs.whiteTurn = true;
     gs.board = deepCopy(INITIAL_BOARD);
+    gs.enPassantSquare = null;
+    gs.castlingRights = {
+      white: { kingSide: true, queenSide: true },
+      black: { kingSide: true, queenSide: true },
+    };
+    gs.pendingPromotion = null;
     io.to(room.id).emit('chessState', { gs, room });
   },
 
   onEvent({ event, data, socket, room, io }) {
-    if (event !== 'chessMove') return;
     const gs = room.gameState;
-    const { from, to } = data; // {r,c}
+
+    // Wybór figury do promocji
+    if (event === 'chessPromotion') {
+      if (!gs.pendingPromotion) return;
+      const { r, c } = gs.pendingPromotion;
+      const white = gs.whiteTurn === false; // był ruch białych → teraz czarne czekają
+      const validPieces = white ? ['Q','R','B','N'] : ['q','r','b','n'];
+      const piece = validPieces.includes(data.piece) ? data.piece : (white ? 'Q' : 'q');
+      gs.board[r][c] = piece;
+      gs.pendingPromotion = null;
+
+      // Sprawdź szach/mat po promocji
+      const nextWhite = gs.whiteTurn;
+      const inCheck = isInCheck(gs.board, nextWhite);
+      const hasMove = hasAnyLegalMove(gs.board, nextWhite, gs.enPassantSquare, gs.castlingRights);
+      if (!hasMove) {
+        if (inCheck) {
+          gs.result = !nextWhite ? 'white' : 'black';
+          gs.status = 'checkmate';
+          room.status = 'finished';
+          const winnerId = gs.result === 'white' ? gs.whiteId : gs.blackId;
+          const sorted = room.players.map(p => ({ ...p, score: p.id === winnerId ? 1 : 0 })).sort((a,b) => b.score - a.score);
+          room.players = sorted;
+          io.to(room.id).emit('chessState', { gs, room });
+          setTimeout(() => io.to(room.id).emit('gameOver', { room, sorted }), 1500);
+        } else {
+          gs.status = 'stalemate';
+          room.status = 'finished';
+          const sorted = room.players.map(p => ({ ...p, score: 0 }));
+          io.to(room.id).emit('chessState', { gs, room });
+          setTimeout(() => io.to(room.id).emit('gameOver', { room, sorted }), 1500);
+        }
+      } else {
+        gs.check = inCheck;
+        io.to(room.id).emit('chessState', { gs, room });
+      }
+      return;
+    }
+
+    if (event !== 'chessMove') return;
+    const { from, to, promotionPiece } = data; // {r,c}
     const isWhiteTurn = gs.whiteTurn;
     const playerId = socket.id;
 
@@ -206,7 +349,7 @@ module.exports = {
     if (!piece) return;
     if (isWhiteTurn !== isWhite(piece)) return;
 
-    const legal = getLegalMoves(gs.board, from.r, from.c);
+    const legal = getLegalMoves(gs.board, from.r, from.c, gs.enPassantSquare, gs.castlingRights);
     const isLegal = legal.some(([r, c]) => r === to.r && c === to.c);
     if (!isLegal) {
       socket.emit('chessIllegal', { from, to });
@@ -219,15 +362,54 @@ module.exports = {
       if (isWhite(captured)) gs.capturedWhite.push(captured);
       else gs.capturedBlack.push(captured);
     }
+    // En passant capture tracking
+    if (piece.toLowerCase() === 'p' && to.c !== from.c && !captured) {
+      const epCaptured = gs.board[from.r][to.c];
+      if (epCaptured) {
+        if (isWhite(epCaptured)) gs.capturedWhite.push(epCaptured);
+        else gs.capturedBlack.push(epCaptured);
+      }
+    }
 
-    gs.board = applyMove(gs.board, from.r, from.c, to.r, to.c);
+    // Aktualizuj en passant square
+    if (piece.toLowerCase() === 'p' && Math.abs(to.r - from.r) === 2) {
+      gs.enPassantSquare = [(from.r + to.r) / 2, from.c];
+    } else {
+      gs.enPassantSquare = null;
+    }
+
+    // Aktualizuj prawa roszady
+    const type = piece.toLowerCase();
+    if (type === 'k') {
+      if (isWhite(piece)) gs.castlingRights.white = { kingSide: false, queenSide: false };
+      else gs.castlingRights.black = { kingSide: false, queenSide: false };
+    }
+    if (type === 'r') {
+      if (isWhite(piece)) {
+        if (from.c === 7) gs.castlingRights.white.kingSide = false;
+        if (from.c === 0) gs.castlingRights.white.queenSide = false;
+      } else {
+        if (from.c === 7) gs.castlingRights.black.kingSide = false;
+        if (from.c === 0) gs.castlingRights.black.queenSide = false;
+      }
+    }
+
+    gs.board = applyMove(gs.board, from.r, from.c, to.r, to.c, promotionPiece, gs.enPassantSquare);
     gs.whiteTurn = !isWhiteTurn;
     gs.moveHistory.push({ from, to, piece });
+
+    // Sprawdź czy potrzebna promocja (pionek doszedł do końca bez podania figury)
+    const promotionRow = isWhite(piece) ? 0 : 7;
+    if (piece.toLowerCase() === 'p' && to.r === promotionRow && !promotionPiece) {
+      gs.pendingPromotion = { r: to.r, c: to.c };
+      io.to(room.id).emit('chessPromotion', { gs, room, square: gs.pendingPromotion });
+      return; // czekamy na wybór figury
+    }
 
     // Check / checkmate / stalemate
     const nextWhite = gs.whiteTurn;
     const inCheck = isInCheck(gs.board, nextWhite);
-    const hasMove = hasAnyLegalMove(gs.board, nextWhite);
+    const hasMove = hasAnyLegalMove(gs.board, nextWhite, gs.enPassantSquare, gs.castlingRights);
 
     if (!hasMove) {
       if (inCheck) {

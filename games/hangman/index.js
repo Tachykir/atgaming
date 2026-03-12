@@ -113,6 +113,7 @@ function _guessLetter({ data, socket, room, io }) {
   const pi = room.players.findIndex(p => p.id === socket.id);
   const active = _activePlayers(room);
   const myIdx = active.findIndex(p => p.id === socket.id);
+  // Zapamiętaj pozycję w pełnej liście graczy przed potencjalną eliminacją
 
   if (gs.word.includes(letter)) {
     gs.guessed.push(letter);
@@ -160,9 +161,17 @@ function _guessLetter({ data, socket, room, io }) {
   }
 
   // Advance turn to next active player
+  // updatedActive może być krótsze jeśli bieżący gracz właśnie odpadł —
+  // szukamy następnego wg oryginalnej kolejności graczy w pokoju
   const updatedActive = _activePlayers(room);
-  const nextIdx = (myIdx + 1) % Math.max(updatedActive.length, 1);
-  gs.currentTurn = updatedActive[nextIdx]?.id || updatedActive[0]?.id;
+  if (updatedActive.length === 0) return; // wszyscy wyeliminowani (obsłużone wyżej)
+  // Znajdź index bieżącego gracza w oryginalnej tablicy room.players
+  // i poszukaj kolejnego aktywnego gracza zaczynając od (pi+1)
+  const nextActive = room.players
+    .slice(pi + 1)
+    .concat(room.players.slice(0, pi + 1))
+    .find(p => updatedActive.some(a => a.id === p.id));
+  gs.currentTurn = nextActive?.id || updatedActive[0]?.id;
 
   io.to(room.id).emit('letterGuessed', {
     room, letter,
