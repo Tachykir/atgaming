@@ -2258,12 +2258,15 @@ function renderHangman(room, mask, isMyTurn, playerLives, playerEliminated) {
 
   // Keyboard
   const guessed = [...(gs.guessed||[])].map(l=>l.toUpperCase());
+  const revealedLetters = new Set((mask||'').replace(/ /g,'').split('').filter(l=>l!=='_').map(l=>l.toUpperCase()));
   const myElim = playerEliminated?.[S.playerId];
   const canPlay = isMyTurn && !S.isGM && !myElim;
   document.getElementById('keyboard').innerHTML = LETTERS.map(letter => {
     const up = letter.toUpperCase();
-    const isC = guessed.includes(up);
-    return `<button class="key-btn ${isC?'correct':''}" onclick="guessLetter('${letter.toLowerCase()}')" ${(isC||!canPlay)?'disabled':''}>${letter}</button>`;
+    const isGuessed = guessed.includes(up);
+    const isInWord = revealedLetters.has(up);
+    const cls = isGuessed ? (isInWord ? 'correct' : 'wrong') : '';
+    return `<button class="key-btn ${cls}" onclick="guessLetter('${letter.toLowerCase()}')" ${(isGuessed||!canPlay)?'disabled':''}>${letter}</button>`;
   }).join('');
 }
 function guessLetter(l) { socket.emit('guessLetter', { roomId: S.roomId, letter: l }); }
