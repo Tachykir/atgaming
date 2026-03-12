@@ -1421,14 +1421,15 @@ async function initDiscordAuth() {
     discordEnabled = data.enabled;
     discordUser = data.user;
 
+    // Zawsze ustaw casinoDiscordId jeśli zalogowany
+    if (data.user) casinoDiscordId = data.user.id;
+
     // Check URL params after OAuth callback
     const params = new URLSearchParams(window.location.search);
     if (params.get('discord_login') === '1') {
       window.history.replaceState({}, '', '/');
       if (data.user) {
-        casinoDiscordId = data.user.id;
         casinoWallet = null;
-        // Zawsze załaduj lobby kasyna po powrocie z Discord (mogło być otwarte lub nie)
         showScreen('casino-lobby');
       }
     }
