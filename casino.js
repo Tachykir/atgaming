@@ -23,13 +23,17 @@ async function initPg() {
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
   });
-  // Migracja: INTEGER → BIGINT dla dużych sald (ignoruj błąd jeśli tabela nie istnieje)
-  await pg.query(`
-    ALTER TABLE casino_wallets
-      ALTER COLUMN balance    TYPE BIGINT,
-      ALTER COLUMN total_won  TYPE BIGINT,
-      ALTER COLUMN total_lost TYPE BIGINT
-  `).catch(()=>{});
+  // Migracja: INTEGER → BIGINT dla dużych sald
+  // Osobne query dla każdej kolumny — niektóre PG nie obsługują wielu ALTER COLUMN naraz
+  for (const col of ['balance', 'total_won', 'total_lost']) {
+    await pg.query(`ALTER TABLE casino_wallets ALTER COLUMN ${col} TYPE BIGINT`)
+      .then(() => console.log(`✅ Migracja: ${col} → BIGINT`))
+      .catch(e => {
+        if (e.message.includes('does not exist')) return; // tabela jeszcze nie istnieje
+        if (e.message.includes('already') || e.code === '42804') return; // już BIGINT
+        console.log(`ℹ️ Migracja ${col}: ${e.message}`);
+      });
+  }
 
   await pg.query(`
     CREATE TABLE IF NOT EXISTS casino_wallets (

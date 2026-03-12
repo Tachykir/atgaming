@@ -81,6 +81,14 @@ class FileSessionStore extends Store {
   all(cb) { cb(null, Object.values(this.sessions)); }
   length(cb) { cb(null, Object.keys(this.sessions).length); }
   clear(cb) { this.sessions = {}; this._save(); if (cb) cb(null); }
+  touch(sid, session, cb) {
+    // Odśwież expiry sesji bez zmiany danych
+    if (this.sessions[sid]) {
+      this.sessions[sid].cookie = session.cookie;
+      this._save();
+    }
+    if (cb) cb(null);
+  }
 }
 
 function setupSession(app) {
