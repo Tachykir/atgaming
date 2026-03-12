@@ -196,32 +196,53 @@ function scheduleWeeklyTopup(io) {
 
 // ─── STOŁY ───────────────────────────────────────────────────────
 const casinoTables = {};
-const TABLE_CONFIGS = {
-  poker: [
-    { id:'poker-micro', name:'Micro Stakes', blindAmount:10,  minBuyIn:200,  maxBuyIn:2000,  maxPlayers:6 },
-    { id:'poker-low',   name:'Low Stakes',   blindAmount:50,  minBuyIn:1000, maxBuyIn:5000,  maxPlayers:6 },
-    { id:'poker-high',  name:'High Stakes',  blindAmount:200, minBuyIn:4000, maxBuyIn:20000, maxPlayers:6 },
-  ],
-  blackjack: [
-    { id:'bj-classic', name:'Classic', minBet:50,  maxBet:500,  maxPlayers:5 },
-    { id:'bj-vip',     name:'VIP',     minBet:250, maxBet:2500, maxPlayers:4 },
-  ],
-};
+let tableIdCounter = 1;
 
+// ─── TWORZENIE STOŁÓW (dynamiczne) ──────────────────────────────
+function createTable({ game, name, config }) {
+  const id = `${game}-${Date.now()}-${tableIdCounter++}`;
+  const base = { id, game, name, config, players:[], observers:[], status:'open', gameState:null, round:0 };
+  if (game==='poker')    Object.assign(base, { dealerIdx:0 });
+  casinoTables[id] = base;
+  console.log(`🎰 Nowy stół [${game}]: "${name}" (id: ${id})`);
+  return base;
+}
+
+function deleteTable(tableId) {
+  const t = casinoTables[tableId];
+  if (!t) return false;
+  if (t.players.length > 0) return false; // nie usuwaj zajętego stołu
+  delete casinoTables[tableId];
+  return true;
+}
+
+// Predefiniowane jednorazowo (na start serwera) - można też tworzyć przez API
 function initTables() {
-  for (const cfg of TABLE_CONFIGS.poker)     casinoTables[cfg.id]={ id:cfg.id, game:'poker',     name:cfg.name, config:cfg, players:[], observers:[], status:'open', gameState:null, round:0, dealerIdx:0 };
-  for (const cfg of TABLE_CONFIGS.blackjack) casinoTables[cfg.id]={ id:cfg.id, game:'blackjack', name:cfg.name, config:cfg, players:[], observers:[], status:'open', gameState:null, round:0 };
+  // Automaty (zawsze 1 wspólny stół per poziom stawek)
+  createTable({ game:'slots', name:'Automaty — Grosze', config:{ minBet:10, maxBet:100, maxPlayers:99 }});
+  createTable({ game:'slots', name:'Automaty — Złoto',  config:{ minBet:100, maxBet:1000, maxPlayers:99 }});
+  // Ruletka
+  createTable({ game:'roulette', name:'Ruletka Europejska', config:{ minBet:50, maxBet:2000, maxPlayers:20 }});
+  // Pachinko
+  createTable({ game:'pachinko', name:'Pachinko',  config:{ minBet:25, maxBet:500, maxPlayers:99 }});
   console.log(`🃏 Zainicjowano ${Object.keys(casinoTables).length} stołów kasyna`);
 }
 
 function getTablePublic(table) {
-  return { id:table.id, game:table.game, name:table.name, config:table.config, status:table.status, round:table.round, playerCount:table.players.length, maxPlayers:table.config.maxPlayers, players:table.players.map(p=>({name:p.name,avatar:p.avatar,discordId:p.discordId,sessionChips:p.sessionChips,seatIndex:p.seatIndex})), observers:table.observers.length };
+  return {
+    id:table.id, game:table.game, name:table.name, config:table.config,
+    status:table.status, round:table.round,
+    playerCount:table.players.length, maxPlayers:table.config.maxPlayers,
+    players:table.players.map(p=>({name:p.name,avatar:p.avatar,discordId:p.discordId,sessionChips:p.sessionChips,seatIndex:p.seatIndex})),
+    observers:table.observers.length,
+    createdBy: table.createdBy || null,
+  };
 }
 
 module.exports = {
   init, getWallet, ensureWallet, updateBalance, recordGame, getLeaderboard,
   scheduleWeeklyTopup, runWeeklyTopup,
-  casinoTables, TABLE_CONFIGS, getTablePublic, initTables,
+  casinoTables, createTable, deleteTable, getTablePublic, initTables,
   START_BALANCE, WEEKLY_MINIMUM, WEEKLY_TOP_UP,
   get db() { return jsonDb; }, saveDb: saveJsonDb,
 };

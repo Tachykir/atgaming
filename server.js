@@ -4,9 +4,12 @@ const { Server } = require('socket.io');
 const path     = require('path');
 const fs       = require('fs');
 const discordAuth  = require('./discord-auth');
-const casino       = require('./casino');
-const casinoPoker  = require('./casino-poker');
-const casinoBJ     = require('./casino-blackjack');
+const casino        = require('./casino');
+const casinoPoker   = require('./games/casino/poker');
+const casinoBJ      = require('./games/casino/blackjack');
+const casinoSlots   = require('./games/casino/slots');
+const casinoRoulette = require('./games/casino/roulette');
+const casinoPachinko = require('./games/casino/pachinko');
 
 // Ładuj .env jeśli istnieje
 try {
@@ -347,6 +350,39 @@ app.get('/api/casino/tables/:tableId', (req, res) => {
   res.json(casino.getTablePublic(t));
 });
 
+// Utwórz nowy stół przez HTTP
+app.post('/api/casino/tables', async (req, res) => {
+  const user = req.session?.discordUser;
+  if (!user) return res.status(401).json({ error: 'Wymagane logowanie Discord' });
+  const { game, name, config } = req.body;
+  if (!['poker','blackjack'].includes(game)) return res.status(400).json({ error: 'Nieprawidłowy typ gry' });
+  const safeName = String(name||'').trim().slice(0,40) || `Stół ${user.globalName||user.username}`;
+  let cfg = {};
+  if (game === 'poker') {
+    cfg = { blindAmount:Math.max(5,Math.min(1000,Number(config?.blindAmount)||50)), minBuyIn:Math.max(100,Math.min(50000,Number(config?.minBuyIn)||1000)), maxBuyIn:Math.max(500,Math.min(100000,Number(config?.maxBuyIn)||5000)), maxPlayers:Math.max(2,Math.min(8,Number(config?.maxPlayers)||6)) };
+    cfg.minBuyIn = Math.min(cfg.minBuyIn, cfg.maxBuyIn);
+  } else {
+    cfg = { minBet:Math.max(10,Math.min(5000,Number(config?.minBet)||50)), maxBet:Math.max(50,Math.min(50000,Number(config?.maxBet)||500)), maxPlayers:Math.max(1,Math.min(7,Number(config?.maxPlayers)||5)) };
+    cfg.minBet = Math.min(cfg.minBet, cfg.maxBet);
+  }
+  const table = casino.createTable({ game, name: safeName, config: cfg });
+  table.createdBy = { id: user.id, name: user.globalName||user.username };
+  table._casino = casino;
+  io.emit('casinoTablesUpdated');
+  res.json({ table: casino.getTablePublic(table) });
+});
+
+// Usuń stół przez HTTP
+app.delete('/api/casino/tables/:tableId', (req, res) => {
+  const user = req.session?.discordUser;
+  if (!user) return res.status(401).json({ error: 'Wymagane logowanie Discord' });
+  const t = casino.casinoTables[req.params.tableId];
+  if (!t) return res.status(404).json({ error: 'Stół nie istnieje' });
+  if (t.createdBy?.id !== user.id) return res.status(403).json({ error: 'Brak uprawnień' });
+  if (casino.deleteTable(req.params.tableId)) { io.emit('casinoTablesUpdated'); res.json({ ok: true }); }
+  else res.status(400).json({ error: 'Nie można usunąć stołu z graczami' });
+});
+
 // Admin: ręczne doładowanie (test)
 app.post('/api/admin/casino/topup', async (req, res) => {
   const { password } = req.body;
@@ -573,11 +609,60 @@ io.on('connection', (socket) => {
     if (!table) return socket.emit('casinoError', { message: 'Stół nie istnieje' });
     socket.join('casino:' + tableId);
     table.observers = table.observers || [];
-    table.observers.push(socket.id);
+    if (!table.observers.includes(socket.id)) table.observers.push(socket.id);
     socket.casinoObserving = tableId;
-    // Wyślij aktualny stan
-    const engine = table.game === 'poker' ? casinoPoker : casinoBJ;
-    engine.emitTableState(table, io);
+    if (table.game === 'poker')    casinoPoker.emitTableState(table, io);
+    else if (table.game === 'blackjack') casinoBJ.emitTableState(table, io);
+    else if (table.game === 'roulette' && table.gameState) io.to('casino:'+tableId).emit('casinoRouletteState', table.gameState);
+  });
+
+  // Utwórz nowy stół (poker lub blackjack)
+  socket.on('casinoCreateTable', async ({ game, name, config }) => {
+    const discordUser = socket.discordUser;
+    if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
+
+    const VALID_GAMES = ['poker','blackjack'];
+    if (!VALID_GAMES.includes(game)) return socket.emit('casinoError',{message:'Nieprawidłowy typ gry'});
+
+    const safeName = String(name||'').trim().slice(0,40) || `Stół ${discordUser.globalName||discordUser.username}`;
+
+    // Sanitize config
+    let cfg = {};
+    if (game === 'poker') {
+      cfg = {
+        blindAmount: Math.max(5, Math.min(1000, Number(config?.blindAmount)||50)),
+        minBuyIn:    Math.max(100, Math.min(50000, Number(config?.minBuyIn)||1000)),
+        maxBuyIn:    Math.max(500, Math.min(100000, Number(config?.maxBuyIn)||5000)),
+        maxPlayers:  Math.max(2, Math.min(8, Number(config?.maxPlayers)||6)),
+      };
+      cfg.minBuyIn = Math.min(cfg.minBuyIn, cfg.maxBuyIn);
+    } else {
+      cfg = {
+        minBet:    Math.max(10, Math.min(5000, Number(config?.minBet)||50)),
+        maxBet:    Math.max(50, Math.min(50000, Number(config?.maxBet)||500)),
+        maxPlayers: Math.max(1, Math.min(7, Number(config?.maxPlayers)||5)),
+      };
+      cfg.minBet = Math.min(cfg.minBet, cfg.maxBet);
+    }
+
+    const table = casino.createTable({ game, name: safeName, config: cfg });
+    table.createdBy = { id: discordUser.id, name: discordUser.globalName||discordUser.username };
+    // Inject casino ref
+    table._casino = casino;
+
+    socket.emit('casinoTableCreated', { table: casino.getTablePublic(table) });
+    io.emit('casinoTablesUpdated'); // sygnał żeby wszyscy odświeżyli lobby
+  });
+
+  // Usuń stół (tylko twórca lub jeśli pusty)
+  socket.on('casinoDeleteTable', ({ tableId }) => {
+    const table = casino.casinoTables[tableId];
+    if (!table) return;
+    const discordUser = socket.discordUser;
+    if (!discordUser) return;
+    if (table.createdBy?.id !== discordUser.id) return socket.emit('casinoError',{message:'Możesz usunąć tylko własny stół'});
+    if (casino.deleteTable(tableId)) io.emit('casinoTablesUpdated');
+    else socket.emit('casinoError',{message:'Nie można usunąć stołu z graczami'});
   });
 
   // Opuść stół
@@ -607,6 +692,11 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Akcje Slotów, Ruletki, Pachinko
+  casinoSlots.registerHandlers(socket, io, casino);
+  casinoRoulette.registerHandlers(socket, io, casino);
+  casinoPachinko.registerHandlers(socket, io, casino);
+
   // ── Pomocnik opuszczania stołu ──
   function handleCasinoLeave(socket, tableId) {
     const table = casino.casinoTables[tableId];
@@ -629,8 +719,8 @@ io.on('connection', (socket) => {
     socket.leave('casino:' + tableId);
     socket.casinoTableId = null;
 
-    const engine = table.game === 'poker' ? casinoPoker : casinoBJ;
-    engine.emitTableState(table, io);
+    if (table.game==='poker') casinoPoker.emitTableState(table, io);
+    else if (table.game==='blackjack') casinoBJ.emitTableState(table, io);
 
     // Jeśli za mało graczy → zatrzymaj
     if (table.game === 'poker' && table.players.length < 2) {
