@@ -2821,7 +2821,8 @@ async function loadAdminContent() {
 }
 function renderAdminTabs() {
   const ids = Object.keys(content);
-  if (!activeAdminTab || !ids.includes(activeAdminTab)) activeAdminTab = ids[0];
+  const allIds = [...ids, 'casino'];
+  if (!activeAdminTab || !allIds.includes(activeAdminTab)) activeAdminTab = ids[0];
   document.getElementById('admin-tabs').innerHTML = ids.map(id => {
     const meta = games.find(g=>g.id===id)||{icon:'🎮',name:id};
     return `<button class="tab-btn ${id===activeAdminTab?'active':''}" onclick="adminTab('${id}')">${meta.icon} ${meta.name}</button>`;
