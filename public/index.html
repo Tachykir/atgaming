@@ -4457,6 +4457,13 @@ socket.on('casinoCrashState', (state) => {
     crashMyBet = state.bets?.[casinoDiscordId]?.amount || 0;
     if (crashMyBet > 0 && betBtn) betBtn.disabled = true;
     else if (betBtn) betBtn.disabled = false;
+  } else if (state.phase === 'running') {
+    // Runda w toku — pokaż/ukryj cashout zależnie czy gracz postawił i nie wycofał
+    const myBet = state.bets?.[casinoDiscordId];
+    const canCashOut = myBet && !myBet.cashedOut;
+    if (betBtn) { betBtn.style.display = canCashOut ? 'none' : ''; betBtn.disabled = true; }
+    if (cashBtn) cashBtn.style.display = canCashOut ? '' : 'none';
+    if (phaseEl) phaseEl.textContent = '🚀 Lot trwa…';
   } else if (state.phase === 'crashed') {
     if (multEl) { multEl.textContent = state.crashPoint.toFixed(2) + '×'; multEl.style.color = '#ff4444'; }
     if (phaseEl) phaseEl.textContent = '💥 CRASH!';
