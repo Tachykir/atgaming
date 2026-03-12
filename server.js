@@ -107,12 +107,19 @@ loadGameModules();
 
 // ─── KASYNO: INIT ──────────────────────────────────────────────
 casino.initTables();
-
-// Wstrzyknij referencję casino do każdego stołu
 Object.values(casino.casinoTables).forEach(t => { t._casino = casino; });
 
-// Uruchom scheduler tygodniowy (po starcie serwera, kiedy io jest gotowe)
-setImmediate(() => casino.scheduleWeeklyTopup(io));
+// Zainicjuj bazę danych (PG lub JSON) i dopiero potem uruchom serwer
+const PORT = process.env.PORT || 3000;
+casino.init().then(() => {
+  server.listen(PORT, () => {
+    console.log(`\n🚀 Serwer działa na porcie ${PORT}\n`);
+  });
+  casino.scheduleWeeklyTopup(io);
+}).catch(err => {
+  console.error('Błąd inicjalizacji kasyna:', err);
+  process.exit(1);
+});
 
 // ─── HELPERS FOR MODULES ──────────────────────────────────────
 function makeHelpers(roomId) {
@@ -316,16 +323,16 @@ app.post('/api/admin/wordrace/category', (req, res) => {
 
 // ─── KASYNO API ────────────────────────────────────────────────
 // Portfel gracza (wymaga zalogowania przez Discord)
-app.get('/api/casino/wallet', (req, res) => {
+app.get('/api/casino/wallet', async (req, res) => {
   const user = req.session?.discordUser;
   if (!user) return res.status(401).json({ error: 'Wymagane logowanie przez Discord' });
-  const wallet = casino.ensureWallet(user);
+  const wallet = await casino.ensureWallet(user);
   res.json({ wallet, discordId: user.id });
 });
 
 // Ranking AT$
-app.get('/api/casino/leaderboard', (req, res) => {
-  res.json(casino.getLeaderboard(50));
+app.get('/api/casino/leaderboard', async (req, res) => {
+  res.json(await casino.getLeaderboard(50));
 });
 
 // Lista stołów
@@ -341,15 +348,15 @@ app.get('/api/casino/tables/:tableId', (req, res) => {
 });
 
 // Admin: ręczne doładowanie (test)
-app.post('/api/admin/casino/topup', (req, res) => {
+app.post('/api/admin/casino/topup', async (req, res) => {
   const { password } = req.body;
   if (!adminCheck(password, res)) return;
-  const topped = casino.runWeeklyTopup();
+  const topped = await casino.runWeeklyTopup();
   res.json({ ok: true, count: topped.length, players: topped });
 });
 
 // Admin: pobierz stan portfeli
-app.get('/api/admin/casino/wallets', (req, res) => {
+app.get('/api/admin/casino/wallets', async (req, res) => {
   const { password } = req.query;
   if (password !== (process.env.ADMIN_PASSWORD || 'admin123')) return res.status(403).json({ error: 'Brak dostępu' });
   res.json(casino.db.wallets);
@@ -482,16 +489,15 @@ io.on('connection', (socket) => {
   // ═══════════════════════════════════════════════════════════════
 
   // Pobierz portfel (klient musi być zalogowany przez Discord)
-  socket.on('casinoGetWallet', (_, cb) => {
-    // Szukamy sesji przez app — przekazujemy discordUser przez handshake auth
+  socket.on('casinoGetWallet', async (_, cb) => {
     const discordUser = socket.discordUser;
     if (!discordUser) return (cb || (() => {}))({ error: 'Brak sesji Discord' });
-    const wallet = casino.ensureWallet(discordUser);
+    const wallet = await casino.ensureWallet(discordUser);
     (cb || (() => {}))({ wallet });
   });
 
   // Dołącz do stołu kasyna
-  socket.on('casinoJoinTable', ({ tableId, buyIn }) => {
+  socket.on('casinoJoinTable', async ({ tableId, buyIn }) => {
     const table = casino.casinoTables[tableId];
     if (!table) return socket.emit('casinoError', { message: 'Stół nie istnieje' });
 
@@ -512,7 +518,7 @@ io.on('connection', (socket) => {
       return socket.emit('casinoError', { message: 'Runda w toku — poczekaj na kolejną' });
     }
 
-    const wallet = casino.ensureWallet(discordUser);
+    const wallet = await casino.ensureWallet(discordUser);
 
     // Buy-in
     const cfg = table.config;
@@ -525,7 +531,7 @@ io.on('connection', (socket) => {
     }
 
     // Pobierz buy-in z portfela
-    casino.updateBalance(discordUser.id, -actualBuyIn);
+    await casino.updateBalance(discordUser.id, -actualBuyIn);
 
     const seatIndex = table.players.length;
     table.players.push({
@@ -616,7 +622,7 @@ io.on('connection', (socket) => {
 
     // Oddaj pozostałe żetony do portfela
     if (player.discordId && player.sessionChips > 0) {
-      casino.updateBalance(player.discordId, player.sessionChips);
+      casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
     }
 
     table.players.splice(idx, 1);
@@ -688,6 +694,3 @@ if (GAMES.hangman) {
     }
   };
 }
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`\n🚀 AT Gaming server na http://localhost:${PORT}\n`));

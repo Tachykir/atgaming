@@ -257,8 +257,8 @@ function endRound(table, io) {
     table.players.forEach(p => {
       if (!p.discordId) return;
       const delta = p.sessionChips - (gs.sessionChipsStart?.[p.socketId] || 0);
-      table._casino.updateBalance(p.discordId, delta);
-      table._casino.recordGame(p.discordId);
+      table._casino.updateBalance(p.discordId, delta).catch(() => {});
+      table._casino.recordGame(p.discordId).catch(() => {});
     });
   }
 
