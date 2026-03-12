@@ -1,69 +1,79 @@
 /**
- * PACHINKO — AT Gaming Casino
- * Uproszczone Pachinko: kulek wpada od góry przez pegsy, trafia w sloty
+ * 🎯 PACHINKO — japońska gra kulkowa
+ * Kulka spada przez planszę pełną pinów i ląduje w kieszeni
+ * Wypłata zależy od kieszeni (od środka = więcej)
  */
 'use strict';
 
-// Sloty na dole z wypłatami (mnożniki ×zakład)
-const SLOTS = [
-  { label:'💀', mult:0   },
-  { label:'1×', mult:1   },
-  { label:'2×', mult:2   },
-  { label:'💀', mult:0   },
-  { label:'3×', mult:3   },
-  { label:'1×', mult:1   },
-  { label:'💀', mult:0   },
-  { label:'5×', mult:5   },
-  { label:'💀', mult:0   },
-  { label:'2×', mult:2   },
-  { label:'10×',mult:10  },
-  { label:'2×', mult:2   },
-  { label:'💀', mult:0   },
-  { label:'1×', mult:1   },
-  { label:'💀', mult:0   },
+// Kieszenie (11 slotów, od lewej do prawej)
+// Indeksy: 0..10, środkowy = 5 (najwyższa wypłata)
+const POCKETS = [
+  { label:'0',   payout: 0   },
+  { label:'1x',  payout: 1   },
+  { label:'2x',  payout: 2   },
+  { label:'3x',  payout: 3   },
+  { label:'5x',  payout: 5   },
+  { label:'10x', payout: 10  },  // środkowy
+  { label:'5x',  payout: 5   },
+  { label:'3x',  payout: 3   },
+  { label:'2x',  payout: 2   },
+  { label:'1x',  payout: 1   },
+  { label:'0',   payout: 0   },
 ];
 
-// Generuje ścieżkę kulki (seria L/R per rząd, dla animacji frontend)
-function generatePath(rows=8) {
-  const path = [];
-  let pos = Math.floor(SLOTS.length/2);
-  for (let r=0; r<rows; r++) {
-    const dir = Math.random()<0.5 ? -1 : 1;
-    pos = Math.max(0, Math.min(SLOTS.length-1, pos+dir));
-    path.push({row:r, pos, dir: dir>0?'R':'L'});
+// Symulacja fizyki — kulka w każdym rzędzie odbija się w lewo lub prawo
+// 12 rzędów pinów → 13 możliwych pozycji → mapujemy na 11 kieszeni
+const ROWS = 12;
+
+function dropBall(risk = 'medium') {
+  // risk: low (bardziej ku środkowi), medium, high (bardziej na boki)
+  const biases = { low: 0.45, medium: 0.5, high: 0.55 }; // prob przejścia w prawo
+  const bias = biases[risk] ?? 0.5;
+
+  let pos = 0; // zaczyna od 0, max = ROWS
+  const path = [0];
+
+  for (let i = 0; i < ROWS; i++) {
+    pos += Math.random() < bias ? 1 : 0;
+    path.push(pos);
   }
-  return { path, finalSlot: pos };
+
+  // pos jest w zakresie 0..ROWS (12), mapujemy na 0..10 (11 kieszeni)
+  const pocket = Math.round((pos / ROWS) * (POCKETS.length - 1));
+  return { pocket, path, payout: POCKETS[pocket].payout };
 }
 
-function registerHandlers(socket, io, casino) {
-  socket.on('casinoPachinkoDrop', async ({ tableId, bet }) => {
-    const table = casino.casinoTables[tableId];
-    if (!table || table.game !== 'pachinko') return socket.emit('casinoError',{message:'Zły stół'});
+function handlePachinkoSession(socket, io, casino) {
+  socket.on('casinoPachinkoDrop', async ({ bet, risk }) => {
     const discordUser = socket.discordUser;
-    if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
+    if (!discordUser) return socket.emit('casinoError', { message: 'Musisz być zalogowany!' });
 
-    const cfg = table.config;
-    const betAmt = Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet)||cfg.minBet));
+    const betAmount = Math.max(10, Math.min(5000, Number(bet) || 50));
+    const riskLevel = ['low','medium','high'].includes(risk) ? risk : 'medium';
+
     const wallet = await casino.ensureWallet(discordUser);
-    if (wallet.balance < betAmt) return socket.emit('casinoError',{message:`Za mało AT$! Masz ${wallet.balance}`});
+    if (wallet.balance < betAmount) return socket.emit('pachinkoResult', { error: 'Za mało AT$!' });
 
-    await casino.updateBalance(discordUser.id, -betAmt);
+    await casino.updateBalance(discordUser.id, -betAmount);
 
-    const {path, finalSlot} = generatePath(8);
-    const slot = SLOTS[finalSlot];
-    const winAmount = Math.floor(betAmt * slot.mult);
-    if (winAmount > 0) await casino.updateBalance(discordUser.id, winAmount);
+    const { pocket, path, payout } = dropBall(riskLevel);
+    const win = betAmount * payout;
+
+    if (win > 0) await casino.updateBalance(discordUser.id, win);
     await casino.recordGame(discordUser.id);
 
-    const newBalance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
+    const newWallet = await casino.getWallet(discordUser.id);
 
-    socket.emit('casinoPachinkoResult', {
-      path, finalSlot, slot,
-      bet: betAmt, winAmount,
-      net: winAmount - betAmt,
-      balance: newBalance,
+    socket.emit('pachinkoResult', {
+      bet: betAmount,
+      pocket,
+      payout,
+      win,
+      path,
+      pockets: POCKETS,
+      balance: newWallet?.balance ?? (wallet.balance - betAmount + win),
     });
   });
 }
 
-module.exports = { registerHandlers, SLOTS };
+module.exports = { handlePachinkoSession, POCKETS };

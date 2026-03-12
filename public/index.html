@@ -1303,9 +1303,14 @@ select.input option{background:var(--surface2);}
 
     <!-- Koło + wynik -->
     <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin:8px 0">
-      <div class="roulette-wheel" id="roulette-wheel">
-        <div class="roulette-ball" id="roulette-ball" style="display:none"></div>
-        <div class="roulette-number" id="roulette-number">?</div>
+      <div class="roulette-wheel-wrap">
+        <div class="roulette-wheel" id="roulette-wheel">
+          <div class="roulette-number" id="roulette-number">?</div>
+        </div>
+        <!-- Kula na orbicie (poza kołem) -->
+        <div class="roulette-ball-orbit" id="roulette-ball-orbit" style="position:absolute;top:50%;left:50%;width:0;height:0;transform-origin:0 0">
+          <div id="roulette-ball" style="width:12px;height:12px;background:white;border-radius:50%;position:absolute;top:-6px;left:90px;box-shadow:0 0 8px rgba(255,255,255,.9)"></div>
+        </div>
       </div>
       <div class="casino-countdown" id="roulette-countdown" style="display:none;width:100%;max-width:400px">
         <span id="roulette-cd-text">Obstawiaj!</span>
@@ -3438,6 +3443,8 @@ function initSlotsUI(table) {
 }
 
 let slotsSpinning = false;
+const SLOT_SYMS = ['🍒','🍋','🍊','🍇','⭐','💎','7️⃣','🔔'];
+
 async function casinoSlotsSpin() {
   if (slotsSpinning || !casinoTableId) return;
   const bet = parseInt(document.getElementById('slots-bet-input').value) || 0;
@@ -3447,11 +3454,17 @@ async function casinoSlotsSpin() {
   btn.disabled = true;
   btn.textContent = '⏳ Spinning...';
 
-  // Animacja bębnów
-  for (let i=0;i<3;i++) {
+  // Animacja bębnów z przewijaniem symboli
+  [0,1,2].forEach(i => {
     const el = document.getElementById(`slots-reel-${i}`);
+    el.classList.remove('win','landed');
     el.classList.add('spinning');
-  }
+    let frame = 0;
+    el._spinInterval = setInterval(() => {
+      el.textContent = SLOT_SYMS[frame % SLOT_SYMS.length];
+      frame++;
+    }, 80);
+  });
 
   socket.emit('casinoSlotsSpin', { tableId: casinoTableId, bet });
 }
@@ -3462,15 +3475,16 @@ socket.on('casinoSlotsResult', ({ reels, multiplier, winAmount, bet, net, balanc
   btn.disabled = false;
   btn.textContent = '🎰 SPIN!';
 
-  // Stop animation reel by reel
-  const stopDelays = [400, 700, 1000];
+  // Zatrzymuj bębny kaskadowo
+  const stopDelays = [400, 750, 1100];
   reels.forEach((sym, i) => {
     setTimeout(() => {
       const el = document.getElementById(`slots-reel-${i}`);
+      if (el._spinInterval) { clearInterval(el._spinInterval); el._spinInterval = null; }
       el.classList.remove('spinning');
       el.textContent = sym;
-      if (winAmount > 0) el.classList.add('win');
-      else el.classList.remove('win');
+      el.classList.add('landed');
+      if (winAmount > 0) setTimeout(() => el.classList.add('win'), 100);
     }, stopDelays[i]);
   });
 
@@ -3479,30 +3493,38 @@ socket.on('casinoSlotsResult', ({ reels, multiplier, winAmount, bet, net, balanc
     if (winAmount > 0) {
       msgEl.innerHTML = `<span style="color:#ffd200" class="result-pop">🎉 +${winAmount.toLocaleString('pl-PL')} AT$ (${label})</span>`;
       spawnCoinFloat(winAmount);
+      if (multiplier >= 20) {
+        document.querySelector('.slots-machine')?.classList.add('jackpot-flash');
+        setTimeout(() => document.querySelector('.slots-machine')?.classList.remove('jackpot-flash'), 1500);
+      }
     } else {
       msgEl.innerHTML = `<span style="color:var(--muted)">Pudło!</span>`;
     }
     document.getElementById('casino-slots-balance').textContent = balance.toLocaleString('pl-PL') + ' AT$';
     if (casinoWallet) casinoWallet.balance = balance;
 
-    // Historia
     const hist = document.getElementById('slots-history');
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;justify-content:space-between;padding:4px 8px;background:var(--surface);border-radius:6px;font-size:13px;animation:resultPop .3s';
-    row.innerHTML = `<span>${reels.join(' ')}</span><span style="color:${net>=0?'#ffd200':'var(--error)'}">${net>=0?'+':''}${net.toLocaleString('pl-PL')} AT$</span>`;
+    row.innerHTML = `<span>${reels.join(' ')}</span><span style="color:${net>=0?'#ffd200':'var(--error)'};">${net>=0?'+':''}${net.toLocaleString('pl-PL')} AT$</span>`;
     hist.insertBefore(row, hist.firstChild);
     if (hist.children.length > 10) hist.removeChild(hist.lastChild);
-  }, 1100);
+  }, 1200);
 });
-
 function spawnCoinFloat(amount) {
-  const el = document.createElement('div');
-  el.className = 'coin-float';
-  el.textContent = amount >= 1000 ? '💰' : '🪙';
-  el.style.left = (40 + Math.random()*20) + 'vw';
-  el.style.top  = '60vh';
-  document.body.appendChild(el);
-  setTimeout(()=>el.remove(), 1300);
+  const count = amount >= 5000 ? 8 : amount >= 1000 ? 5 : amount >= 500 ? 3 : 1;
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'coin-float';
+      el.textContent = amount >= 5000 ? '💰' : amount >= 1000 ? '🪙' : '🪙';
+      el.style.left  = (30 + Math.random() * 40) + 'vw';
+      el.style.top   = (50 + Math.random() * 15) + 'vh';
+      el.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1600);
+    }, i * 80);
+  }
 }
 
 // ── RULETKA ───────────────────────────────────────────────────
@@ -3568,9 +3590,10 @@ function placeRouletteBet(type, value) {
 
 socket.on('casinoRouletteState', (state) => {
   if (!casinoTableId || state.tableId !== casinoTableId) return;
-  const numEl = document.getElementById('roulette-number');
-  const cdEl  = document.getElementById('roulette-countdown');
-  const wheel = document.getElementById('roulette-wheel');
+  const numEl  = document.getElementById('roulette-number');
+  const cdEl   = document.getElementById('roulette-countdown');
+  const wheel  = document.getElementById('roulette-wheel');
+  const orbit  = document.getElementById('roulette-ball-orbit');
 
   if (state.phase === 'betting') {
     cdEl && (cdEl.style.display = 'block');
@@ -3578,21 +3601,35 @@ socket.on('casinoRouletteState', (state) => {
     const cdFill = document.getElementById('roulette-cd-fill');
     if (cdText) cdText.textContent = `🎲 Obstawiaj! ${state.countdown}s`;
     if (cdFill)  cdFill.style.width = (state.countdown/30*100) + '%';
-    if (numEl) numEl.textContent = '?';
+    if (numEl) { numEl.textContent = '?'; numEl.style.color = 'white'; }
+    // Zatrzymaj animacje
+    if (wheel)  { wheel.classList.remove('spinning'); wheel.style.animation=''; }
+    if (orbit)  { orbit.classList.remove('spinning','landing'); orbit.style.animation=''; }
     roulettePendingBets = [];
     const myBetsEl = document.getElementById('roulette-my-bets');
     if (myBetsEl) myBetsEl.textContent = '';
   } else if (state.phase === 'spinning') {
     if (cdEl) cdEl.style.display = 'none';
-    if (wheel) wheel.classList.add('spinning');
     if (numEl) numEl.textContent = '🎡';
+    // Uruchom animację koła i kuli
+    if (wheel) {
+      wheel.style.animation = 'none'; void wheel.offsetWidth;
+      wheel.style.animation = 'wheelSpin 4s cubic-bezier(.2,.8,.3,1) forwards';
+    }
+    if (orbit) {
+      orbit.style.animation = 'none'; void orbit.offsetWidth;
+      orbit.style.animation = 'ballOrbit 4s cubic-bezier(.2,.8,.3,1) forwards';
+    }
   } else if (state.phase === 'results' && state.result) {
-    if (wheel) wheel.classList.remove('spinning');
     const n = state.result.number;
     const color = state.result.color;
+    // Zatrzymaj kulo w pozycji końcowej
+    if (orbit) { orbit.classList.remove('spinning'); orbit.style.animation = ''; }
+    if (wheel) { wheel.style.animation = ''; }
     if (numEl) {
       numEl.textContent = n;
       numEl.style.color = color==='red'?'#e74c3c':color==='black'?'#ccc':'#2ecc71';
+      numEl.classList.add('result-pop'); setTimeout(()=>numEl.classList.remove('result-pop'),600);
     }
     // Sprawdź czy wygrałem
     const myResult = state.players?.find(p => p.discordId === casinoDiscordId);
@@ -3600,19 +3637,16 @@ socket.on('casinoRouletteState', (state) => {
       if (myResult.net > 0) {
         showToast(`🎉 Wygrałeś +${myResult.net.toLocaleString('pl-PL')} AT$!`, 'success');
         spawnCoinFloat(myResult.net);
-        document.getElementById('casino-roulette-balance').textContent = (casinoWallet.balance + myResult.net).toLocaleString('pl-PL') + ' AT$';
-        if (casinoWallet) casinoWallet.balance += myResult.net;
+        if (casinoWallet) { casinoWallet.balance += myResult.net; document.getElementById('casino-roulette-balance').textContent = casinoWallet.balance.toLocaleString('pl-PL') + ' AT$'; }
       } else if (myResult.net < 0) {
-        showToast(`Przegrałeś ${myResult.net.toLocaleString('pl-PL')} AT$`, 'error');
+        showToast(`Przegrałeś ${Math.abs(myResult.net).toLocaleString('pl-PL')} AT$`, 'error');
+        if (casinoWallet) { casinoWallet.balance += myResult.net; document.getElementById('casino-roulette-balance').textContent = casinoWallet.balance.toLocaleString('pl-PL') + ' AT$'; }
       }
     }
   }
 
-  // Players
   const playersEl = document.getElementById('roulette-players');
-  if (playersEl && state.players) {
-    playersEl.textContent = `👥 Gracze przy stole: ${state.players.length}`;
-  }
+  if (playersEl && state.players) playersEl.textContent = `👥 Gracze: ${state.players.length}`;
 });
 
 // ── PACHINKO ──────────────────────────────────────────────────
@@ -3679,36 +3713,68 @@ socket.on('casinoPachinkoResult', ({ path, finalSlot, slot, bet, winAmount, net,
   const btn = document.getElementById('pachinko-drop-btn');
   btn.disabled = false;
 
-  // Animuj kulkę
   const board = document.getElementById('pachinko-board');
-  const ball = document.getElementById('pachinko-ball');
+  const ball  = document.getElementById('pachinko-ball');
   if (!board || !ball) return;
 
-  ball.style.display = 'block';
-  ball.style.left = '161px';
-  ball.style.top  = '0px';
-
-  // Highlight slot
+  // Reset slotów
   PACHINKO_SLOTS_DATA.forEach((_,i) => {
     const el = document.getElementById(`pslot-${i}`);
-    if (el) el.classList.remove('active');
+    if (el) el.classList.remove('active','skull');
   });
+
+  ball.style.display = 'block';
+  ball.style.transition = 'none';
+  ball.style.left = '161px';
+  ball.style.top  = '-10px';
 
   let step = 0;
   const boardH = board.offsetHeight;
   const boardW = board.offsetWidth;
   const slotW  = boardW / PACHINKO_SLOTS_DATA.length;
+  const stepDelay = 220;
 
-  function animate() {
+  function spawnTrail(x, y) {
+    const t = document.createElement('div');
+    t.className = 'pachinko-trail';
+    t.style.left = (x+3) + 'px'; t.style.top = (y+3) + 'px';
+    board.appendChild(t);
+    setTimeout(() => t.remove(), 400);
+  }
+
+  function highlightPeg(x, y) {
+    // Znajdź najbliższy peg i podświetl go
+    const pegs = board.querySelectorAll('.pachinko-peg');
+    let best = null, bestDist = 999;
+    pegs.forEach(peg => {
+      const px = parseFloat(peg.style.left), py = parseFloat(peg.style.top);
+      const dist = Math.abs(px-x) + Math.abs(py-y);
+      if (dist < bestDist) { bestDist = dist; best = peg; }
+    });
+    if (best && bestDist < 40) {
+      best.classList.add('hit');
+      setTimeout(() => best.classList.remove('hit'), 300);
+    }
+  }
+
+  function animateStep() {
     if (step >= path.length) {
-      // Final position
-      ball.style.left = (finalSlot * slotW + slotW/2 - 9) + 'px';
-      ball.style.top  = (boardH - 20) + 'px';
+      const finalX = finalSlot * slotW + slotW/2 - 9;
+      const finalY = boardH - 22;
+      spawnTrail(finalX, finalY);
+      ball.style.transition = `left ${stepDelay*0.8}ms ease, top ${stepDelay*0.8}ms ease`;
+      ball.style.left = finalX + 'px';
+      ball.style.top  = finalY + 'px';
+      ball.classList.add('bounce');
+
       setTimeout(() => {
         ball.style.display = 'none';
+        ball.classList.remove('bounce');
         const slotEl = document.getElementById(`pslot-${finalSlot}`);
-        if (slotEl) slotEl.classList.add('active');
-
+        if (slotEl) {
+          slotEl.classList.add(slot.mult === 0 ? 'skull' : 'active');
+          setTimeout(() => slotEl.classList.remove('active','skull'), 2000);
+        }
         const msgEl = document.getElementById('pachinko-result-msg');
         if (winAmount > 0) {
           msgEl.innerHTML = `<span style="color:#ffd200" class="result-pop">🎉 ${slot.label} → +${winAmount.toLocaleString('pl-PL')} AT$!</span>`;
@@ -3718,16 +3784,22 @@ socket.on('casinoPachinkoResult', ({ path, finalSlot, slot, bet, winAmount, net,
         }
         document.getElementById('casino-pachinko-balance').textContent = balance.toLocaleString('pl-PL') + ' AT$';
         if (casinoWallet) casinoWallet.balance = balance;
-      }, 300);
+      }, stepDelay + 200);
       return;
     }
     const p = path[step];
-    ball.style.left = (p.pos * slotW + slotW/2 - 9) + 'px';
-    ball.style.top  = (20 + step * (boardH/PACHINKO_ROWS)) + 'px';
+    const bx = p.pos * slotW + slotW/2 - 9;
+    const by = 20 + step * (boardH / PACHINKO_ROWS);
+    spawnTrail(bx, by);
+    highlightPeg(bx, by);
+    ball.style.transition = `left ${stepDelay*0.9}ms cubic-bezier(.25,.46,.45,.94), top ${stepDelay*0.9}ms ease`;
+    ball.style.left = bx + 'px';
+    ball.style.top  = by + 'px';
+    ball.classList.remove('bounce'); void ball.offsetWidth; ball.classList.add('bounce');
     step++;
-    setTimeout(animate, 300);
+    setTimeout(animateStep, stepDelay);
   }
-  setTimeout(animate, 100);
+  setTimeout(animateStep, 100);
 });
 
 // ── HELPER: chip buttons ──────────────────────────────────────

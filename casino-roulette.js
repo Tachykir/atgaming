@@ -1,163 +1,97 @@
 /**
- * RULETKA EUROPEJSKA — AT Gaming Casino
- * Gracze obstawiają przez betting window (30s), potem obrót koła
+ * RULETKA EUROPEJSKA — STÓŁ KASYNOWY
  */
 'use strict';
 
-// 0-36, europejska
-const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const BETTING_WINDOW = 25;
+const countdownTimers = {};
 
-function getColor(n) {
-  if (n===0) return 'green';
-  return RED.has(n) ? 'red' : 'black';
+function spin() { return Math.floor(Math.random() * 37); }
+function getColor(n) { if (n===0) return 'green'; if (RED_NUMBERS.has(n)) return 'red'; return 'black'; }
+
+function evaluateBet(bet, result) {
+  const { type, value } = bet;
+  const color = getColor(result);
+  if (type==='straight') return value===result ? bet.amount*35 : -bet.amount;
+  if (type==='red')      return color==='red'   ? bet.amount   : -bet.amount;
+  if (type==='black')    return color==='black' ? bet.amount   : -bet.amount;
+  if (type==='odd')      return result>0&&result%2===1 ? bet.amount : -bet.amount;
+  if (type==='even')     return result>0&&result%2===0 ? bet.amount : -bet.amount;
+  if (type==='low')      return result>=1&&result<=18  ? bet.amount : -bet.amount;
+  if (type==='high')     return result>=19&&result<=36 ? bet.amount : -bet.amount;
+  if (type==='dozen1')   return result>=1&&result<=12  ? bet.amount*2 : -bet.amount;
+  if (type==='dozen2')   return result>=13&&result<=24 ? bet.amount*2 : -bet.amount;
+  if (type==='dozen3')   return result>=25&&result<=36 ? bet.amount*2 : -bet.amount;
+  if (type==='col1')     return result>0&&result%3===1 ? bet.amount*2 : -bet.amount;
+  if (type==='col2')     return result>0&&result%3===2 ? bet.amount*2 : -bet.amount;
+  if (type==='col3')     return result>0&&result%3===0 ? bet.amount*2 : -bet.amount;
+  return -bet.amount;
 }
 
-const BETS = {
-  straight: { match: (n,v) => n===Number(v),                 payout: 35 },
-  red:      { match: (n)   => RED.has(n),                    payout: 1  },
-  black:    { match: (n)   => n>0 && !RED.has(n),            payout: 1  },
-  even:     { match: (n)   => n>0 && n%2===0,                payout: 1  },
-  odd:      { match: (n)   => n%2===1,                       payout: 1  },
-  low:      { match: (n)   => n>=1&&n<=18,                   payout: 1  },
-  high:     { match: (n)   => n>=19&&n<=36,                  payout: 1  },
-  dozen1:   { match: (n)   => n>=1&&n<=12,                   payout: 2  },
-  dozen2:   { match: (n)   => n>=13&&n<=24,                  payout: 2  },
-  dozen3:   { match: (n)   => n>=25&&n<=36,                  payout: 2  },
-  col1:     { match: (n)   => n%3===1&&n>0,                  payout: 2  },
-  col2:     { match: (n)   => n%3===2&&n>0,                  payout: 2  },
-  col3:     { match: (n)   => n%3===0&&n>0,                  payout: 2  },
-  split:    { match: (n,v) => v.split('-').map(Number).includes(n), payout: 17 },
-};
-
-const BETTING_TIME = 30000;  // 30s
-const SPIN_TIME    = 6000;   // 6s animacja
-
-function createGameState() {
-  return {
-    phase: 'betting',    // betting | spinning | results
-    bets: {},            // discordId -> [{type, value, amount}]
-    result: null,
-    countdown: BETTING_TIME/1000,
-    timer: null,
-    spinTimer: null,
+function startBettingWindow(table, io, seconds=BETTING_WINDOW) {
+  clearTimeout(countdownTimers[table.id]);
+  table.status = 'betting';
+  table.gameState = {
+    phase: 'betting', bets: {}, result: null,
+    sessionChipsStart: Object.fromEntries((table.players||[]).map(p=>[p.socketId,p.sessionChips])),
   };
-}
-
-function broadcastState(table, io, gs) {
-  const payload = {
-    tableId: table.id,
-    phase:   gs.phase,
-    countdown: gs.countdown,
-    result:  gs.result,
-    players: table.players.map(p=>({
-      name: p.name, avatar: p.avatar, discordId: p.discordId,
-      bets: gs.bets[p.discordId] || [],
-      totalBet: (gs.bets[p.discordId]||[]).reduce((s,b)=>s+b.amount,0),
-    })),
-  };
-  io.to('casino:'+table.id).emit('casinoRouletteState', payload);
-}
-
-function startRound(table, io, casino) {
-  const gs = createGameState();
-  table.gameState = gs;
-  table.status = 'playing';
-  broadcastState(table, io, gs);
-
-  let cd = BETTING_TIME/1000;
-  const tick = setInterval(()=>{
-    cd--;
-    gs.countdown = cd;
-    broadcastState(table, io, gs);
-    if (cd <= 0) {
-      clearInterval(tick);
-      doSpin(table, io, casino, gs);
-    }
-  }, 1000);
-  gs.timer = tick;
-}
-
-async function doSpin(table, io, casino, gs) {
-  gs.phase = 'spinning';
-  const result = Math.floor(Math.random() * 37);  // 0-36
-  gs.result = { number: result, color: getColor(result) };
-  broadcastState(table, io, gs);
-
-  await new Promise(r => setTimeout(r, SPIN_TIME));
-
-  // Rozlicz zakłady
-  gs.phase = 'results';
-  const results = [];
-  for (const [discordId, bets] of Object.entries(gs.bets)) {
-    let net = -bets.reduce((s,b)=>s+b.amount,0);
-    const wins = [];
-    for (const b of bets) {
-      const def = BETS[b.type];
-      if (def && def.match(result, b.value)) {
-        const win = b.amount * (def.payout+1);
-        net += win;
-        wins.push({type:b.type, win});
-      }
-    }
-    if (net !== 0) await casino.updateBalance(discordId, net).catch(()=>{});
-    await casino.recordGame(discordId).catch(()=>{});
-    results.push({ discordId, net, wins });
+  let remaining = seconds;
+  emitTableState(table, io);
+  io.to('casino:'+table.id).emit('casinoCountdown',{tableId:table.id,seconds:remaining,max:seconds});
+  function tick() {
+    remaining--;
+    io.to('casino:'+table.id).emit('casinoCountdown',{tableId:table.id,seconds:remaining,max:BETTING_WINDOW});
+    if (remaining<=0) spinWheel(table,io); else countdownTimers[table.id]=setTimeout(tick,1000);
   }
-  gs.results = results;
-  broadcastState(table, io, gs);
-
-  table.round++;
-  await new Promise(r => setTimeout(r, 5000));
-
-  // Następna runda jeśli ktoś siedzi
-  gs.bets = {};
-  if (table.players.length > 0) startRound(table, io, casino);
-  else { table.status='open'; table.gameState=null; }
+  countdownTimers[table.id]=setTimeout(tick,1000);
 }
 
-function registerHandlers(socket, io, casino) {
-  // Dołącz do stołu ruletki
-  socket.on('casinoRouletteJoin', async ({ tableId }) => {
-    const table = casino.casinoTables[tableId];
-    if (!table || table.game!=='roulette') return;
-    const discordUser = socket.discordUser;
-    if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
-
-    const already = table.players.find(p=>p.discordId===discordUser.id);
-    if (!already) {
-      const wallet = await casino.ensureWallet(discordUser);
-      table.players.push({ socketId:socket.id, discordId:discordUser.id, name:discordUser.globalName||discordUser.username, avatar:discordUser.avatar });
-    } else {
-      already.socketId = socket.id; // odśwież socket
-    }
-    socket.join('casino:'+tableId);
-    socket.casinoTableId = tableId;
-
-    if (!table.gameState && table.players.length >= 1) startRound(table, io, casino);
-    else if (table.gameState) broadcastState(table, io, table.gameState);
-  });
-
-  // Postaw zakład
-  socket.on('casinoRouletteBet', async ({ tableId, type, value, amount }) => {
-    const table = casino.casinoTables[tableId];
-    if (!table || !table.gameState || table.gameState.phase !== 'betting') return;
-    const discordUser = socket.discordUser;
-    if (!discordUser) return;
-
-    const cfg = table.config;
-    const betAmt = Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(amount)||cfg.minBet));
-    const wallet = await casino.getWallet(discordUser.id);
-    if (!wallet || wallet.balance < betAmt) return socket.emit('casinoError',{message:'Za mało AT$!'});
-
-    // Rezerwacja (zakład jest rozliczany przy spinie)
-    await casino.updateBalance(discordUser.id, -betAmt);
-
-    const gs = table.gameState;
-    if (!gs.bets[discordUser.id]) gs.bets[discordUser.id]=[];
-    gs.bets[discordUser.id].push({type, value, amount:betAmt});
-
-    broadcastState(table, io, gs);
-  });
+function spinWheel(table, io) {
+  clearTimeout(countdownTimers[table.id]);
+  const gs=table.gameState; if (!gs) return;
+  gs.phase='spinning';
+  const result=spin(); gs.result=result; gs.color=getColor(result);
+  io.to('casino:'+table.id).emit('casinoRouletteSpinning',{tableId:table.id,result,color:gs.color});
+  setTimeout(()=>{
+    gs.phase='results'; gs.playerResults={};
+    table.players.forEach(p=>{
+      const bets=gs.bets[p.socketId]||[]; let delta=0;
+      bets.forEach(b=>{ delta+=evaluateBet(b,result); });
+      p.sessionChips=Math.max(0,p.sessionChips+delta);
+      gs.playerResults[p.socketId]={delta,chips:p.sessionChips};
+    });
+    table.status='results'; emitTableState(table,io);
+    setTimeout(()=>endRound(table,io),5000);
+  },4000);
 }
 
-module.exports = { registerHandlers, BETS, getColor };
+function handleAction(table, socketId, event, data, io) {
+  const gs=table.gameState; if (!gs||gs.phase!=='betting'||event!=='casinoRouletteBet') return;
+  const p=table.players.find(p=>p.socketId===socketId); if (!p) return;
+  const bet=Math.max(table.config.minBet,Math.min(table.config.maxBet,Number(data.amount)||table.config.minBet));
+  if (!gs.bets[socketId]) gs.bets[socketId]=[];
+  if (gs.bets[socketId].length>=12) return;
+  const total=gs.bets[socketId].reduce((s,b)=>s+b.amount,0);
+  if (total+bet>p.sessionChips) return;
+  gs.bets[socketId].push({type:data.type,value:data.value,amount:bet});
+  emitTableState(table,io);
+}
+
+function endRound(table, io) {
+  const gs=table.gameState;
+  if (table._casino&&gs) table.players.forEach(p=>{ if (!p.discordId) return; const d=p.sessionChips-(gs.sessionChipsStart?.[p.socketId]||0); table._casino.updateBalance(p.discordId,d).catch(()=>{}); table._casino.recordGame(p.discordId).catch(()=>{}); });
+  table.players=table.players.filter(p=>p.sessionChips>0); table.round++; table.gameState=null;
+  if (table.players.length>0) startBettingWindow(table,io); else { table.status='open'; emitTableState(table,io); }
+}
+
+function emitTableState(table, io) {
+  const gs=table.gameState;
+  io.to('casino:'+table.id).emit('casinoTableState',{table:getTablePublicFull(table),phase:gs?.phase||'idle',bets:gs?.bets||{},result:gs?.result??null,color:gs?.color||null,playerResults:gs?.playerResults||{}});
+}
+
+function getTablePublicFull(table) {
+  return {id:table.id,game:table.game,name:table.name,config:table.config,status:table.status,round:table.round,players:table.players.map(p=>({socketId:p.socketId,discordId:p.discordId,name:p.name,avatar:p.avatar,sessionChips:p.sessionChips,seatIndex:p.seatIndex})),observerCount:table.observers?.length||0};
+}
+
+module.exports = {startBettingWindow,handleAction,endRound,emitTableState,getTablePublicFull,countdownTimers,RED_NUMBERS};
