@@ -100,14 +100,14 @@ function registerHandlers(socket, io, casino) {
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
     const cfg = table.config;
-    const betAmt = Math.max(cfg.minBet, Number(bet)||cfg.minBet);
+    const betAmt = Math.max(1, Math.min(100000, Number(bet)||cfg.minBet));
     const wallet = await casino.ensureWallet(discordUser);
     if (wallet.balance < betAmt) return socket.emit('casinoError',{message:`Za mało AT$! Masz ${wallet.balance}`});
 
     await casino.updateBalance(discordUser.id, -betAmt);
 
     const riskCfg = RISK_CONFIGS[risk] || RISK_CONFIGS.medium;
-    const centerBias = 0.50 + Math.random() * 0.15; // losowy bias 50–65% w stronę środka
+    const centerBias = 0.55 + Math.random() * 0.25; // losowy bias 55–80% w stronę środka
     const {path, finalSlot} = generatePath(riskCfg.rows, riskCfg.slots.length, centerBias);
     const slot = riskCfg.slots[finalSlot];
     const winAmount = Math.floor(betAmt * slot.mult);

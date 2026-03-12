@@ -1507,7 +1507,7 @@ select.input option{background:var(--surface2);}
       <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Kwota zakładu:</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <div class="casino-bet-chips" id="roulette-chip-btns"></div>
-        <input class="input" type="number" id="roulette-bet-input" style="width:100px;padding:8px 12px;font-size:14px" placeholder="AT$">
+        <input class="input" type="number" id="roulette-bet-input" style="width:100px;padding:8px 12px;font-size:14px" placeholder="AT$" min="1" max="100000">
       </div>
       <div id="roulette-my-bets" style="margin-top:8px;font-size:13px;color:var(--accent3);min-height:20px"></div>
     </div>
@@ -1546,7 +1546,7 @@ select.input option{background:var(--surface2);}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center">
         <span style="font-size:13px;color:var(--muted)">Zakład:</span>
         <div class="casino-bet-chips" id="pachinko-chip-btns"></div>
-        <input class="input" type="number" id="pachinko-bet-input" style="width:100px;padding:8px 12px;font-size:14px" placeholder="AT$">
+        <input class="input" type="number" id="pachinko-bet-input" style="width:100px;padding:8px 12px;font-size:14px" placeholder="AT$" min="1" max="100000">
       </div>
       <button class="btn btn-primary" style="padding:14px 40px;font-size:18px" onclick="casinoPachinkoDrop()" id="pachinko-drop-btn">🎯 Upuść kulkę!</button>
     </div>
@@ -1607,7 +1607,7 @@ select.input option{background:var(--surface2);}
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center">
         <div class="casino-bet-chips" id="coinflip-chip-btns"></div>
-        <input class="input" type="number" id="coinflip-bet-input" style="width:100px;padding:8px 12px;font-size:14px" placeholder="AT$">
+        <input class="input" type="number" id="coinflip-bet-input" style="width:100px;padding:8px 12px;font-size:14px" placeholder="AT$" min="1">
         <button class="btn btn-primary" onclick="casinoCoinflipCreate()">Rzuć wyzwanie!</button>
       </div>
     </div>
@@ -4238,7 +4238,7 @@ function setPachinkoRisk(risk) {
 
 function initPachinkoUI(table) {
   document.getElementById('casino-pachinko-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
-  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.minBet*10];
+  const chips = [table.config.minBet, table.config.minBet*5, table.config.minBet*20, 1000, 5000, 10000].filter(c=>c<=100000);
   renderChipBtns('pachinko-chip-btns', [...new Set(chips)], 'pachinko-bet-input');
   document.getElementById('pachinko-bet-input').value = table.config.minBet;
   document.getElementById('pachinko-result-msg').textContent = '';
@@ -4538,7 +4538,7 @@ let coinflipSide = 'heads';
 
 function initCoinflipUI(table) {
   document.getElementById('casino-coinflip-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
-  const chips = [table.config.minBet, table.config.minBet*2, table.config.minBet*5, table.config.minBet*10];
+  const chips = [table.config.minBet, table.config.minBet*5, table.config.minBet*20, 1000, 5000, 10000, 50000];
   renderChipBtns('coinflip-chip-btns', [...new Set(chips)], 'coinflip-bet-input');
   document.getElementById('coinflip-bet-input').value = table.config.minBet;
   coinflipSide = 'heads';

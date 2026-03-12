@@ -1,3 +1,5 @@
+const fs   = require('fs');
+const path = require('path');
 /**
  * ═══════════════════════════════════════════
  *  DISCORD OAUTH2 — AT Gaming
@@ -27,14 +29,68 @@ function getConfig() {
 }
 
 // ── MIDDLEWARE ────────────────────────────────────────────────
+// ── PROSTY FILE SESSION STORE (bez zewnętrznych deps) ───────────
+// Sesje przeżywają restart serwera, zapisywane do sessions.json
+const { Store } = require('express-session');
+
+class FileSessionStore extends Store {
+  constructor(filePath) {
+    super();
+    this.filePath = filePath;
+    this.sessions = {};
+    try {
+      if (fs.existsSync(filePath)) {
+        this.sessions = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        // Usuń wygasłe sesje przy starcie
+        const now = Date.now();
+        for (const [id, sess] of Object.entries(this.sessions)) {
+          if (sess.cookie?.expires && new Date(sess.cookie.expires).getTime() < now) {
+            delete this.sessions[id];
+          }
+        }
+      }
+    } catch(e) { this.sessions = {}; }
+  }
+  _save() {
+    try { fs.writeFileSync(this.filePath, JSON.stringify(this.sessions)); } catch(e) {}
+  }
+  get(sid, cb) {
+    const sess = this.sessions[sid];
+    if (!sess) return cb(null, null);
+    if (sess.cookie?.expires && new Date(sess.cookie.expires).getTime() < Date.now()) {
+      delete this.sessions[sid];
+      this._save();
+      return cb(null, null);
+    }
+    cb(null, sess);
+  }
+  set(sid, session, cb) {
+    this.sessions[sid] = session;
+    this._save();
+    cb(null);
+  }
+  destroy(sid, cb) {
+    delete this.sessions[sid];
+    this._save();
+    if (cb) cb(null);
+  }
+  all(cb) { cb(null, Object.values(this.sessions)); }
+  length(cb) { cb(null, Object.keys(this.sessions).length); }
+  clear(cb) { this.sessions = {}; this._save(); if (cb) cb(null); }
+}
+
 function setupSession(app) {
   const cfg = getConfig();
+  const sessionsFile = path.join(__dirname, 'sessions.json');
+  const store = new FileSessionStore(sessionsFile);
+
   // Na Railway/Heroku jest reverse proxy — trzeba mu ufać
   app.set('trust proxy', 1);
   app.use(session({
     secret: cfg.sessionSecret,
     resave: false,
     saveUninitialized: false,
+    store,
     cookie: {
       secure: cfg.redirectUri.startsWith('https'),  // true na produkcji HTTPS
       httpOnly: true,

@@ -3,3 +3,4 @@ node_modules/
 casino_data.json
 *.log
 package-lock.json
+sessions.json
