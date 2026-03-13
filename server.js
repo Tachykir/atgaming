@@ -79,11 +79,27 @@ app.get('/auth/socket-token', (req, res) => {
 });
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-
-// ─── LEADERBOARD (in-memory, persists until server restart) ───
+if (!process.env.ADMIN_PASSWORD) {
+  console.warn('⚠️  UWAGA: ADMIN_PASSWORD nie jest ustawiony w env! Używam domyślnego hasła "admin123" — zmień to w produkcji!');
+} (persystentny — zapisywany do pliku JSON) ───
 // Structure: { gameId: [ { name, score, date, category, difficulty } ] }
-const leaderboard = {};
+const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard_data.json');
 const LEADERBOARD_MAX = 100; // max entries per game
+
+let leaderboard = {};
+try {
+  if (fs.existsSync(LEADERBOARD_FILE)) {
+    leaderboard = JSON.parse(fs.readFileSync(LEADERBOARD_FILE, 'utf8'));
+    console.log(`📊 Leaderboard wczytany (${Object.keys(leaderboard).length} gier)`);
+  }
+} catch(e) {
+  console.error('Błąd wczytywania leaderboard:', e.message);
+}
+
+function saveLeaderboard() {
+  try { fs.writeFileSync(LEADERBOARD_FILE, JSON.stringify(leaderboard, null, 2)); }
+  catch(e) { console.error('Błąd zapisu leaderboard:', e.message); }
+}
 
 function recordScore(gameId, playerName, score, meta = {}) {
   if (!leaderboard[gameId]) leaderboard[gameId] = [];
@@ -98,6 +114,7 @@ function recordScore(gameId, playerName, score, meta = {}) {
   if (leaderboard[gameId].length > LEADERBOARD_MAX) {
     leaderboard[gameId] = leaderboard[gameId].slice(0, LEADERBOARD_MAX);
   }
+  saveLeaderboard();
 }
 
 // ─── AUTO-LOAD GAME MODULES ───────────────────────────────────
@@ -294,6 +311,7 @@ app.delete('/api/admin/leaderboard', (req, res) => {
   if (!adminCheck(password, res)) return;
   if (gameId) leaderboard[gameId] = [];
   else Object.keys(leaderboard).forEach(k => leaderboard[k] = []);
+  saveLeaderboard();
   res.json({ ok: true });
 });
 
@@ -490,7 +508,8 @@ io.on('connection', (socket) => {
 
   socket.on('createRoom', ({ gameType, playerName, isGameMaster, config }) => {
     if (!GAMES[gameType]) return socket.emit('error', { message: `Nieznana gra: ${gameType}` });
-    const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+    let roomId;
+    do { roomId = Math.random().toString(36).substring(2, 7).toUpperCase(); } while (rooms[roomId]);
     rooms[roomId] = createRoom(roomId, gameType, socket.id, playerName, isGameMaster, config || {});
     socket.join(roomId);
     socket.emit('roomCreated', { roomId, room: rooms[roomId] });
@@ -953,7 +972,9 @@ io.on('connection', (socket) => {
               const sorted = remaining ? [{ ...remaining, score: 1 }] : [];
               io.to(roomId).emit('gameOver', { room, sorted, reason: 'Przeciwnik opuścił grę' });
             } else {
-              // Hangman: przekaż turę do następnego aktywnego gracza
+              // Hangman: wyczyść timer rundy (zapobiega podwójnemu startowi rundy)
+              if (gs.roundTimer) { clearTimeout(gs.roundTimer); gs.roundTimer = null; }
+              // Przekaż turę do następnego aktywnego gracza
               const active = room.players.filter(p => !gs.playerEliminated?.[p.id]);
               gs.currentTurn = active[0]?.id || null;
               io.to(roomId).emit('letterGuessed', {
@@ -1001,17 +1022,16 @@ io.on('connection', (socket) => {
               if (!rooms[roomId]) return;
               gs.currentRound++;
               gs.drawerIndex = (gs.drawerIndex + 1) % Math.max(room.players.length, 1);
+              // Zakończ grę jeśli koniec rund LUB za mało graczy (sprawdzenie po usunięciu gracza)
               if (gs.currentRound >= gs.totalRounds || room.players.length < 2) {
                 room.status = 'finished';
                 const sorted = [...room.players].sort((a, b) => b.score - a.score);
-                io.to(roomId).emit('gameOver', { room, sorted });
+                io.to(roomId).emit('gameOver', { room, sorted,
+                  ...(room.players.length < 2 ? { reason: 'Za mało graczy' } : {})
+                });
               } else {
-                // _startRound jest prywatną funkcją — wywołaj przez onEvent
                 const mod = GAMES['kalambury'];
                 if (mod?.onStart) {
-                  // Nie możemy wywołać _startRound bezpośrednio, ale możemy wyemitować stan
-                  // i pozwolić frontendowi zareagować na kalamburyReveal + brak nowej rundy
-                  // Najprostsze: wyślij sygnał nowej rundy przez gameEvent
                   io.to(roomId).emit('kalamburyRound', {
                     roundIndex: gs.currentRound,
                     total: gs.totalRounds,
@@ -1035,10 +1055,12 @@ io.on('connection', (socket) => {
                       if (!rooms[roomId]) return;
                       gs.currentRound++;
                       gs.drawerIndex = (gs.drawerIndex + 1) % Math.max(room.players.length, 1);
-                      if (gs.currentRound >= gs.totalRounds) {
+                      if (gs.currentRound >= gs.totalRounds || room.players.length < 2) {
                         room.status = 'finished';
                         const sorted2 = [...room.players].sort((a, b) => b.score - a.score);
-                        io.to(roomId).emit('gameOver', { room, sorted: sorted2 });
+                        io.to(roomId).emit('gameOver', { room, sorted: sorted2,
+                          ...(room.players.length < 2 ? { reason: 'Za mało graczy' } : {})
+                        });
                       }
                     }, 4000);
                   }, (Number(room.config?.roundTime) || 60) * 1000);

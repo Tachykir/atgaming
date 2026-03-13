@@ -110,37 +110,51 @@ async function getWallet(discordId) {
 }
 
 const walletCache = {}; // discord_id → wallet (in-memory, czyszczony co godzinę)
+const walletPending = {}; // discord_id → Promise (zapobiega równoczesnym tworzeniom portfela)
 setInterval(() => { Object.keys(walletCache).forEach(k => delete walletCache[k]); }, 3600_000);
 
 async function ensureWallet(discordUser) {
   const { id, username } = discordUser;
   const globalName = discordUser.globalName || discordUser.username;
   if (walletCache[id]) return walletCache[id]; // cache hit — nie bij w DB
-  const avatar     = discordUser.avatar || null;
 
-  if (pg) {
-    const r = await pg.query(`
-      INSERT INTO casino_wallets (discord_id,username,global_name,avatar)
-      VALUES ($1,$2,$3,$4)
-      ON CONFLICT (discord_id) DO UPDATE SET
-        username=EXCLUDED.username, global_name=EXCLUDED.global_name,
-        avatar=COALESCE(EXCLUDED.avatar,casino_wallets.avatar), last_seen=NOW()
-      RETURNING *, (xmax=0) AS is_new`,[id,username,globalName,avatar]);
-    const w = rowToWallet(r.rows[0]);
-    if (r.rows[0].is_new)
-      console.log(`💳 Nowy portfel: ${globalName} (${START_BALANCE} AT$)`);
-    walletCache[id] = w;
-    return w;
-  }
-  if (!jsonDb.wallets[id]) {
-    jsonDb.wallets[id] = { balance:START_BALANCE, username, globalName, avatar, totalWon:0, totalLost:0, gamesPlayed:0, createdAt:new Date().toISOString(), lastSeen:new Date().toISOString() };
-    console.log(`💳 Nowy portfel: ${globalName} (${START_BALANCE} AT$)`);
-  } else {
-    Object.assign(jsonDb.wallets[id], { username, globalName, avatar:avatar||jsonDb.wallets[id].avatar, lastSeen:new Date().toISOString() });
-  }
-  saveJsonDb();
-  walletCache[id] = jsonDb.wallets[id];
-  return jsonDb.wallets[id];
+  // Jeśli inne wywołanie już czeka na ten sam portfel — dołącz do jego Promise
+  // Zapobiega race condition gdzie dwa równoczesne requesty tworzą dwa wpisy
+  if (walletPending[id]) return walletPending[id];
+
+  walletPending[id] = (async () => {
+    try {
+      const avatar = discordUser.avatar || null;
+
+      if (pg) {
+        const r = await pg.query(`
+          INSERT INTO casino_wallets (discord_id,username,global_name,avatar)
+          VALUES ($1,$2,$3,$4)
+          ON CONFLICT (discord_id) DO UPDATE SET
+            username=EXCLUDED.username, global_name=EXCLUDED.global_name,
+            avatar=COALESCE(EXCLUDED.avatar,casino_wallets.avatar), last_seen=NOW()
+          RETURNING *, (xmax=0) AS is_new`,[id,username,globalName,avatar]);
+        const w = rowToWallet(r.rows[0]);
+        if (r.rows[0].is_new)
+          console.log(`💳 Nowy portfel: ${globalName} (${START_BALANCE} AT$)`);
+        walletCache[id] = w;
+        return w;
+      }
+      if (!jsonDb.wallets[id]) {
+        jsonDb.wallets[id] = { balance:START_BALANCE, username, globalName, avatar, totalWon:0, totalLost:0, gamesPlayed:0, createdAt:new Date().toISOString(), lastSeen:new Date().toISOString() };
+        console.log(`💳 Nowy portfel: ${globalName} (${START_BALANCE} AT$)`);
+      } else {
+        Object.assign(jsonDb.wallets[id], { username, globalName, avatar:avatar||jsonDb.wallets[id].avatar, lastSeen:new Date().toISOString() });
+      }
+      saveJsonDb();
+      walletCache[id] = jsonDb.wallets[id];
+      return jsonDb.wallets[id];
+    } finally {
+      delete walletPending[id];
+    }
+  })();
+
+  return walletPending[id];
 }
 
 async function updateBalance(discordId, delta) {
@@ -288,7 +302,7 @@ function initTables() {
   // Pachinko
   createTable({ game:'pachinko', name:'Pachinko',  config:{ minBet:25, maxBet:500, maxPlayers:99 }});
   // Crash — stały stół (pętla startuje w server.js po init)
-  createTable({ game:'crash', name:'Crash 🚀', config:{ minBet:50 }});
+  createTable({ game:'crash', name:'Crash 🚀', config:{ minBet:50, maxBet:10000 }});
   console.log(`🃏 Zainicjowano ${Object.keys(casinoTables).length} stołów kasyna`);
 }
 

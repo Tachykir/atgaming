@@ -157,6 +157,10 @@ function registerHandlers(socket, io, casino) {
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return;
 
+    // Sprawdź czy gracz jest przy stole (nie tylko obserwatorem)
+    const isPlayer = table.players.some(p => p.discordId === discordUser.id);
+    if (!isPlayer) return socket.emit('casinoError', { message: 'Musisz dołączyć do stołu, żeby obstawiać!' });
+
     const cfg = table.config;
     const maxAllowed = cfg.maxBet || 100000;
     const betAmt = Math.max(cfg.minBet || 1, Math.min(maxAllowed, Number(amount)||cfg.minBet));

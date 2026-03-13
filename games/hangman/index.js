@@ -146,7 +146,8 @@ function _guessLetter({ data, socket, room, io }) {
         round: gs.currentRound, totalRounds: gs.totalRounds,
         playerLives: gs.playerLives, playerEliminated: gs.playerEliminated,
       });
-      setTimeout(() => {
+      gs.roundTimer = setTimeout(() => {
+        gs.roundTimer = null;
         _startRound({ room, content: gs._content || {}, customWord: null, io });
       }, 4000);
     } else {

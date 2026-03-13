@@ -69,6 +69,13 @@ function registerHandlers(socket, io, casino) {
     // Animacja — 1.5s potem wynik
     await sleep(1500);
 
+    // Sprawdź ponownie czy wyzwanie nadal istnieje (mogło zostać usunięte podczas sleep)
+    if (!table.gameState.challenges?.[challengeId] || challenge.status !== 'flipping') {
+      // Wyzwanie zniknęło — zwróć zakład przeciwnikowi
+      await casino.updateBalance(discordUser.id, challenge.bet);
+      return socket.emit('casinoError', { message: 'Wyzwanie zostało anulowane' });
+    }
+
     const result = Math.random() < 0.5 ? 'heads' : 'tails'; // 50/50
     const creatorWins = (challenge.side === result);
     const winner = creatorWins ? challenge.creator : challenge.opponent;
