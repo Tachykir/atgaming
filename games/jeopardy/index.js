@@ -321,6 +321,9 @@ function _checkEnd(room, io) {
   const gs      = room.gameState;
   const allDone = Object.values(gs.board).every(cat => Object.values(cat).every(v => v === true));
   if (allDone) {
+    // FIX #16: Wyczyść timery przed ogłoszeniem końca gry
+    clearTimeout(gs.questionTimer);
+    clearTimeout(gs.answerTimer);
     room.status  = 'finished';
     const sorted = [...room.players].sort((a, b) => b.score - a.score);
     io.to(room.id).emit('gameOver', { room, sorted });

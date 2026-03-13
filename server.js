@@ -410,6 +410,9 @@ app.delete('/api/casino/tables/:tableId', (req, res) => {
   const t = casino.casinoTables[req.params.tableId];
   if (!t) return res.status(404).json({ error: 'Stół nie istnieje' });
   if (t.createdBy?.id !== user.id) return res.status(403).json({ error: 'Brak uprawnień' });
+  // FIX #17: Wyczyść timery countdown przed usunięciem stołu
+  clearTimeout(casinoPoker.countdownTimers[req.params.tableId]);
+  clearTimeout(casinoBJ.countdownTimers[req.params.tableId]);
   if (casino.deleteTable(req.params.tableId)) { io.emit('casinoTablesUpdated'); res.json({ ok: true }); }
   else res.status(400).json({ error: 'Nie można usunąć stołu z graczami' });
 });
@@ -749,6 +752,9 @@ io.on('connection', (socket) => {
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return;
     if (table.createdBy?.id !== discordUser.id) return socket.emit('casinoError',{message:'Możesz usunąć tylko własny stół'});
+    // FIX #17: Wyczyść timery countdown przed usunięciem stołu
+    clearTimeout(casinoPoker.countdownTimers[tableId]);
+    clearTimeout(casinoBJ.countdownTimers[tableId]);
     if (casino.deleteTable(tableId)) io.emit('casinoTablesUpdated');
     else socket.emit('casinoError',{message:'Nie można usunąć stołu z graczami'});
   });
@@ -812,6 +818,54 @@ io.on('connection', (socket) => {
       }
     }
 
+    // FIX #11: Poker — auto-fold gracza który wychodzi w środku ręki
+    // Bez tego gra się zawiesza gdy aktywny gracz rozłącza się (jego socketId zostaje w actingQueue)
+    if (table.game === 'poker') {
+      const gs = table.gameState;
+      if (gs && table.status === 'playing') {
+        const sid = socket.id;
+        // Oznacz jako sfoldowanego i usuń z kolejki
+        // Wyjątek: all-in gracze nie są foldowani — ich ręka gra się do końca
+        if (gs.folded && !gs.folded[sid] && !gs.allIn?.[sid]) {
+          gs.folded[sid] = true;
+          gs.actingQueue = (gs.actingQueue || []).filter(id => id !== sid);
+          // Jeśli to był aktywny gracz — przekaż ruch następnemu
+          if (gs.actingPlayer === sid) {
+            if (gs.actingQueue.length > 0) {
+              gs.actingPlayer = gs.actingQueue[0];
+            } else {
+              // Wszyscy wyrównali lub wszyscy spasowali — przejdź do następnej fazy
+              // Usuwamy gracza z table.players PRZED wywołaniem nextPhase via emitTableState
+              table.players.splice(idx, 1);
+              socket.leave('casino:' + tableId);
+              socket.casinoTableId = null;
+              if (player.discordId && player.sessionChips > 0) {
+                casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
+              }
+              casinoPoker.handleAction(table, sid, 'casinoPokerFold', {}, io);
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    // FIX #12: Blackjack — advance turn jeśli rozłączający się gracz był aktywnym graczem
+    if (table.game === 'blackjack') {
+      const gs = table.gameState;
+      if (gs && gs.phase === 'playing' && gs.actingPlayer === socket.id) {
+        if (player.discordId && player.sessionChips > 0) {
+          casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
+        }
+        table.players.splice(idx, 1);
+        socket.leave('casino:' + tableId);
+        socket.casinoTableId = null;
+        // advanceTurn robi shift() który usuwa aktywnego gracza z kolejki i przekazuje turę
+        casinoBJ.advanceTurn(table, io);
+        return;
+      }
+    }
+
     // Oddaj pozostałe żetony do portfela (poker/blackjack)
     if (player.discordId && player.sessionChips > 0) {
       casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
@@ -861,6 +915,117 @@ io.on('connection', (socket) => {
           continue;
         }
         if (room.hostId === socket.id && room.players[0]) room.hostId = room.players[0].id;
+
+        // FIX #18: Jeśli gracz rozłączył się w środku gry turowej — przekaż turę dalej
+        // Dotyczy: hangman, tictactoe, familyfeud, jeopardy, kalambury
+        if (room.status === 'playing' && room.gameState) {
+          const gs = room.gameState;
+          const sid = socket.id;
+
+          // Hangman / TicTacToe: currentTurn
+          if (gs.currentTurn === sid) {
+            if (room.gameType === 'tictactoe') {
+              // TicTacToe: tylko 2 graczy — jeśli jeden odchodzi, gra nie ma sensu
+              room.status = 'finished';
+              const remaining = room.players[0];
+              const sorted = remaining ? [{ ...remaining, score: 1 }] : [];
+              io.to(roomId).emit('gameOver', { room, sorted, reason: 'Przeciwnik opuścił grę' });
+            } else {
+              // Hangman: przekaż turę do następnego aktywnego gracza
+              const active = room.players.filter(p => !gs.playerEliminated?.[p.id]);
+              gs.currentTurn = active[0]?.id || null;
+              io.to(roomId).emit('letterGuessed', {
+                room, letter: null, correct: false,
+                mask: gs.word ? gs.word.split('').map(l => (gs.guessed||[]).includes(l) ? l : '_').join(' ') : '',
+                currentTurn: gs.currentTurn,
+                playerLives: gs.playerLives,
+                playerEliminated: gs.playerEliminated,
+              });
+            }
+          }
+
+          // FamilyFeud: currentResponder
+          if (gs.currentResponder === sid) {
+            const active = room.players.filter(p => !gs.playerEliminated?.[p.id]);
+            if (active.length === 0) {
+              // Wszyscy odeszli — przejdź do następnego pytania
+              const mod = GAMES[room.gameType];
+              if (mod?.onEvent) mod.onEvent({ event: 'familyFeudAnswer', data: { answer: '__skip__' }, socket, room, io });
+            } else {
+              const curIdx = active.findIndex(p => p.id === gs.currentResponder);
+              gs.responderIndex = Math.min(curIdx >= 0 ? curIdx : 0, active.length - 1);
+              gs.currentResponder = active[gs.responderIndex % active.length]?.id;
+              io.to(roomId).emit('familyFeudNextResponder', {
+                currentResponder: gs.currentResponder,
+                responderName: active[gs.responderIndex % active.length]?.name,
+                playerStrikes: gs.playerStrikes,
+                playerEliminated: gs.playerEliminated,
+              });
+            }
+          }
+
+          // Jeopardy: currentPicker odszedł w fazie 'pick' — przekaż losowo
+          if (gs.phase === 'pick' && gs.currentPicker === sid) {
+            const next = room.players[gs.pickerIndex % Math.max(room.players.length, 1)];
+            gs.currentPicker = next?.id || room.players[0]?.id;
+            io.to(roomId).emit('jeopardyBoard', { board: gs.board, currentPicker: gs.currentPicker, phase: gs.phase, room });
+          }
+
+          // Kalambury: rysujący gracz odszedł — zakończ rundę natychmiast
+          if (gs.currentDrawer === sid) {
+            clearTimeout(gs.roundTimer);
+            io.to(roomId).emit('kalamburyReveal', { word: gs.currentWord, room });
+            setTimeout(() => {
+              if (!rooms[roomId]) return;
+              gs.currentRound++;
+              gs.drawerIndex = (gs.drawerIndex + 1) % Math.max(room.players.length, 1);
+              if (gs.currentRound >= gs.totalRounds || room.players.length < 2) {
+                room.status = 'finished';
+                const sorted = [...room.players].sort((a, b) => b.score - a.score);
+                io.to(roomId).emit('gameOver', { room, sorted });
+              } else {
+                // _startRound jest prywatną funkcją — wywołaj przez onEvent
+                const mod = GAMES['kalambury'];
+                if (mod?.onStart) {
+                  // Nie możemy wywołać _startRound bezpośrednio, ale możemy wyemitować stan
+                  // i pozwolić frontendowi zareagować na kalamburyReveal + brak nowej rundy
+                  // Najprostsze: wyślij sygnał nowej rundy przez gameEvent
+                  io.to(roomId).emit('kalamburyRound', {
+                    roundIndex: gs.currentRound,
+                    total: gs.totalRounds,
+                    drawerId: room.players[gs.drawerIndex % room.players.length]?.id,
+                    drawerName: room.players[gs.drawerIndex % room.players.length]?.name,
+                    roundTime: Number(room.config?.roundTime) || 60,
+                    room,
+                  });
+                  gs.currentDrawer = room.players[gs.drawerIndex % room.players.length]?.id;
+                  gs.currentWord = gs.words?.[gs.wordIndex % (gs.words?.length || 1)];
+                  gs.wordIndex = (gs.wordIndex || 0) + 1;
+                  gs.guessedPlayers = [];
+                  gs.phase = 'guess';
+                  if (gs.currentDrawer) {
+                    io.to(gs.currentDrawer).emit('kalamburyYourWord', { word: gs.currentWord });
+                  }
+                  gs.roundTimer = setTimeout(() => {
+                    if (!rooms[roomId]) return;
+                    io.to(roomId).emit('kalamburyReveal', { word: gs.currentWord, room });
+                    setTimeout(() => {
+                      if (!rooms[roomId]) return;
+                      gs.currentRound++;
+                      gs.drawerIndex = (gs.drawerIndex + 1) % Math.max(room.players.length, 1);
+                      if (gs.currentRound >= gs.totalRounds) {
+                        room.status = 'finished';
+                        const sorted2 = [...room.players].sort((a, b) => b.score - a.score);
+                        io.to(roomId).emit('gameOver', { room, sorted: sorted2 });
+                      }
+                    }, 4000);
+                  }, (Number(room.config?.roundTime) || 60) * 1000);
+                }
+              }
+            }, 3000);
+          }
+        }
+
         io.to(roomId).emit('playerLeft', { room, playerName: name });
         io.to(roomId).emit('chatMessage', { name: '🔔 System', message: `${name} opuścił grę`, isSystem: true, time: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) });
       } else if (room.gameMasterId === socket.id) {

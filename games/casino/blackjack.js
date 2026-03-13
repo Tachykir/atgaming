@@ -262,6 +262,8 @@ function endRound(table, io) {
   if (table._casino) {
     table.players.forEach(p => {
       if (!p.discordId) return;
+      // Sync tylko dla graczy którzy faktycznie grali (byli w sessionChipsStart)
+      if (gs.sessionChipsStart && !(p.socketId in gs.sessionChipsStart)) return;
       const delta = p.sessionChips - (gs.sessionChipsStart?.[p.socketId] || 0);
       table._casino.updateBalance(p.discordId, delta).catch(() => {});
       table._casino.recordGame(p.discordId).catch(() => {});
@@ -328,6 +330,7 @@ module.exports = {
   startBettingWindow,
   startDeal,
   handleAction,
+  advanceTurn,
   endRound,
   emitTableState,
   getTablePublicFull,

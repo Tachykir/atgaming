@@ -199,13 +199,84 @@ function finishRound(table, gs, io) {
     });
   }
 
-  // FIX #6: Reszta z Math.floor trafia do pierwszego zwycięzcy (standardowa zasada pokera)
-  const share = Math.floor(gs.pot / winners.length);
-  const remainder = gs.pot - share * winners.length;
-  winners.forEach((sid, i) => {
-    const p = table.players.find(p => p.socketId === sid);
-    if (p) p.sessionChips += share + (i === 0 ? remainder : 0);
-  });
+  // FIX #20: Side poty dla graczy all-in
+  // Gracz all-in może wygrać tylko tyle ile sam włożył × liczba graczy w tej puli.
+  // Obliczamy serie side potów od najmniejszego wkładu wzwyż.
+  {
+    const allPlayers = table.players.filter(p => gs.hands[p.socketId]);
+    const contributions = {};
+    allPlayers.forEach(p => {
+      const start = gs.sessionChipsStart?.[p.socketId] ?? p.sessionChips;
+      contributions[p.socketId] = Math.max(0, start - p.sessionChips);
+    });
+
+    // Oceń ręce wszystkich niesfoldowanych raz (używane w każdym pocie)
+    const handScores = {};
+    notFolded.forEach(p => {
+      handScores[p.socketId] = bestHand(gs.hands[p.socketId] || [], gs.community);
+    });
+
+    // Posortuj poziomy wkładu rosnąco (każdy unikalny poziom = 1 side pot)
+    const capLevels = [...new Set(
+      allPlayers.map(p => contributions[p.socketId]).filter(v => v > 0)
+    )].sort((a, b) => a - b);
+
+    let remaining  = gs.pot;
+    let covered    = 0;
+
+    for (const cap of capLevels) {
+      const levelContrib = cap - covered;
+      if (levelContrib <= 0) continue;
+
+      // Ile osób płaciło co najmniej tyle
+      const contributors = allPlayers.filter(p => contributions[p.socketId] >= cap).length;
+      const sidePot = Math.min(levelContrib * contributors, remaining);
+      remaining -= sidePot;
+      covered    = cap;
+
+      // Uprawnieni do wygrania tego potu: niesfoldowani którzy wnieśli co najmniej `cap`
+      const eligible = notFolded.filter(p => contributions[p.socketId] >= cap);
+      if (eligible.length === 0) continue;
+
+      const scored = eligible
+        .map(p => ({ socketId: p.socketId, hand: handScores[p.socketId] }))
+        .sort((a, b) => b.hand.rank - a.hand.rank || compareTb(b.hand.tb, a.hand.tb));
+
+      const topHand = scored[0].hand;
+      const potWinners = scored
+        .filter(s => s.hand.rank === topHand.rank && compareTb(s.hand.tb, topHand.tb) === 0)
+        .map(s => s.socketId);
+
+      const share = Math.floor(sidePot / potWinners.length);
+      const rem   = sidePot - share * potWinners.length;
+      potWinners.forEach((wsid, i) => {
+        const wp = table.players.find(p => p.socketId === wsid);
+        if (wp) wp.sessionChips += share + (i === 0 ? rem : 0);
+      });
+
+      // Zbierz winners z głównego potu do wyświetlenia (ostatni side pot = main pot winners)
+      if (remaining === 0 || cap === capLevels[capLevels.length - 1]) {
+        winners = potWinners;
+      }
+    }
+
+    // Jeśli nie było żadnych capLevels (wszyscy sfolodwani, jeden zwycięzca) lub zostało reszty
+    if (capLevels.length === 0) {
+      const share = Math.floor(gs.pot / winners.length);
+      const rem   = gs.pot - share * winners.length;
+      winners.forEach((wsid, i) => {
+        const wp = table.players.find(p => p.socketId === wsid);
+        if (wp) wp.sessionChips += share + (i === 0 ? rem : 0);
+      });
+    } else if (remaining > 0 && notFolded.length > 0) {
+      // Zostałe żetony (zaokrąglenie) -> najlepsza ręka
+      const best = notFolded
+        .map(p => ({ socketId: p.socketId, hand: handScores[p.socketId] }))
+        .sort((a, b) => b.hand.rank - a.hand.rank || compareTb(b.hand.tb, a.hand.tb))[0];
+      const wp = table.players.find(p => p.socketId === best?.socketId);
+      if (wp) wp.sessionChips += remaining;
+    }
+  }
 
   gs.phase        = 'showdown';
   gs.roundWinners = winners;
@@ -225,6 +296,10 @@ function endRound(table, gs, io, casino) {
   if (table._casino) {
     table.players.forEach(p => {
       if (!p.discordId) return;
+      // FIX #21: Synchronizuj AT$ tylko dla graczy którzy faktycznie grali w tej rundzie
+      // (byli w sessionChipsStart). Gracz który dołączył w trakcie rundy ma undefined w
+      // sessionChipsStart -> bez tej ochrony dostałby podwójny zwrot buy-inu.
+      if (gs.sessionChipsStart && !(p.socketId in gs.sessionChipsStart)) return;
       const delta = p.sessionChips - (gs.sessionChipsStart?.[p.socketId] || 0);
       table._casino.updateBalance(p.discordId, delta).catch(() => {});
       table._casino.recordGame(p.discordId).catch(() => {});

@@ -28,7 +28,7 @@ function registerHandlers(socket, io, casino) {
     if (gs.bets[discordUser.id]) return socket.emit('casinoError', { message: 'Już postawiłeś w tej rundzie!' });
 
     const cfg = table.config;
-    const betAmt = Math.max(cfg.minBet, Number(bet) || cfg.minBet);
+    const betAmt = Math.max(cfg.minBet, Math.min(cfg.maxBet || 100000, Number(bet) || cfg.minBet));
     const wallet = await casino.ensureWallet(discordUser);
     if (wallet.balance < betAmt) return socket.emit('casinoError', { message: `Za mało AT$! Masz ${wallet.balance}` });
 

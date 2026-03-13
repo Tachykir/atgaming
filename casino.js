@@ -271,6 +271,9 @@ function deleteTable(tableId) {
   const t = casinoTables[tableId];
   if (!t) return false;
   if (t.players.length > 0) return false; // nie usuwaj zajętego stołu
+  // FIX #19: Wyczyść timer countdown ruletki przed usunięciem stołu
+  if (t.gameState?.timer) clearInterval(t.gameState.timer);
+  if (t.gameState?.spinTimer) clearTimeout(t.gameState.spinTimer);
   delete casinoTables[tableId];
   return true;
 }
