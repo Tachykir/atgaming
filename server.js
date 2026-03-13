@@ -274,7 +274,14 @@ function adminCheck(password, res) {
   return true;
 }
 
-app.post('/api/admin/login',  (req, res) => res.json({ ok: req.body.password === ADMIN_PASSWORD }));
+// FIX #7: Zwroc 401 przy zlym hasle zamiast 200 z ok:false
+app.post('/api/admin/login', (req, res) => {
+  if (req.body.password === ADMIN_PASSWORD) {
+    res.json({ ok: true });
+  } else {
+    res.status(401).json({ ok: false, error: 'Nieprawidlowe haslo' });
+  }
+});
 
 app.post('/api/admin/reset', (req, res) => {
   if (!adminCheck(req.body.password, res)) return;
@@ -390,7 +397,8 @@ app.post('/api/casino/tables', async (req, res) => {
     cfg = { blindAmount:Math.max(5,Math.min(1000,Number(config?.blindAmount)||50)), minBuyIn:Math.max(100,Math.min(50000,Number(config?.minBuyIn)||1000)), maxBuyIn:Math.max(500,Math.min(100000,Number(config?.maxBuyIn)||5000)), maxPlayers:Math.max(2,Math.min(8,Number(config?.maxPlayers)||6)) };
     cfg.minBuyIn = Math.min(cfg.minBuyIn, cfg.maxBuyIn);
   } else if (game === 'coinflip') {
-    cfg = { minBet: Math.max(10, Number(config?.minBet)||100) };
+    // FIX #2: spójny domyślny minBet 50 (był 100 tutaj, 50 w socket handler)
+    cfg = { minBet: Math.max(10, Number(config?.minBet)||50) };
   } else {
     cfg = { minBet:Math.max(10,Math.min(5000,Number(config?.minBet)||50)), maxBet:Math.max(50,Math.min(50000,Number(config?.maxBet)||500)), maxPlayers:Math.max(1,Math.min(7,Number(config?.maxPlayers)||5)) };
     cfg.minBet = Math.min(cfg.minBet, cfg.maxBet);
@@ -442,15 +450,16 @@ app.post('/api/admin/casino/set-balance', async (req, res) => {
 });
 
 // Admin: pobierz stan portfeli (pg + json)
-app.get('/api/admin/casino/wallets', async (req, res) => {
-  const { password } = req.query;
-  if (password !== (process.env.ADMIN_PASSWORD || 'admin123')) return res.status(403).json({ error: 'Brak dostępu' });
+// FIX #6: Zmieniono z GET (haslo w URL/logach) na POST (haslo w body)
+app.post('/api/admin/casino/wallets', async (req, res) => {
+  const { password } = req.body;
+  if (!adminCheck(password, res)) return;
   try {
     const wallets = await casino.getAllWallets();
     res.json(wallets);
   } catch(e) {
     console.error('getAllWallets error:', e);
-    res.status(500).json({ error: 'Błąd bazy danych' });
+    res.status(500).json({ error: 'Blad bazy danych' });
   }
 });
 
@@ -572,11 +581,15 @@ io.on('connection', (socket) => {
 
 
   socket.on('playAgain', ({ roomId }) => {
-    const room = rooms[roomId]; if (!room || room.hostId !== socket.id) return;
-    // FIX #8: Wyczyść timery przed resetem pokoju
+    const room = rooms[roomId];
+    // FIX #9: Pozwol rowniez GM na restart gry (wczesniej tylko hostId mogl to zrobic)
+    if (!room || (room.hostId !== socket.id && room.gameMasterId !== socket.id)) return;
+    // FIX #8: Wyczysc timery przed resetem pokoju
     if (room.gameState?.questionTimer) clearTimeout(room.gameState.questionTimer);
     if (room.gameState?.roundTimer)    clearTimeout(room.gameState.roundTimer);
-    const nr = createRoom(roomId, room.gameType, room.hostId, room.gameMasterName || '', room.isGameMaster, room.config);
+    // Uzyj hostName z pierwszego gracza, lub gameMasterName jesli pokój GM
+    const hostName = room.isGameMaster ? (room.gameMasterName || '') : (room.players[0]?.name || '');
+    const nr = createRoom(roomId, room.gameType, room.hostId, hostName, room.isGameMaster, room.config);
     nr.players = room.players.map(p => ({ ...p, score: 0 }));
     if (room.isGameMaster) { nr.gameMasterId = room.gameMasterId; nr.gameMasterName = room.gameMasterName; }
     rooms[roomId] = nr;
@@ -702,6 +715,7 @@ io.on('connection', (socket) => {
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
+    // FIX #8: VALID_GAMES spójne — crash jest stałym stołem, nie tworzonym przez graczy
     const VALID_GAMES = ['poker','blackjack','coinflip'];
     if (!VALID_GAMES.includes(game)) return socket.emit('casinoError',{message:'Nieprawidłowy typ gry'});
 
@@ -717,9 +731,8 @@ io.on('connection', (socket) => {
         maxPlayers:  Math.max(2, Math.min(8, Number(config?.maxPlayers)||6)),
       };
       cfg.minBuyIn = Math.min(cfg.minBuyIn, cfg.maxBuyIn);
-    } else if (game === 'crash') {
-      cfg = { minBet: Math.max(10, Number(config?.minBet)||50) };
     } else if (game === 'coinflip') {
+      // FIX #2: spójny domyślny minBet (50) — był 50 tutaj, 100 w HTTP endpoincie
       cfg = { minBet: Math.max(10, Number(config?.minBet)||50) };
     } else {
       cfg = {
@@ -885,6 +898,15 @@ io.on('connection', (socket) => {
       table.gameState = null;
       casinoPoker.emitTableState(table, io);
     }
+
+    // FIX #4: Ruletka — wyczyść timer odliczania gdy stół opustoszeje
+    // Bez tego setInterval działa w nieskonczonosc i tworzy nowe rundy mimo braku graczy
+    if (table.game === 'roulette' && table.players.length === 0 && table.gameState) {
+      clearInterval(table.gameState.timer);
+      clearTimeout(table.gameState.spinTimer);
+      table.status = 'open';
+      table.gameState = null;
+    }
   }
 
   socket.on('disconnect', () => {
@@ -1039,21 +1061,14 @@ io.on('connection', (socket) => {
   });
 });
 
-// Patch hangman to record leaderboard on game over
-const _hangmanOnStart = GAMES.hangman?.onStart;
+// FIX #3: Patch hangman — zapis wynikow do leaderboardu po zakonczeniu gry
+// Usunieto martwy kod (origEmit, patchedIo, origTo) — nigdy nie byl uzywany
 if (GAMES.hangman) {
   const origOnEvent = GAMES.hangman.onEvent.bind(GAMES.hangman);
   GAMES.hangman.onEvent = function(ctx) {
-    const { event, data, room, io } = ctx;
-    if (event === 'guessLetter') {
-      // intercept gameOver for leaderboard
-      const origEmit = io.to.bind(io);
-      const patchedIo = Object.create(io);
-      const origTo = io.to.bind(io);
-      // We'll just call original and then record after
-    }
+    const { room } = ctx;
     origOnEvent(ctx);
-    // Check if game just finished to record scores
+    // Zapisz wyniki dokladnie raz po zakonczeniu gry
     if (room.status === 'finished' && room._lbRecorded !== room.id + room.players.map(p=>p.score).join()) {
       room._lbRecorded = room.id + room.players.map(p=>p.score).join();
       room.players.forEach(p => recordScore('hangman', p.name, p.score, { category: room.config?.category, difficulty: room.config?.difficulty }));

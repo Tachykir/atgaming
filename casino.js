@@ -144,7 +144,7 @@ async function ensureWallet(discordUser) {
 }
 
 async function updateBalance(discordId, delta) {
-  delete walletCache[discordId]; // unieważnij cache — saldo się zmieniło
+  delete walletCache[discordId]; // uniewazniaj cache — saldo sie zmienilo
   if (pg) {
     const r = await pg.query(`
       UPDATE casino_wallets SET
