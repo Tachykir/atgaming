@@ -816,6 +816,7 @@ select.input option{background:var(--surface2);}
       <button class="btn btn-primary" onclick="showScreen('create')">➕ Stwórz pokój</button>
       <button class="btn btn-secondary" onclick="showScreen('join')">🔗 Dołącz do pokoju</button>
       <button class="btn btn-secondary" onclick="showScreen('active-rooms')">👁️ Aktywne gry</button>
+      <button class="btn btn-secondary" onclick="showScreen('online-players')">👥 Gracze online</button>
       <button class="btn casino-btn" onclick="showScreen('casino-lobby')">🎰 Kasyno AT$</button>
     </div>
     <div class="hero-links">
@@ -834,6 +835,20 @@ select.input option{background:var(--surface2);}
       <button class="btn btn-secondary btn-sm" onclick="loadActiveRooms()">🔄 Odśwież</button>
     </div>
     <div id="active-rooms-list">
+      <div style="color:var(--muted);text-align:center;padding:48px">Ładowanie...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GRACZE ONLINE ══════════════════════════════════════════ -->
+<div class="screen" id="screen-online-players">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:760px;width:100%">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+      <h2 style="font-size:28px;font-weight:800;flex:1">👥 Gracze online</h2>
+      <button class="btn btn-secondary btn-sm" onclick="loadOnlinePlayers()">🔄 Odśwież</button>
+    </div>
+    <div id="online-players-list">
       <div style="color:var(--muted);text-align:center;padding:48px">Ładowanie...</div>
     </div>
   </div>
@@ -903,6 +918,13 @@ select.input option{background:var(--surface2);}
       <div class="room-code-label">Kod pokoju</div>
       <div class="room-code" id="lobby-code">XXXXX</div>
       <div class="room-code-hint">Wejdź na tę stronę i wpisz ten kod</div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;align-items:center">
+        <a id="lobby-join-link" href="#" style="font-size:12px;color:var(--accent);word-break:break-all;text-decoration:none;opacity:.8" onclick="copyRoomLink(event)">🔗 <span id="lobby-join-link-text"></span></a>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="copyRoomLink(null)" style="font-size:12px;padding:6px 14px">📋 Kopiuj link</button>
+          <button class="btn btn-secondary btn-sm" onclick="shareRoomLink()" style="font-size:12px;padding:6px 14px">↗️ Udostępnij</button>
+        </div>
+      </div>
       <div class="config-badge" id="lobby-badges"></div>
     </div>
     <div class="gm-panel" id="gm-word-panel" style="display:none">
@@ -1314,6 +1336,12 @@ select.input option{background:var(--surface2);}
     <div class="casino-lb-section">
       <h3>🍀 Lucky Fruits</h3>
       <div class="casino-tables-grid" id="casino-slots-tables"></div>
+    </div>
+
+    <!-- Path of Gambling -->
+    <div class="casino-lb-section">
+      <h3>⚗️ Path of Gambling</h3>
+      <div class="casino-tables-grid" id="casino-path-tables"></div>
     </div>
 
     <!-- Ruletka -->
@@ -1751,6 +1779,103 @@ select.input option{background:var(--surface2);}
   </div>
 </div>
 
+<!-- ══ KASYNO — PATH OF GAMBLING ═════════════════════════════════ -->
+<div class="screen" id="screen-casino-path">
+  <div style="position:absolute;top:16px;left:16px;z-index:10">
+    <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
+  </div>
+  <div class="casino-game-screen" style="align-items:center">
+    <div class="casino-game-header">
+      <div><div style="font-size:20px;font-weight:800" id="casino-path-name">Path of Gambling</div></div>
+      <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="casino-path-balance">—</div></div></div>
+    </div>
+
+    <div class="s5-wrap">
+      <!-- Bębny 5×5 -->
+      <div class="s5-reels-outer" id="pg-reels-outer">
+        <div class="s5-reels-grid" id="pg-reels-grid">
+          <svg class="s5-svg-ov" id="pg-svg-ov" style="height:0px"></svg>
+        </div>
+        <div class="s5-win-ov" id="pg-win-ov" onclick="pgDismissWin()">
+          <div class="s5-win-title" id="pg-win-title">Win</div>
+          <div class="s5-win-amt"  id="pg-win-amt">+0 AT$</div>
+          <div class="s5-win-mult" id="pg-win-mult">0×</div>
+          <div class="s5-win-tap">kliknij aby kontynuować</div>
+        </div>
+      </div>
+
+      <!-- Log wygranych -->
+      <div class="s5-win-log" id="pg-win-log"></div>
+
+      <!-- Statystyki sesji -->
+      <div class="s5-stats">
+        <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="pg-stat-spins">0</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="pg-stat-paid">0</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="pg-stat-best">—</div></div>
+      </div>
+
+      <!-- Free spins -->
+      <div class="s5-fs-bar" id="pg-fs-bar" style="display:none">
+        <div style="font-size:20px;font-weight:700;color:#60a5fa" id="pg-fs-count">0</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#60a5fa" id="pg-fs-label">Free Spins aktywne</div>
+          <div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div>
+        </div>
+      </div>
+
+      <!-- Pit meter -->
+      <div class="s5-pit-wrap">
+        <div class="s5-pit-lbl">
+          <span>Pit meter</span>
+          <span id="pg-pit-pts">0 / 30</span>
+        </div>
+        <div class="s5-pit-track"><div class="s5-pit-fill" id="pg-pit-fill" style="width:0%"></div></div>
+        <div class="s5-pit-ticks"><span>0</span><span>10</span><span>20</span><span>30 — Pit free spiny + Hinekora's Lock</span></div>
+      </div>
+
+      <!-- Komunikat -->
+      <div class="s5-msg" id="pg-msg">Ustaw zakład i naciśnij Spin</div>
+
+      <!-- Kontrolki -->
+      <div class="s5-controls">
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Zakład / linia</div>
+          <div class="s5-ctrl-val" id="pg-bet-val">—</div>
+          <div class="s5-ctrl-btns">
+            <button onclick="pgChBet(-1)">−</button>
+            <button onclick="pgChBet(1)">+</button>
+            <button onclick="pgChBet(0,'max')">Max</button>
+          </div>
+        </div>
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Linie</div>
+          <div class="s5-ctrl-val" id="pg-lines-val">50</div>
+          <div class="s5-ctrl-btns">
+            <button onclick="pgChLines(-10)">−10</button>
+            <button onclick="pgChLines(10)">+10</button>
+            <button onclick="pgChLines(0,'max')">Max</button>
+          </div>
+        </div>
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Łączny zakład</div>
+          <div class="s5-ctrl-val" id="pg-tot-bet">—</div>
+          <div class="s5-ctrl-btns">
+            <button onclick="pgPreset(1)">Min</button>
+            <button onclick="pgPreset(5)">×5</button>
+            <button onclick="pgPreset(10)">×10</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="s5-spin-row">
+        <button class="s5-btn-spin" id="pg-spin-btn" onclick="pgSpin()">⚗️ SPIN</button>
+        <button class="s5-btn-sm"   id="pg-auto-btn" onclick="pgToggleAuto()">Auto</button>
+        <button class="s5-btn-sm"   onclick="pgPreviewLines()">Linie</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 
@@ -2062,6 +2187,7 @@ function showScreen(id) {
   const el = document.getElementById('screen-' + id);
   if (el) el.classList.add('active');
   if (id === 'active-rooms') loadActiveRooms();
+  if (id === 'online-players') loadOnlinePlayers();
   if (id === 'casino-lobby') loadCasinoLobby();
   if (id === 'create' && S.selectedGame) {
     const sel = document.getElementById('create-game');
@@ -2092,6 +2218,7 @@ async function init() {
   loadSavedNick();
   initDraggableChat();
   await initDiscordAuth();
+  checkUrlJoin();
 }
 
 function selectGame(id, el) {
@@ -2186,6 +2313,11 @@ function playAgain() { socket.emit('playAgain', { roomId: S.roomId }); }
 
 function renderLobby(room) {
   document.getElementById('lobby-code').textContent = room.id;
+  const joinUrl = window.location.origin + window.location.pathname + '?join=' + room.id;
+  const linkEl  = document.getElementById('lobby-join-link');
+  const linkTxt = document.getElementById('lobby-join-link-text');
+  if (linkEl)  linkEl.href = joinUrl;
+  if (linkTxt) linkTxt.textContent = joinUrl;
   document.getElementById('player-count').textContent = room.players.length;
   const meta = games.find(g => g.id === room.gameType) || {};
   const cats = content[room.gameType] || {};
@@ -3904,6 +4036,7 @@ function renderCasinoTables(tables) {
   const pachinko  = tables.filter(t => t.game === 'pachinko');
   const crash     = tables.filter(t => t.game === 'crash');
   const coinflip  = tables.filter(t => t.game === 'coinflip');
+  const path      = tables.filter(t => t.game === 'path_of_gambling');
 
   const el = id => document.getElementById(id);
   el('casino-poker-tables').innerHTML    = poker.length    ? poker.map(t=>renderTableCard(t)).join('') : '<div style="color:var(--muted);padding:8px">Brak stołów — utwórz pierwszy!</div>';
@@ -3913,6 +4046,7 @@ function renderCasinoTables(tables) {
   el('casino-pachinko-tables').innerHTML  = pachinko.map(t=>renderTableCard(t)).join('');
   if (el('casino-crash-tables'))    el('casino-crash-tables').innerHTML    = crash.map(t=>renderTableCard(t)).join('');
   if (el('casino-coinflip-tables')) el('casino-coinflip-tables').innerHTML = coinflip.map(t=>renderTableCard(t)).join('');
+  if (el('casino-path-tables'))     el('casino-path-tables').innerHTML     = path.map(t=>renderTableCard(t)).join('');
 
   // Pokaż przyciski tworzenia stołów jeśli zalogowany
   const hasDiscord = !!casinoWallet;
@@ -3924,8 +4058,8 @@ function renderCasinoTables(tables) {
 
 function renderTableCard(t) {
   const statusLabels = { open:'Otwarty', betting:'Zakłady', playing:'Gra', results:'Wyniki', showdown:'Showdown', spinning:'Obrót' };
-  const gameIcons = { poker:'🃏', blackjack:'🃏', slots:'🎰', roulette:'🎡', pachinko:'🎯', crash:'🚀', coinflip:'🪙' };
-  const gameColors = { poker:'', blackjack:'bj', slots:'slots', roulette:'roulette', pachinko:'pachinko', crash:'crash', coinflip:'coinflip' };
+  const gameIcons = { poker:'🃏', blackjack:'🃏', slots:'🎰', roulette:'🎡', pachinko:'🎯', crash:'🚀', coinflip:'🪙', path_of_gambling:'⚗️' };
+  const gameColors = { poker:'', blackjack:'bj', slots:'slots', roulette:'roulette', pachinko:'pachinko', crash:'crash', coinflip:'coinflip', path_of_gambling:'slots' };
 
   const seats = t.maxPlayers < 50 ? Array(Math.min(t.maxPlayers,8)).fill(0).map((_, i) => {
     const p = t.players[i];
@@ -4029,7 +4163,7 @@ socket.on('casinoTablesUpdated', () => {
 });
 
 // ── OTWÓRZ STÓŁ ───────────────────────────────────────────────
-const GAME_SCREENS = { poker:'casino-poker', blackjack:'casino-blackjack', slots:'casino-slots', roulette:'casino-roulette', pachinko:'casino-pachinko', crash:'casino-crash', coinflip:'casino-coinflip' };
+const GAME_SCREENS = { poker:'casino-poker', blackjack:'casino-blackjack', slots:'casino-slots', roulette:'casino-roulette', pachinko:'casino-pachinko', crash:'casino-crash', coinflip:'casino-coinflip', path_of_gambling:'casino-path' };
 
 async function openCasinoTable(tableId) {
   let table;
@@ -4076,6 +4210,7 @@ async function openCasinoTable(tableId) {
 
   // Slots / Pachinko: solo gry, nie potrzeba join
   if (game === 'slots') initSlotsUI(table);
+  if (game === 'path_of_gambling') initPathUI(table);
   if (game === 'pachinko') initPachinkoUI(table);
   if (game === 'crash') initCrashUI(table);
   if (game === 'coinflip') initCoinflipUI(table);
@@ -5022,6 +5157,282 @@ socket.on('casinoCoinflipCancelled', ({ challengeId, refund }) => {
   showToast(`↩️ Wyzwanie anulowane, zwrócono ${refund.toLocaleString('pl-PL')} AT$`, 'success');
 });
 
+// ══ PATH OF GAMBLING — AUTOMAT 5×5 ════════════════════════════
+const PG_COLS = 5, PG_ROWS = 5;
+const PG_LINE_COLORS = ['#E24B4A','#185FA5','#3B6D11','#BA7517','#533AB7','#0F6E56','#993C1D','#D4537E','#639922','#5F5E5A'];
+let pgSpinning = false, pgAuto = false, pgAutoT = null, pgWinTimer = null;
+let pgBet = 10, pgLines = 50, pgFreeSpins = 0, pgFreeMode = null, pgPitMeter = 0;
+let pgStatSpins = 0, pgStatPaid = 0, pgBestWin = 0;
+let pgSyms = [], pgLinesDef = [], pgStickyLocks = [];
+let pgTable = null;
+
+const PG_RARITY_COLORS = {
+  mirror: '#a8d8ff', divine: '#ffe066', exalted: '#ffd700', rare: '#e05050',
+  uncommon: '#c0c0d0', common: '#888888', wild: '#ff9944', scatter: '#aa44ff',
+  sticky_wild: '#cc44aa'
+};
+
+function initPathUI(table) {
+  pgTable = table;
+  document.getElementById('casino-path-name').textContent = table.name;
+  document.getElementById('casino-path-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
+  pgBet = table.config.minBet || 10;
+  pgLines = 50; pgFreeSpins = 0; pgFreeMode = null; pgPitMeter = 0; pgStickyLocks = [];
+  pgStatSpins = 0; pgStatPaid = 0; pgBestWin = 0;
+  pgAuto = false;
+  document.getElementById('pg-auto-btn').classList.remove('on');
+  document.getElementById('pg-auto-btn').textContent = 'Auto';
+  pgBuildGrid();
+  pgUpdateControls();
+  pgSetMsg('Ustaw zakład i naciśnij Spin');
+  document.getElementById('pg-win-log').innerHTML = '';
+  document.getElementById('pg-pit-fill').style.width = '0%';
+  document.getElementById('pg-pit-pts').textContent = '0 / 30';
+  document.getElementById('pg-fs-bar').style.display = 'none';
+  document.getElementById('pg-win-ov').style.display = 'none';
+}
+
+function pgBuildGrid(grid, winCells, stickyLocks, animate) {
+  const container = document.getElementById('pg-reels-grid');
+  const svg = document.getElementById('pg-svg-ov');
+  svg.style.height = '0px';
+  svg.innerHTML = '';
+
+  let html = '';
+  for (let c = 0; c < PG_COLS; c++) {
+    html += '<div style="display:flex;flex-direction:column;gap:3px">';
+    for (let r = 0; r < PG_ROWS; r++) {
+      const sym = grid && pgSyms.length ? pgSyms[grid[c][r]] : null;
+      const isWin    = winCells  && winCells.has(`${c}-${r}`);
+      const isLocked = stickyLocks && stickyLocks.find(l => l.col === c && l.row === r);
+      const delay    = animate ? `animation-delay:${(c*0.06+r*0.04).toFixed(2)}s` : '';
+      const anim     = animate ? 'animation:s5CellIn .35s ease both;' : '';
+      const winStyle = isWin    ? 'border-color:#e0a020;border-width:1.5px;background:rgba(224,160,32,.10);' : '';
+      const lockStyle= isLocked ? 'box-shadow:0 0 0 2px #cc44aa,0 0 12px #cc44aa88;border-color:#cc44aa;' : '';
+      const bg       = sym ? `background:rgba(0,0,0,.25);` : '';
+
+      html += `<div style="width:68px;height:68px;border-radius:10px;border:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;align-items:center;justify-content:center;${bg}${winStyle}${lockStyle}${anim}${delay}overflow:hidden;position:relative">`;
+      if (sym) {
+        html += `<img src="${sym.img}" style="width:52px;height:52px;object-fit:contain;image-rendering:crisp-edges" onerror="this.style.display='none';this.nextSibling.style.display='block'">`;
+        html += `<span style="display:none;font-size:26px">⚪</span>`;
+        html += `<div style="font-size:8px;color:rgba(255,255,255,.6);text-align:center;max-width:64px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 2px">${sym.n.replace(" (Wild)","").replace(" (Scatter)","")}</div>`;
+        if (isLocked) html += `<div style="position:absolute;top:2px;right:2px;font-size:10px">🔒</div>`;
+      } else {
+        html += `<span style="font-size:28px;opacity:.3">⚗️</span>`;
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  // Przeplatamy kolumny z SVG overlay
+  const existing = container.querySelector('svg');
+  container.innerHTML = html;
+  if (existing) container.appendChild(existing);
+  container.style.display = 'flex';
+  container.style.gap = '3px';
+}
+
+function pgUpdateControls() {
+  if (!pgTable) return;
+  const cfg = pgTable.config;
+  document.getElementById('pg-bet-val').textContent = pgBet.toLocaleString('pl-PL') + ' AT$';
+  document.getElementById('pg-lines-val').textContent = pgLines;
+  document.getElementById('pg-tot-bet').textContent = (pgBet * pgLines).toLocaleString('pl-PL') + ' AT$';
+}
+
+function pgChBet(dir, mode) {
+  if (!pgTable) return;
+  const cfg = pgTable.config;
+  const steps = [cfg.minBet, cfg.minBet*2, cfg.minBet*5, cfg.minBet*10, cfg.minBet*25, cfg.minBet*50, cfg.minBet*100, cfg.maxBet];
+  const uniq = [...new Set(steps.filter(v=>v>=cfg.minBet&&v<=cfg.maxBet))].sort((a,b)=>a-b);
+  if (mode === 'max') { pgBet = cfg.maxBet; }
+  else {
+    const idx = uniq.findIndex(v => v >= pgBet);
+    const ni = Math.max(0, Math.min(uniq.length-1, idx + dir));
+    pgBet = uniq[ni];
+  }
+  pgUpdateControls();
+}
+
+function pgChLines(dir, mode) {
+  if (mode === 'max') pgLines = 50;
+  else pgLines = Math.max(1, Math.min(50, pgLines + dir));
+  pgUpdateControls();
+}
+
+function pgPreset(mult) {
+  if (!pgTable) return;
+  const cfg = pgTable.config;
+  pgBet = Math.min(cfg.maxBet, Math.max(cfg.minBet, cfg.minBet * mult));
+  pgUpdateControls();
+}
+
+function pgSetMsg(txt, color) {
+  const el = document.getElementById('pg-msg');
+  el.textContent = txt;
+  el.style.color = color || '';
+}
+
+function pgUpdateStats() {
+  document.getElementById('pg-stat-spins').textContent = pgStatSpins;
+  document.getElementById('pg-stat-paid').textContent  = pgStatPaid.toLocaleString('pl-PL');
+  document.getElementById('pg-stat-best').textContent  = pgBestWin > 0 ? pgBestWin.toLocaleString('pl-PL') + ' AT$' : '—';
+}
+
+function pgSpin() {
+  if (pgSpinning) return;
+  pgSpinning = true;
+  document.getElementById('pg-spin-btn').disabled = true;
+  document.getElementById('pg-win-ov').style.display = 'none';
+
+  // Animacja placeholder
+  pgBuildGrid(null, null, null, false);
+  pgSetMsg(pgFreeSpins > 0 ? `🎁 Free Spin! Pozostało: ${pgFreeSpins}` : '');
+
+  socket.emit('casinoPathSpin', {
+    tableId: casinoTableId,
+    bet: pgBet,
+    lines: pgLines,
+    socketToken: casinoSocketToken,
+    discordId: casinoDiscordId
+  });
+}
+
+function pgToggleAuto() {
+  pgAuto = !pgAuto;
+  const btn = document.getElementById('pg-auto-btn');
+  btn.classList.toggle('on', pgAuto);
+  btn.textContent = pgAuto ? 'Stop' : 'Auto';
+  if (pgAuto && !pgSpinning) pgSpin();
+}
+
+function pgDismissWin() {
+  document.getElementById('pg-win-ov').style.display = 'none';
+  if (pgWinTimer) { clearTimeout(pgWinTimer); pgWinTimer = null; }
+  if (pgAuto) pgAutoT = setTimeout(pgSpin, 300);
+}
+
+function pgPreviewLines() {
+  if (!pgLinesDef.length) return;
+  const outer = document.getElementById('pg-reels-outer');
+  const grid  = document.getElementById('pg-reels-grid');
+  const svg   = document.getElementById('pg-svg-ov');
+  const cellW = 71, cellH = 71, gap = 3;
+  const W = PG_COLS * cellW + (PG_COLS-1) * gap;
+  const H = PG_ROWS * cellH + (PG_ROWS-1) * gap;
+  svg.style.width  = W + 'px';
+  svg.style.height = H + 'px';
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = pgLinesDef.slice(0,10).map((line, li) => {
+    const pts = line.map((r,c) => {
+      const x = c*(cellW+gap) + cellW/2;
+      const y = r*(cellH+gap) + cellH/2;
+      return `${x},${y}`;
+    }).join(' ');
+    return `<polyline points="${pts}" fill="none" stroke="${PG_LINE_COLORS[li%10]}" stroke-width="2" stroke-dasharray="4 3" opacity="0.7"/>`;
+  }).join('');
+  setTimeout(() => { svg.innerHTML = ''; svg.style.height = '0px'; }, 2000);
+}
+
+socket.on('casinoPathResult', ({
+  grid, winLines, payout, net, balance, bet, activeLines, totBet, mult,
+  tier, label, isFree, freeSpinsAwarded, freeSpinsRemaining, freeMode,
+  pitMeter, pitThreshold, pitTriggered, stickyLocks, newLocks, syms, lines: linesDef
+}) => {
+  pgSpinning = false;
+  document.getElementById('pg-spin-btn').disabled = false;
+
+  if (syms && syms.length) pgSyms = syms;
+  if (linesDef && linesDef.length) pgLinesDef = linesDef;
+  pgStickyLocks = stickyLocks || [];
+
+  pgStatSpins++;
+  if (payout > 0) { pgStatPaid += payout; if (payout > pgBestWin) pgBestWin = payout; }
+  pgUpdateStats();
+
+  // Portfel
+  if (balance !== undefined) {
+    document.getElementById('casino-path-balance').textContent = balance.toLocaleString('pl-PL') + ' AT$';
+    if (casinoWallet) casinoWallet.balance = balance;
+  }
+
+  // Pit meter
+  pgPitMeter = pitMeter || 0;
+  const pct = Math.min(100, (pgPitMeter / (pitThreshold || 30)) * 100);
+  document.getElementById('pg-pit-fill').style.width = pct + '%';
+  document.getElementById('pg-pit-pts').textContent = pgPitMeter + ' / ' + (pitThreshold || 30);
+
+  // Free spiny
+  pgFreeSpins = freeSpinsRemaining || 0;
+  const fsBar = document.getElementById('pg-fs-bar');
+  if (pgFreeSpins > 0 || freeSpinsAwarded > 0) {
+    fsBar.style.display = 'flex';
+    document.getElementById('pg-fs-count').textContent = pgFreeSpins;
+    const modeLabel = freeMode === 'pit' ? '⛏️ Pit Free Spins — Hinekora's Lock aktywna!' : '🎁 Free Spins aktywne';
+    document.getElementById('pg-fs-label').textContent = modeLabel;
+  } else {
+    fsBar.style.display = 'none';
+  }
+
+  // Wygrane komórki
+  const winCells = new Set();
+  if (winLines && winLines.length) {
+    winLines.forEach(w => {
+      let cnt = 0;
+      for (let c = 0; c < 5; c++) {
+        const si = grid[c][w.line[c]];
+        const s = pgSyms[si];
+        if (!s || s.scatter) break;
+        if (s.wild || si === w.symIdx) { winCells.add(`${c}-${w.line[c]}`); cnt++; }
+        else break;
+      }
+    });
+  }
+
+  pgBuildGrid(grid, winCells, pgStickyLocks, true);
+
+  // Nowe sticky Lock — efekt
+  if (newLocks && newLocks.length) {
+    pgSetMsg(`🔒 Hinekora's Lock zablokowana na ${newLocks.length} pozycjach!`, '#cc44aa');
+  }
+
+  // Log wygranych
+  const logEl = document.getElementById('pg-win-log');
+  if (payout > 0) {
+    const entry = document.createElement('div');
+    entry.className = 's5-log-entry';
+    entry.style.cssText = 'font-size:12px;padding:3px 8px;border-radius:8px;background:rgba(255,200,0,.1);color:#ffd200;margin-bottom:2px';
+    entry.textContent = `+${payout.toLocaleString('pl-PL')} AT$ (${mult.toFixed(2)}×) — ${label}`;
+    logEl.prepend(entry);
+    if (logEl.children.length > 8) logEl.lastChild.remove();
+  }
+
+  // Win overlay
+  if (payout > 0 && tier !== 'none') {
+    const tierColors = { win:'#4ade80', big:'#60a5fa', mega:'#c084fc', huge:'#fbbf24', giga:'#f87171', frito:'#ffd700' };
+    const ov = document.getElementById('pg-win-ov');
+    ov.style.display = 'flex';
+    ov.style.flexDirection = 'column';
+    ov.style.alignItems = 'center';
+    ov.style.justifyContent = 'center';
+    document.getElementById('pg-win-title').textContent = label;
+    document.getElementById('pg-win-title').style.color = tierColors[tier] || '#ffd200';
+    document.getElementById('pg-win-amt').textContent = '+' + payout.toLocaleString('pl-PL') + ' AT$';
+    document.getElementById('pg-win-mult').textContent = mult.toFixed(2) + '×';
+    pgWinTimer = setTimeout(pgDismissWin, tier === 'frito' ? 6000 : tier === 'giga' ? 4000 : 2500);
+  } else {
+    // Brak wygranej
+    if (pitTriggered) {
+      pgSetMsg('⛏️ PIT METER PEŁNY! 8 Free Spinów z Hinekora's Lock!', '#cc44aa');
+    } else if (freeSpinsAwarded > 0) {
+      pgSetMsg(`🎁 ${freeSpinsAwarded} Free Spinów!`, '#60a5fa');
+    } else if (!isFree) {
+      pgSetMsg('');
+    }
+    if (pgAuto) pgAutoT = setTimeout(pgSpin, pgFreeSpins > 0 ? 400 : 700);
+  }
+});
+
 // ── HELPER: chip buttons ──────────────────────────────────────
 function renderChipBtns(containerId, values, inputId, onSelect) {
   const container = document.getElementById(containerId);
@@ -5030,7 +5441,103 @@ function renderChipBtns(containerId, values, inputId, onSelect) {
 }
 
 
-// ── WAVELENGTH ─────────────────────────────────────────────────
+// ══ LINK DO POKOJU ════════════════════════════════════════════
+function copyRoomLink(e) {
+  if (e) e.preventDefault();
+  const link = document.getElementById('lobby-join-link');
+  if (!link) return;
+  const url = link.href;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => showToast('🔗 Link skopiowany!', 'success'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('🔗 Link skopiowany!', 'success');
+  }
+}
+
+function shareRoomLink() {
+  const link = document.getElementById('lobby-join-link');
+  if (!link) return;
+  const url = link.href;
+  const code = S.roomId || '';
+  const game = (S.room && S.room.gameType) ? S.room.gameType : 'grę';
+  if (navigator.share) {
+    navigator.share({ title: 'AT Gaming — dołącz do pokoju', text: `Dołącz do pokoju ${code}!`, url })
+      .catch(() => {});
+  } else {
+    copyRoomLink(null);
+  }
+}
+
+// ── AUTO-JOIN z URL ?join=XXXXX ─────────────────────────────────
+function checkUrlJoin() {
+  const params = new URLSearchParams(window.location.search);
+  const code   = params.get('join');
+  if (!code || code.length !== 5) return;
+  // Uzupełnij kod w polu i otwórz ekran dołączania
+  const joinInput = document.getElementById('join-code');
+  if (joinInput) joinInput.value = code.toUpperCase();
+  // Jeśli nick jest zapamiętany — dołącz od razu, inaczej pokaż ekran join
+  try {
+    const savedNick = localStorage.getItem('atgaming_nick');
+    if (savedNick) {
+      S.playerName = savedNick;
+      const nameInput = document.getElementById('join-name');
+      if (nameInput) nameInput.value = savedNick;
+      socket.emit('joinRoom', { roomId: code.toUpperCase(), playerName: savedNick });
+      return;
+    }
+  } catch(e) {}
+  showScreen('join');
+}
+
+// ══ GRACZE ONLINE (Discord) ════════════════════════════════════
+async function loadOnlinePlayers() {
+  const el = document.getElementById('online-players-list');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:48px">Ładowanie...</div>';
+  try {
+    const [playersRes, walletsRes] = await Promise.all([
+      fetch('/api/online-players'),
+      fetch('/api/casino/leaderboard?limit=200'),
+    ]);
+    const players = await playersRes.json();
+    const wallets = walletsRes.ok ? await walletsRes.json() : [];
+
+    const walletMap = {};
+    wallets.forEach(w => { walletMap[w.discordId] = w; });
+
+    if (!players.length) {
+      el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:48px">Brak zalogowanych graczy Discord online.</div>';
+      return;
+    }
+
+    el.innerHTML = `
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">${players.length} gracz${players.length === 1 ? '' : players.length < 5 ? 'e' : 'y'} online</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${players.map(p => {
+          const w = walletMap[p.id];
+          const bal = w ? w.balance.toLocaleString('pl-PL') + ' AT$' : '—';
+          const room = p.room ? `<span style="font-size:11px;background:rgba(124,92,252,.15);color:var(--accent);padding:2px 8px;border-radius:20px;margin-left:6px">🎮 ${escHtml(p.room)}</span>` : '';
+          const casino = p.casino ? `<span style="font-size:11px;background:rgba(255,200,0,.12);color:#ffd200;padding:2px 8px;border-radius:20px;margin-left:6px">🎰 ${escHtml(p.casino)}</span>` : '';
+          return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:14px">
+            ${p.avatar ? `<img src="${p.avatar}" style="width:40px;height:40px;border-radius:50%;flex-shrink:0">` : `<div style="width:40px;height:40px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${(p.globalName||p.username||'?')[0].toUpperCase()}</div>`}
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:15px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">${escHtml(p.globalName||p.username)}${room}${casino}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">💰 ${bal}</div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);flex-shrink:0">online</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:48px">Błąd ładowania.</div>';
+  }
+}
+
+// ── WAVELENGTH ─────────────────────────────────────────────────────
 let wlState = null;
 let wlMyId = null;
 

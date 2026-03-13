@@ -12,6 +12,7 @@ const casinoRoulette = require('./games/casino/roulette');
 const casinoPachinko = require('./games/casino/pachinko');
 const casinoCrash    = require('./games/casino/crash');
 const casinoCoinflip = require('./games/casino/coinflip');
+const casinoPath     = require('./games/casino/path_of_gambling');
 
 // Ładuj .env jeśli istnieje
 try {
@@ -35,6 +36,10 @@ app.use(express.json());
 // ─── SOCKET TOKEN STORE ────────────────────────────────────────
 // Prosty token → discordUser map, omija problemy z sesją przez WS
 const socketTokens = new Map(); // token → discordUser
+
+// ─── ONLINE DISCORD PLAYERS ────────────────────────────────────
+// socket.id → { id, username, globalName, avatar, connectedAt, room, casino }
+const onlineDiscord = new Map();
 function createSocketToken(discordUser) {
   // Jeden token per user (unieważnia poprzedni)
   for (const [k, v] of socketTokens) if (v.id === discordUser.id) socketTokens.delete(k);
@@ -251,6 +256,22 @@ app.get('/api/games', (req, res) => res.json(Object.values(GAMES).map(m => m.met
 app.get('/api/content', (req, res) => res.json(CONTENT));
 
 // ─── ACTIVE ROOMS API ──────────────────────────────────────────
+app.get('/api/online-players', (req, res) => {
+  const list = Array.from(onlineDiscord.values()).map(p => ({
+    id:          p.id,
+    username:    p.username,
+    globalName:  p.globalName,
+    avatar:      p.avatar,
+    room:        p.room   || null,
+    casino:      p.casino || null,
+    connectedAt: p.connectedAt,
+  }));
+  // Deduplikuj po discord id (może być kilka tabów)
+  const seen = new Set();
+  const deduped = list.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+  res.json(deduped);
+});
+
 app.get('/api/rooms', (req, res) => {
   const publicRooms = Object.values(rooms).map(r => {
     const meta = GAMES[r.gameType]?.meta || {};
@@ -503,10 +524,24 @@ io.on('connection', (socket) => {
 
   // Helper: pobierz discordUser z tokenu lub sesji
   socket.getDiscordUser = (data) => {
-    if (data?.socketToken && socketTokens.has(data.socketToken))
-      return socketTokens.get(data.socketToken);
+    if (data?.socketToken && socketTokens.has(data.socketToken)) {
+      const u = socketTokens.get(data.socketToken);
+      // Zarejestruj w online map jeśli jeszcze nie ma
+      if (u && !onlineDiscord.has(socket.id)) {
+        onlineDiscord.set(socket.id, { id: u.id, username: u.username, globalName: u.globalName || u.username, avatar: u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64` : null, connectedAt: Date.now(), room: null, casino: null });
+      }
+      return u;
+    }
     return socket.request.session?.discordUser || socket.discordUser || null;
   };
+
+  // Rejestruj kasyno-stół w online map
+  socket.on('casinoObserveTable', (data) => {
+    if (onlineDiscord.has(socket.id) && data?.tableId) {
+      const tbl = casino.casinoTables[data.tableId];
+      if (tbl) onlineDiscord.get(socket.id).casino = tbl.name;
+    }
+  });
 
   socket.on('createRoom', ({ gameType, playerName, isGameMaster, config }) => {
     if (!GAMES[gameType]) return socket.emit('error', { message: `Nieznana gra: ${gameType}` });
@@ -515,6 +550,7 @@ io.on('connection', (socket) => {
     rooms[roomId] = createRoom(roomId, gameType, socket.id, playerName, isGameMaster, config || {});
     socket.join(roomId);
     socket.emit('roomCreated', { roomId, room: rooms[roomId] });
+    if (onlineDiscord.has(socket.id)) onlineDiscord.get(socket.id).room = roomId;
   });
 
   socket.on('observeRoom', ({ roomId, observerName }) => {
@@ -538,6 +574,7 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     socket.emit('roomJoined', { roomId, room });
     io.to(roomId).emit('playerJoined', { room });
+    if (onlineDiscord.has(socket.id)) onlineDiscord.get(socket.id).room = roomId;
   });
 
   socket.on('startGame', ({ roomId, customWord }) => {
@@ -826,6 +863,7 @@ io.on('connection', (socket) => {
   casinoPachinko.registerHandlers(socket, io, casino);
   casinoCrash.registerHandlers(socket, io, casino);
   casinoCoinflip.registerHandlers(socket, io, casino);
+  casinoPath.registerHandlers(socket, io, casino);
 
   // ── Pomocnik opuszczania stołu ──
   function handleCasinoLeave(socket, tableId) {
@@ -931,6 +969,7 @@ io.on('connection', (socket) => {
   }
 
   socket.on('disconnect', () => {
+    onlineDiscord.delete(socket.id);
     // ── KASYNO: zwróć żetony i opuść stół ──
     if (socket.casinoTableId) {
       handleCasinoLeave(socket, socket.casinoTableId);

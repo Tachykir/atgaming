@@ -304,6 +304,10 @@ function initTables() {
   createTable({ game:'pachinko', name:'Pachinko',  config:{ minBet:25, maxBet:500, maxPlayers:99 }});
   // Crash — stały stół (pętla startuje w server.js po init)
   createTable({ game:'crash', name:'Crash 🚀', config:{ minBet:50, maxBet:10000 }});
+  // Path of Gambling — 3 warianty stawek
+  createTable({ game:'path_of_gambling', name:'Path of Gambling — Low',    config:{ minBet:10,   maxBet:5000,   maxPlayers:99 }});
+  createTable({ game:'path_of_gambling', name:'Path of Gambling — Medium', config:{ minBet:100,  maxBet:25000,  maxPlayers:99 }});
+  createTable({ game:'path_of_gambling', name:'Path of Gambling — High',   config:{ minBet:1000, maxBet:100000, maxPlayers:99 }});
   console.log(`🃏 Zainicjowano ${Object.keys(casinoTables).length} stołów kasyna`);
 }
 

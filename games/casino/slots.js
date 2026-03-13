@@ -57,43 +57,52 @@ function drumRnd() {
   return 0;
 }
 
+// Stan free spinów per gracz (Lucky Fruits)
+const luckyFruitState = new Map();
+function getLuckyState(userId) {
+  if (!luckyFruitState.has(userId)) {
+    luckyFruitState.set(userId, { freeSpins: 0, betPerLine: 0, activeLines: 50 });
+  }
+  return luckyFruitState.get(userId);
+}
+
 function drawOutcome(totBet) {
   const r = Math.random();
 
-  // 78.95% — brak wygranej
-  if (r < 0.7895) return { type: 'none', payout: 0, mult: 0 };
+  // 73.9% — brak wygranej
+  if (r < 0.739) return { type: 'none', payout: 0, mult: 0 };
 
-  // 15% — Win: 0.3×–1.5×
-  if (r < 0.9395) {
+  // 20% — Win: 0.3×–1.5×
+  if (r < 0.939) {
     const m = 0.3 + Math.random() * 1.2;
     return { type: 'win', payout: Math.round(m * totBet), mult: m };
   }
 
   // 3% — Big Win: 1.5×–4×
-  if (r < 0.9695) {
+  if (r < 0.969) {
     const m = 1.5 + Math.random() * 2.5;
     return { type: 'big', payout: Math.round(m * totBet), mult: m };
   }
 
   // 1.5% — Mega Win: 5×–15×
-  if (r < 0.9845) {
+  if (r < 0.984) {
     const m = 5 + Math.random() * 10;
     return { type: 'mega', payout: Math.round(m * totBet), mult: m };
   }
 
   // 1% — Huge Win: 20×–40×
-  if (r < 0.9945) {
+  if (r < 0.994) {
     const m = 20 + Math.random() * 20;
     return { type: 'huge', payout: Math.round(m * totBet), mult: m };
   }
 
   // 0.5% — Giga Win: 50×–100×
-  if (r < 0.9995) {
+  if (r < 0.999) {
     const m = 50 + Math.random() * 50;
     return { type: 'giga', payout: Math.round(m * totBet), mult: m };
   }
 
-  // 0.05% — Mega Giga Frito Win: 500×–1500×
+  // 0.1% — Mega Giga Frito Win: 500×–1500×
   const m = 500 + Math.random() * 1000;
   return { type: 'frito', payout: Math.round(m * totBet), mult: m };
 }
@@ -149,29 +158,54 @@ function registerHandlers(socket, io, casino) {
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord!' });
 
-    const cfg = table.config;
-    const betPerLine  = Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet));
-    const activeLines = Math.max(1, Math.min(50, Number(lines) || 50));
-    const totBet      = betPerLine * activeLines;
+    const cfg   = table.config;
+    const state = getLuckyState(discordUser.id);
+    const isFree = state.freeSpins > 0;
 
-    const wallet = await casino.ensureWallet(discordUser);
-    if (wallet.balance < totBet)
-      return socket.emit('casinoError', { message: `Za mało AT$! Masz ${wallet.balance} AT$, potrzebujesz ${totBet} AT$` });
+    let betPerLine, activeLines, totBet;
+    if (isFree) {
+      // FREE SPIN — używamy zapamiętanej stawki, nic nie pobieramy
+      betPerLine  = state.betPerLine;
+      activeLines = state.activeLines;
+      totBet      = betPerLine * activeLines;
+    } else {
+      betPerLine  = Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet));
+      activeLines = Math.max(1, Math.min(50, Number(lines) || 50));
+      totBet      = betPerLine * activeLines;
 
-    await casino.updateBalance(discordUser.id, -totBet);
+      const wallet = await casino.ensureWallet(discordUser);
+      if (wallet.balance < totBet)
+        return socket.emit('casinoError', { message: `Za mało AT$! Masz ${wallet.balance} AT$, potrzebujesz ${totBet} AT$` });
+      await casino.updateBalance(discordUser.id, -totBet);
+    }
 
     const outcome  = drawOutcome(totBet);
     const grid     = buildGrid(outcome);
     const winLines = calcLines(grid, betPerLine, activeLines);
 
+    // Scatter — przyznaj free spiny tylko poza free spinami
+    let freeSpinsAwarded = 0;
     let scatterCount = 0;
     for (let c = 0; c < 5; c++) for (let r = 0; r < 3; r++)
       if (SYMS[grid[c][r]].scatter) scatterCount++;
-    const freeSpinsAwarded = scatterCount >= 3 ? (scatterCount === 3 ? 8 : scatterCount === 4 ? 12 : 20) : 0;
+
+    if (!isFree && scatterCount >= 3) {
+      freeSpinsAwarded  = scatterCount === 3 ? 8 : scatterCount === 4 ? 12 : 20;
+      state.freeSpins   = freeSpinsAwarded;
+      state.betPerLine  = betPerLine;
+      state.activeLines = activeLines;
+    }
 
     const payout = outcome.payout;
     if (payout > 0) await casino.updateBalance(discordUser.id, payout);
     await casino.recordGame(discordUser.id);
+
+    // Odlicz free spin
+    let freeSpinsRemaining = 0;
+    if (isFree) {
+      state.freeSpins--;
+      freeSpinsRemaining = state.freeSpins;
+    }
 
     const newBalance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
     const mult       = totBet > 0 ? payout / totBet : 0;
@@ -179,13 +213,15 @@ function registerHandlers(socket, io, casino) {
 
     socket.emit('casinoSlotsResult', {
       grid, winLines, payout,
-      net:     payout - totBet,
+      net:     payout - (isFree ? 0 : totBet),
       balance: newBalance,
       bet:     betPerLine,
-      activeLines, totBet, mult,
+      activeLines, totBet: isFree ? 0 : totBet, mult,
       tier:    tier.tier,
       label:   tier.label,
+      isFree,
       freeSpinsAwarded,
+      freeSpinsRemaining,
       syms:    SYMS.map(s => ({ e: s.e, n: s.n, wild: !!s.wild, scatter: !!s.scatter })),
       lines:   LINES,
     });
