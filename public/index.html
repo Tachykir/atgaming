@@ -5368,7 +5368,7 @@ socket.on('casinoPathResult', ({
   if (pgFreeSpins > 0 || freeSpinsAwarded > 0) {
     fsBar.style.display = 'flex';
     document.getElementById('pg-fs-count').textContent = pgFreeSpins;
-    const modeLabel = freeMode === 'pit' ? '⛏️ Pit Free Spins — Hinekora's Lock aktywna!' : '🎁 Free Spins aktywne';
+    const modeLabel = freeMode === 'pit' ? '⛏️ Pit Free Spins — Hinekora’s Lock aktywna!' : '🎁 Free Spins aktywne';
     document.getElementById('pg-fs-label').textContent = modeLabel;
   } else {
     fsBar.style.display = 'none';
@@ -5393,7 +5393,7 @@ socket.on('casinoPathResult', ({
 
   // Nowe sticky Lock — efekt
   if (newLocks && newLocks.length) {
-    pgSetMsg(`🔒 Hinekora's Lock zablokowana na ${newLocks.length} pozycjach!`, '#cc44aa');
+    pgSetMsg(`🔒 Hinekora’s Lock zablokowana na ${newLocks.length} pozycjach!`, '#cc44aa');
   }
 
   // Log wygranych
@@ -5423,7 +5423,7 @@ socket.on('casinoPathResult', ({
   } else {
     // Brak wygranej
     if (pitTriggered) {
-      pgSetMsg('⛏️ PIT METER PEŁNY! 8 Free Spinów z Hinekora's Lock!', '#cc44aa');
+      pgSetMsg('⛏️ PIT METER PEŁNY! 8 Free Spinów z Hinekora’s Lock!', '#cc44aa');
     } else if (freeSpinsAwarded > 0) {
       pgSetMsg(`🎁 ${freeSpinsAwarded} Free Spinów!`, '#60a5fa');
     } else if (!isFree) {
