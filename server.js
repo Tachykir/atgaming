@@ -522,14 +522,43 @@ setImmediate(() => {
 
 io.on('connection', (socket) => {
 
+  // Helper: zarejestruj gracza Discord w mapie online
+  function registerOnlineUser(u) {
+    if (!u || !u.id) return;
+    // Jeden gracz = jeden wpis (usuń stare sockety tego samego gracza)
+    for (const [sid, data] of onlineDiscord) {
+      if (data.id === u.id && sid !== socket.id) onlineDiscord.delete(sid);
+    }
+    if (!onlineDiscord.has(socket.id)) {
+      const avatarUrl = u.avatar
+        ? (u.avatar.startsWith('http') ? u.avatar : `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`)
+        : null;
+      onlineDiscord.set(socket.id, {
+        id: u.id, username: u.username,
+        globalName: u.globalName || u.username,
+        avatar: avatarUrl, connectedAt: Date.now(),
+        room: null, casino: null,
+      });
+    }
+  }
+
+  // Zarejestruj od razu jeśli sesja zawiera discordUser (zalogowany przez Discord)
+  const sessionUser = socket.request.session?.discordUser;
+  if (sessionUser) registerOnlineUser(sessionUser);
+
+  // Event wysyłany z frontendu po uzyskaniu socketToken
+  socket.on('registerOnline', (data) => {
+    const u = (data && data.socketToken && socketTokens.has(data.socketToken))
+      ? socketTokens.get(data.socketToken)
+      : socket.request.session?.discordUser;
+    if (u) registerOnlineUser(u);
+  });
+
   // Helper: pobierz discordUser z tokenu lub sesji
   socket.getDiscordUser = (data) => {
     if (data?.socketToken && socketTokens.has(data.socketToken)) {
       const u = socketTokens.get(data.socketToken);
-      // Zarejestruj w online map jeśli jeszcze nie ma
-      if (u && !onlineDiscord.has(socket.id)) {
-        onlineDiscord.set(socket.id, { id: u.id, username: u.username, globalName: u.globalName || u.username, avatar: u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64` : null, connectedAt: Date.now(), room: null, casino: null });
-      }
+      registerOnlineUser(u);
       return u;
     }
     return socket.request.session?.discordUser || socket.discordUser || null;

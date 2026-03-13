@@ -790,6 +790,41 @@ select.input option{background:var(--surface2);}
 .pm-no-login .pm-nl-title { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
 .pm-no-login .pm-nl-desc { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
 .pm-loading { padding: 32px; text-align: center; color: var(--muted); font-size: 14px; }
+
+/* ── PANEL GRACZE ONLINE ─────────────────────────────── */
+#online-panel-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:900;background:var(--surface);border:1px solid var(--border);border-left:none;border-radius:0 12px 12px 0;padding:10px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:2px 0 12px rgba(0,0,0,.3);transition:background .2s;}
+#online-panel-toggle:hover{background:var(--surface2);}
+#online-panel-toggle .op-icon{font-size:18px;}
+#online-panel-toggle .op-count{font-size:11px;font-weight:700;color:var(--accent3);font-family:'DM Mono',monospace;}
+#online-panel-toggle .op-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;writing-mode:vertical-lr;transform:rotate(180deg);}
+#online-panel{position:fixed;left:0;top:0;height:100vh;width:300px;background:var(--surface);border-right:1px solid var(--border);z-index:950;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,.4);}
+#online-panel.open{transform:translateX(0);}
+#online-panel-header{padding:16px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+#online-panel-header h3{font-size:15px;font-weight:800;margin:0;display:flex;align-items:center;gap:8px;}
+#online-panel-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;line-height:1;border-radius:6px;}
+#online-panel-close:hover{color:var(--text);background:var(--surface2);}
+#online-panel-body{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+#online-panel-body::-webkit-scrollbar{width:4px;}
+#online-panel-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.op-player{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);}
+.op-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;object-fit:cover;}
+.op-avatar-placeholder{width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--accent);flex-shrink:0;}
+.op-info{flex:1;min-width:0;}
+.op-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.op-bal{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.op-badge{font-size:10px;padding:1px 6px;border-radius:10px;white-space:nowrap;margin-top:2px;display:inline-block;}
+.op-badge.room{background:rgba(124,92,252,.15);color:var(--accent);}
+.op-badge.casino{background:rgba(255,200,0,.12);color:#ffd200;}
+.op-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;box-shadow:0 0 6px rgba(74,222,128,.6);}
+#online-panel-footer{padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;}
+#online-panel-footer button{width:100%;}
+#op-overlay{position:fixed;inset:0;z-index:940;display:none;}
+#op-overlay.open{display:block;}
+
+.pg-cell { background:rgba(20,10,40,.6) !important; border-color:rgba(180,120,0,.3) !important; }
+.pg-cell img { display:block; }
+.pg-cell.pg-locked { outline:2px solid #cc44aa !important; background:rgba(204,68,170,.15) !important; box-shadow:0 0 10px rgba(204,68,170,.4); }
+.pg-lock-b { background:#cc44aa !important; color:#fff; }
 </style>
 </head>
 <body>
@@ -816,7 +851,6 @@ select.input option{background:var(--surface2);}
       <button class="btn btn-primary" onclick="showScreen('create')">➕ Stwórz pokój</button>
       <button class="btn btn-secondary" onclick="showScreen('join')">🔗 Dołącz do pokoju</button>
       <button class="btn btn-secondary" onclick="showScreen('active-rooms')">👁️ Aktywne gry</button>
-      <button class="btn btn-secondary" onclick="showScreen('online-players')">👥 Gracze online</button>
       <button class="btn casino-btn" onclick="showScreen('casino-lobby')">🎰 Kasyno AT$</button>
     </div>
     <div class="hero-links">
@@ -839,15 +873,6 @@ select.input option{background:var(--surface2);}
     </div>
   </div>
 </div>
-
-<!-- ══ GRACZE ONLINE ══════════════════════════════════════════ -->
-<div class="screen" id="screen-online-players">
-  <button class="back-btn" onclick="goHome()">← Wróć</button>
-  <div style="max-width:760px;width:100%">
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap">
-      <h2 style="font-size:28px;font-weight:800;flex:1">👥 Gracze online</h2>
-      <button class="btn btn-secondary btn-sm" onclick="loadOnlinePlayers()">🔄 Odśwież</button>
-    </div>
     <div id="online-players-list">
       <div style="color:var(--muted);text-align:center;padding:48px">Ładowanie...</div>
     </div>
@@ -1815,7 +1840,7 @@ select.input option{background:var(--surface2);}
       </div>
 
       <!-- Free spins -->
-      <div class="s5-fs-bar" id="pg-fs-bar" style="display:none">
+      <div class="s5-fs-bar" id="pg-fs-bar">
         <div style="font-size:20px;font-weight:700;color:#60a5fa" id="pg-fs-count">0</div>
         <div>
           <div style="font-size:13px;font-weight:700;color:#60a5fa" id="pg-fs-label">Free Spins aktywne</div>
@@ -1868,7 +1893,7 @@ select.input option{background:var(--surface2);}
       </div>
 
       <div class="s5-spin-row">
-        <button class="s5-btn-spin" id="pg-spin-btn" onclick="pgSpin()">⚗️ SPIN</button>
+        <button class="s5-btn-spin" id="pg-spin-btn" onclick="pgSpin()" style="display:flex;align-items:center;justify-content:center;gap:8px"><img src="/images/slots/poelogo.png" style="height:28px;width:auto;object-fit:contain"> SPIN</button>
         <button class="s5-btn-sm"   id="pg-auto-btn" onclick="pgToggleAuto()">Auto</button>
         <button class="s5-btn-sm"   onclick="pgPreviewLines()">Linie</button>
       </div>
@@ -1876,6 +1901,21 @@ select.input option{background:var(--surface2);}
   </div>
 </div>
 
+<!-- ══ PANEL GRACZE ONLINE ════════════════════════════════════ -->
+<div id="op-overlay" onclick="closeOnlinePanel()"></div>
+<div id="online-panel">
+  <div id="online-panel-header">
+    <h3>&#x1F465; Gracze online <span id="op-count-badge" style="font-size:12px;background:rgba(124,92,252,.15);color:var(--accent);padding:2px 8px;border-radius:20px;font-weight:700">0</span></h3>
+    <button id="online-panel-close" onclick="closeOnlinePanel()">&#x2715;</button>
+  </div>
+  <div id="online-panel-body"><div style="color:var(--muted);text-align:center;padding:32px;font-size:13px">Ladowanie...</div></div>
+  <div id="online-panel-footer"><button class="btn btn-secondary btn-sm" onclick="loadOnlinePlayers()">&#x1F504; Odswiez</button></div>
+</div>
+<div id="online-panel-toggle" onclick="toggleOnlinePanel()">
+  <span class="op-icon">&#x1F465;</span>
+  <span class="op-count" id="op-toggle-count">0</span>
+  <span class="op-label">Online</span>
+</div>
 <div class="toast" id="toast"></div>
 
 
@@ -1930,7 +1970,7 @@ async function initDiscordAuth() {
     // Zawsze ustaw casinoDiscordId i pobierz socket token jeśli zalogowany
     if (data.user) {
       casinoDiscordId = data.user.id;
-      fetch('/auth/socket-token').then(r=>r.json()).then(d=>{ if(d.token) casinoSocketToken=d.token; }).catch(()=>{});
+      fetch('/auth/socket-token').then(r=>r.json()).then(d=>{ if(d.token){ casinoSocketToken=d.token; tryRegisterOnline(); } }).catch(()=>{});
     }
 
     // Check URL params after OAuth callback
@@ -5159,382 +5199,352 @@ socket.on('casinoCoinflipCancelled', ({ challengeId, refund }) => {
 
 // ══ PATH OF GAMBLING — AUTOMAT 5×5 ════════════════════════════
 const PG_COLS = 5, PG_ROWS = 5;
-const PG_LINE_COLORS = ['#E24B4A','#185FA5','#3B6D11','#BA7517','#533AB7','#0F6E56','#993C1D','#D4537E','#639922','#5F5E5A'];
-let pgSpinning = false, pgAuto = false, pgAutoT = null, pgWinTimer = null;
-let pgBet = 10, pgLines = 50, pgFreeSpins = 0, pgFreeMode = null, pgPitMeter = 0;
+const PG_LINE_COLORS = ['#E24B4A','#185FA5','#3B6D11','#BA7517','#533AB7','#0F6E56','#993C1D','#D4537E','#639922','#5F5E5A','#a855f7','#06b6d4','#f59e0b','#10b981','#ef4444'];
+let pgSpinning = false, pgAuto = false, pgAutoT = null, pgWinCb = null, pgWinTimer = null;
+let pgBet = 10, pgLines = 50, pgFreeSpins = 0, pgPitMeter = 0, pgFreeMode = null;
 let pgStatSpins = 0, pgStatPaid = 0, pgBestWin = 0;
 let pgSyms = [], pgLinesDef = [], pgStickyLocks = [];
 let pgTable = null;
 
-const PG_RARITY_COLORS = {
-  mirror: '#a8d8ff', divine: '#ffe066', exalted: '#ffd700', rare: '#e05050',
-  uncommon: '#c0c0d0', common: '#888888', wild: '#ff9944', scatter: '#aa44ff',
-  sticky_wild: '#cc44aa'
-};
-
 function initPathUI(table) {
   pgTable = table;
   document.getElementById('casino-path-name').textContent = table.name;
-  document.getElementById('casino-path-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
+  document.getElementById('casino-path-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '\u2014';
   pgBet = table.config.minBet || 10;
-  pgLines = 50; pgFreeSpins = 0; pgFreeMode = null; pgPitMeter = 0; pgStickyLocks = [];
+  pgLines = 50; pgFreeSpins = 0; pgPitMeter = 0; pgFreeMode = null; pgStickyLocks = [];
   pgStatSpins = 0; pgStatPaid = 0; pgBestWin = 0;
   pgAuto = false;
-  document.getElementById('pg-auto-btn').classList.remove('on');
-  document.getElementById('pg-auto-btn').textContent = 'Auto';
+  const autoBtn = document.getElementById('pg-auto-btn');
+  if (autoBtn) { autoBtn.classList.remove('on'); autoBtn.textContent = 'Auto'; }
   pgBuildGrid();
-  pgUpdateControls();
-  pgSetMsg('Ustaw zakład i naciśnij Spin');
-  document.getElementById('pg-win-log').innerHTML = '';
-  document.getElementById('pg-pit-fill').style.width = '0%';
-  document.getElementById('pg-pit-pts').textContent = '0 / 30';
-  document.getElementById('pg-fs-bar').style.display = 'none';
-  document.getElementById('pg-win-ov').style.display = 'none';
+  pgUpdateStats();
+  pgSetMsg('Ustaw zak\u0142ad i naci\u015bnij Spin');
+  const logEl = document.getElementById('pg-win-log');
+  if (logEl) logEl.innerHTML = '';
+  pgUpdatePit(0);
+  const fsBar = document.getElementById('pg-fs-bar');
+  if (fsBar) fsBar.classList.remove('show');
+  const winOv = document.getElementById('pg-win-ov');
+  if (winOv) winOv.classList.remove('show');
+  pgClearSVG();
 }
 
-function pgBuildGrid(grid, winCells, stickyLocks, animate) {
-  const container = document.getElementById('pg-reels-grid');
-  const svg = document.getElementById('pg-svg-ov');
-  svg.style.height = '0px';
-  svg.innerHTML = '';
-
-  let html = '';
+function pgBuildGrid() {
+  const grid = document.getElementById('pg-reels-grid');
+  const svg  = document.getElementById('pg-svg-ov');
+  [...grid.children].forEach(function(ch){ if (ch !== svg) ch.remove(); });
   for (let c = 0; c < PG_COLS; c++) {
-    html += '<div style="display:flex;flex-direction:column;gap:3px">';
+    const col = document.createElement('div');
+    col.className = 's5-reel';
     for (let r = 0; r < PG_ROWS; r++) {
-      const sym = grid && pgSyms.length ? pgSyms[grid[c][r]] : null;
-      const isWin    = winCells  && winCells.has(`${c}-${r}`);
-      const isLocked = stickyLocks && stickyLocks.find(l => l.col === c && l.row === r);
-      const delay    = animate ? `animation-delay:${(c*0.06+r*0.04).toFixed(2)}s` : '';
-      const anim     = animate ? 'animation:s5CellIn .35s ease both;' : '';
-      const winStyle = isWin    ? 'border-color:#e0a020;border-width:1.5px;background:rgba(224,160,32,.10);' : '';
-      const lockStyle= isLocked ? 'box-shadow:0 0 0 2px #cc44aa,0 0 12px #cc44aa88;border-color:#cc44aa;' : '';
-      const bg       = sym ? `background:rgba(0,0,0,.25);` : '';
-
-      html += `<div style="width:68px;height:68px;border-radius:10px;border:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;align-items:center;justify-content:center;${bg}${winStyle}${lockStyle}${anim}${delay}overflow:hidden;position:relative">`;
-      if (sym) {
-        html += `<img src="${sym.img}" style="width:52px;height:52px;object-fit:contain;image-rendering:crisp-edges" onerror="this.style.display='none';this.nextSibling.style.display='block'">`;
-        html += `<span style="display:none;font-size:26px">⚪</span>`;
-        html += `<div style="font-size:8px;color:rgba(255,255,255,.6);text-align:center;max-width:64px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 2px">${sym.n.replace(" (Wild)","").replace(" (Scatter)","")}</div>`;
-        if (isLocked) html += `<div style="position:absolute;top:2px;right:2px;font-size:10px">🔒</div>`;
-      } else {
-        html += `<span style="font-size:28px;opacity:.3">⚗️</span>`;
-      }
-      html += '</div>';
+      const cell = document.createElement('div');
+      cell.className = 's5-cell pg-cell'; cell.id = 'pgc' + c + '_' + r;
+      cell.style.height = '58px'; cell.style.fontSize = '22px';
+      cell.textContent = '?';
+      col.appendChild(cell);
     }
-    html += '</div>';
+    grid.insertBefore(col, svg);
   }
-  // Przeplatamy kolumny z SVG overlay
-  const existing = container.querySelector('svg');
-  container.innerHTML = html;
-  if (existing) container.appendChild(existing);
-  container.style.display = 'flex';
-  container.style.gap = '3px';
 }
 
-function pgUpdateControls() {
-  if (!pgTable) return;
-  const cfg = pgTable.config;
-  document.getElementById('pg-bet-val').textContent = pgBet.toLocaleString('pl-PL') + ' AT$';
-  document.getElementById('pg-lines-val').textContent = pgLines;
-  document.getElementById('pg-tot-bet').textContent = (pgBet * pgLines).toLocaleString('pl-PL') + ' AT$';
-}
-
-function pgChBet(dir, mode) {
-  if (!pgTable) return;
-  const cfg = pgTable.config;
-  const steps = [cfg.minBet, cfg.minBet*2, cfg.minBet*5, cfg.minBet*10, cfg.minBet*25, cfg.minBet*50, cfg.minBet*100, cfg.maxBet];
-  const uniq = [...new Set(steps.filter(v=>v>=cfg.minBet&&v<=cfg.maxBet))].sort((a,b)=>a-b);
-  if (mode === 'max') { pgBet = cfg.maxBet; }
-  else {
-    const idx = uniq.findIndex(v => v >= pgBet);
-    const ni = Math.max(0, Math.min(uniq.length-1, idx + dir));
-    pgBet = uniq[ni];
+function pgClearOverlay() {
+  for (let c = 0; c < PG_COLS; c++) for (let r = 0; r < PG_ROWS; r++) {
+    const el = document.getElementById('pgc' + c + '_' + r);
+    if (el) el.classList.remove('win', 'bigwin');
   }
-  pgUpdateControls();
+  pgClearSVG();
 }
 
-function pgChLines(dir, mode) {
-  if (mode === 'max') pgLines = 50;
-  else pgLines = Math.max(1, Math.min(50, pgLines + dir));
-  pgUpdateControls();
+function pgClearSVG() {
+  const svg = document.getElementById('pg-svg-ov');
+  if (svg) svg.querySelectorAll('polyline,circle').forEach(function(e){ e.remove(); });
 }
 
-function pgPreset(mult) {
-  if (!pgTable) return;
-  const cfg = pgTable.config;
-  pgBet = Math.min(cfg.maxBet, Math.max(cfg.minBet, cfg.minBet * mult));
-  pgUpdateControls();
-}
-
-function pgSetMsg(txt, color) {
-  const el = document.getElementById('pg-msg');
-  el.textContent = txt;
-  el.style.color = color || '';
-}
-
-function pgUpdateStats() {
-  document.getElementById('pg-stat-spins').textContent = pgStatSpins;
-  document.getElementById('pg-stat-paid').textContent  = pgStatPaid.toLocaleString('pl-PL');
-  document.getElementById('pg-stat-best').textContent  = pgBestWin > 0 ? pgBestWin.toLocaleString('pl-PL') + ' AT$' : '—';
-}
-
-function pgSpin() {
-  if (pgSpinning) return;
-  pgSpinning = true;
-  document.getElementById('pg-spin-btn').disabled = true;
-  document.getElementById('pg-win-ov').style.display = 'none';
-
-  // Animacja placeholder
-  pgBuildGrid(null, null, null, false);
-  pgSetMsg(pgFreeSpins > 0 ? `🎁 Free Spin! Pozostało: ${pgFreeSpins}` : '');
-
-  socket.emit('casinoPathSpin', {
-    tableId: casinoTableId,
-    bet: pgBet,
-    lines: pgLines,
-    socketToken: casinoSocketToken,
-    discordId: casinoDiscordId
+function pgDrawLines(lineIdxs, alpha) {
+  const svg = document.getElementById('pg-svg-ov');
+  if (!svg || !pgLinesDef.length) return;
+  const gw  = document.getElementById('pg-reels-grid').clientWidth;
+  const cellH = 58, cellGap = 4;
+  const h = PG_ROWS * cellH + (PG_ROWS - 1) * cellGap;
+  svg.style.height = h + 'px';
+  svg.setAttribute('viewBox', '0 0 ' + gw + ' ' + h);
+  const colW = (gw - (PG_COLS - 1) * 5) / PG_COLS;
+  lineIdxs.forEach(function(li) {
+    if (li >= pgLinesDef.length) return;
+    const line = pgLinesDef[li];
+    const col  = PG_LINE_COLORS[li % PG_LINE_COLORS.length];
+    const pts  = line.map(function(r, c){ return (c * (colW + 5) + colW / 2) + ',' + (r * (cellH + cellGap) + cellH / 2); });
+    const pl   = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    pl.setAttribute('points', pts.join(' ')); pl.setAttribute('fill', 'none');
+    pl.setAttribute('stroke', col); pl.setAttribute('stroke-width', '2');
+    pl.setAttribute('stroke-opacity', alpha); pl.setAttribute('stroke-linecap', 'round');
+    pl.setAttribute('stroke-linejoin', 'round'); svg.appendChild(pl);
+    line.forEach(function(r, c) {
+      const ci = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ci.setAttribute('cx', c * (colW + 5) + colW / 2); ci.setAttribute('cy', r * (cellH + cellGap) + cellH / 2);
+      ci.setAttribute('r', '4'); ci.setAttribute('fill', col); ci.setAttribute('fill-opacity', alpha);
+      svg.appendChild(ci);
+    });
   });
 }
 
-function pgToggleAuto() {
-  pgAuto = !pgAuto;
-  const btn = document.getElementById('pg-auto-btn');
-  btn.classList.toggle('on', pgAuto);
-  btn.textContent = pgAuto ? 'Stop' : 'Auto';
-  if (pgAuto && !pgSpinning) pgSpin();
+function pgShowWinScreen(payout, mult, label, tier, cb) {
+  const ov = document.getElementById('pg-win-ov');
+  ov.className = 's5-win-ov show s5-ov-' + tier;
+  document.getElementById('pg-win-title').textContent = label;
+  document.getElementById('pg-win-amt').textContent   = '+' + payout.toLocaleString('pl-PL') + ' AT$';
+  document.getElementById('pg-win-mult').textContent  = mult.toFixed(1) + '\u00d7 zak\u0142adu';
+  pgWinCb = cb;
+  clearTimeout(pgWinTimer);
+  const delay = tier === 'frito' ? 7000 : tier === 'giga' ? 5500 : tier === 'huge' ? 4500 : 3500;
+  pgWinTimer = setTimeout(pgDismissWin, delay);
 }
 
 function pgDismissWin() {
-  document.getElementById('pg-win-ov').style.display = 'none';
-  if (pgWinTimer) { clearTimeout(pgWinTimer); pgWinTimer = null; }
-  if (pgAuto) pgAutoT = setTimeout(pgSpin, 300);
+  clearTimeout(pgWinTimer);
+  const ov = document.getElementById('pg-win-ov');
+  if (ov) ov.classList.remove('show');
+  if (pgWinCb) { pgWinCb(); pgWinCb = null; }
 }
 
-function pgPreviewLines() {
-  if (!pgLinesDef.length) return;
-  const outer = document.getElementById('pg-reels-outer');
-  const grid  = document.getElementById('pg-reels-grid');
-  const svg   = document.getElementById('pg-svg-ov');
-  const cellW = 71, cellH = 71, gap = 3;
-  const W = PG_COLS * cellW + (PG_COLS-1) * gap;
-  const H = PG_ROWS * cellH + (PG_ROWS-1) * gap;
-  svg.style.width  = W + 'px';
-  svg.style.height = H + 'px';
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svg.innerHTML = pgLinesDef.slice(0,10).map((line, li) => {
-    const pts = line.map((r,c) => {
-      const x = c*(cellW+gap) + cellW/2;
-      const y = r*(cellH+gap) + cellH/2;
-      return `${x},${y}`;
-    }).join(' ');
-    return `<polyline points="${pts}" fill="none" stroke="${PG_LINE_COLORS[li%10]}" stroke-width="2" stroke-dasharray="4 3" opacity="0.7"/>`;
-  }).join('');
-  setTimeout(() => { svg.innerHTML = ''; svg.style.height = '0px'; }, 2000);
+function pgSetMsg(txt, cls) {
+  const m = document.getElementById('pg-msg');
+  if (!m) return;
+  m.textContent = txt; m.className = 's5-msg' + (cls ? ' ' + cls : '');
 }
 
-socket.on('casinoPathResult', ({
-  grid, winLines, payout, net, balance, bet, activeLines, totBet, mult,
-  tier, label, isFree, freeSpinsAwarded, freeSpinsRemaining, freeMode,
-  pitMeter, pitThreshold, pitTriggered, stickyLocks, newLocks, syms, lines: linesDef
-}) => {
-  pgSpinning = false;
-  document.getElementById('pg-spin-btn').disabled = false;
+function pgUpdateStats() {
+  const bal = document.getElementById('casino-path-balance');
+  if (bal) bal.textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '\u2014';
+  const elems = { 'pg-bet-val': pgBet, 'pg-lines-val': pgLines, 'pg-tot-bet': (pgBet * pgLines).toLocaleString('pl-PL'),
+    'pg-stat-spins': pgStatSpins, 'pg-stat-paid': pgStatPaid.toLocaleString('pl-PL'),
+    'pg-stat-best': pgBestWin > 0 ? pgBestWin.toLocaleString('pl-PL') + ' AT$' : '\u2014' };
+  Object.entries(elems).forEach(function(e){ const el=document.getElementById(e[0]); if(el) el.textContent=e[1]; });
+}
 
-  if (syms && syms.length) pgSyms = syms;
-  if (linesDef && linesDef.length) pgLinesDef = linesDef;
-  pgStickyLocks = stickyLocks || [];
+function pgUpdateFSBar() {
+  const b = document.getElementById('pg-fs-bar');
+  if (!b) return;
+  const fc = document.getElementById('pg-fs-count');
+  if (fc) fc.textContent = pgFreeSpins;
+  const fl = document.getElementById('pg-fs-label');
+  if (fl) fl.textContent = pgFreeMode === 'pit' ? '\u26cf\ufe0f Pit Free Spins \u2014 Lock aktywna!' : '\uD83C\uDF81 Free Spins aktywne';
+  pgFreeSpins > 0 ? b.classList.add('show') : b.classList.remove('show');
+}
 
-  pgStatSpins++;
-  if (payout > 0) { pgStatPaid += payout; if (payout > pgBestWin) pgBestWin = payout; }
+function pgUpdatePit(meter) {
+  pgPitMeter = Math.min(30, meter || 0);
+  const fill = document.getElementById('pg-pit-fill');
+  if (fill) fill.style.width = (pgPitMeter / 30 * 100) + '%';
+  const pts = document.getElementById('pg-pit-pts');
+  if (pts) pts.textContent = pgPitMeter + ' / 30';
+}
+
+function pgAddWinLog(payout, mult, tier) {
+  if (tier === 'win') return;
+  const log = document.getElementById('pg-win-log');
+  if (!log) return;
+  const b = document.createElement('div'); b.className = 's5-log-tag ' + tier;
+  b.textContent = getTierLabel(tier) + ' +' + payout.toLocaleString('pl-PL') + ' AT$ (' + mult.toFixed(1) + '\u00d7)';
+  log.insertBefore(b, log.firstChild);
+  while (log.children.length > 6) log.removeChild(log.lastChild);
+}
+
+function pgChBet(d, mode) {
+  if (!pgTable) return;
+  const cfg = pgTable.config;
+  if (mode === 'max') pgBet = cfg.maxBet;
+  else pgBet = Math.max(cfg.minBet, Math.min(cfg.maxBet, pgBet + d * cfg.minBet));
   pgUpdateStats();
+}
+function pgChLines(d, mode) {
+  if (mode === 'max') pgLines = 50; else pgLines = Math.max(10, Math.min(50, pgLines + d));
+  pgUpdateStats();
+}
+function pgPreset(mult) {
+  if (!pgTable) return;
+  pgBet = pgTable.config.minBet * mult;
+  pgUpdateStats();
+}
 
-  // Portfel
-  if (balance !== undefined) {
-    document.getElementById('casino-path-balance').textContent = balance.toLocaleString('pl-PL') + ' AT$';
-    if (casinoWallet) casinoWallet.balance = balance;
+let pgPvT = null, pgPvIdx = 0;
+function pgPreviewLines() {
+  clearTimeout(pgPvT); pgPvIdx = 0;
+  if (!pgLinesDef.length) return;
+  const count = Math.min(pgLines, pgLinesDef.length);
+  function next() {
+    pgClearSVG();
+    if (pgPvIdx >= count) { pgDrawLines([...Array(count).keys()], 0.3); setTimeout(pgClearSVG, 1200); return; }
+    pgDrawLines([pgPvIdx], 1); pgPvIdx++; pgPvT = setTimeout(next, 60);
   }
+  next();
+}
 
-  // Pit meter
-  pgPitMeter = pitMeter || 0;
-  const pct = Math.min(100, (pgPitMeter / (pitThreshold || 30)) * 100);
-  document.getElementById('pg-pit-fill').style.width = pct + '%';
-  document.getElementById('pg-pit-pts').textContent = pgPitMeter + ' / ' + (pitThreshold || 30);
-
-  // Free spiny
-  pgFreeSpins = freeSpinsRemaining || 0;
-  const fsBar = document.getElementById('pg-fs-bar');
-  if (pgFreeSpins > 0 || freeSpinsAwarded > 0) {
-    fsBar.style.display = 'flex';
-    document.getElementById('pg-fs-count').textContent = pgFreeSpins;
-    const modeLabel = freeMode === 'pit' ? '⛏️ Pit Free Spins — Hinekora’s Lock aktywna!' : '🎁 Free Spins aktywne';
-    document.getElementById('pg-fs-label').textContent = modeLabel;
-  } else {
-    fsBar.style.display = 'none';
-  }
-
-  // Wygrane komórki
-  const winCells = new Set();
-  if (winLines && winLines.length) {
-    winLines.forEach(w => {
-      let cnt = 0;
-      for (let c = 0; c < 5; c++) {
-        const si = grid[c][w.line[c]];
-        const s = pgSyms[si];
-        if (!s || s.scatter) break;
-        if (s.wild || si === w.symIdx) { winCells.add(`${c}-${w.line[c]}`); cnt++; }
-        else break;
-      }
-    });
-  }
-
-  pgBuildGrid(grid, winCells, pgStickyLocks, true);
-
-  // Nowe sticky Lock — efekt
-  if (newLocks && newLocks.length) {
-    pgSetMsg(`🔒 Hinekora’s Lock zablokowana na ${newLocks.length} pozycjach!`, '#cc44aa');
-  }
-
-  // Log wygranych
+function pgSpin() {
+  const winOv = document.getElementById('pg-win-ov');
+  if (pgSpinning || !casinoTableId || (winOv && winOv.classList.contains('show'))) return;
+  const totBet = pgBet * pgLines;
+  const cost   = pgFreeSpins > 0 ? 0 : totBet;
+  if (casinoWallet && casinoWallet.balance < cost && pgFreeSpins === 0) { pgSetMsg('Za ma\u0142o AT$!'); return; }
+  if (pgFreeSpins > 0) { pgFreeSpins--; pgUpdateFSBar(); }
+  else if (casinoWallet) casinoWallet.balance -= cost;
+  pgSpinning = true;
+  pgClearOverlay();
   const logEl = document.getElementById('pg-win-log');
-  if (payout > 0) {
-    const entry = document.createElement('div');
-    entry.className = 's5-log-entry';
-    entry.style.cssText = 'font-size:12px;padding:3px 8px;border-radius:8px;background:rgba(255,200,0,.1);color:#ffd200;margin-bottom:2px';
-    entry.textContent = `+${payout.toLocaleString('pl-PL')} AT$ (${mult.toFixed(2)}×) — ${label}`;
-    logEl.prepend(entry);
-    if (logEl.children.length > 8) logEl.lastChild.remove();
+  if (logEl) logEl.innerHTML = '';
+  const btn = document.getElementById('pg-spin-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '\u23F3'; }
+
+  for (let c = 0; c < PG_COLS; c++) for (let r = 0; r < PG_ROWS; r++) {
+    const el = document.getElementById('pgc' + c + '_' + r); if (!el) continue;
+    const isLocked = pgStickyLocks && pgStickyLocks.find(function(l){ return l.col===c && l.row===r; });
+    if (isLocked) continue;
+    el.className = 's5-cell pg-cell spinning'; el.style.height = '58px'; el.innerHTML = '';
+    el._spinInt = setInterval(function() {
+      if (!pgSyms.length) { el.textContent = '?'; return; }
+      const rnd = pgSyms[Math.floor(Math.random() * Math.min(8, pgSyms.length))];
+      el.innerHTML = '<img src="' + rnd.img + '" style="width:44px;height:44px;object-fit:contain;opacity:.65">';
+    }, 80);
   }
 
-  // Win overlay
-  if (payout > 0 && tier !== 'none') {
-    const tierColors = { win:'#4ade80', big:'#60a5fa', mega:'#c084fc', huge:'#fbbf24', giga:'#f87171', frito:'#ffd700' };
-    const ov = document.getElementById('pg-win-ov');
-    ov.style.display = 'flex';
-    ov.style.flexDirection = 'column';
-    ov.style.alignItems = 'center';
-    ov.style.justifyContent = 'center';
-    document.getElementById('pg-win-title').textContent = label;
-    document.getElementById('pg-win-title').style.color = tierColors[tier] || '#ffd200';
-    document.getElementById('pg-win-amt').textContent = '+' + payout.toLocaleString('pl-PL') + ' AT$';
-    document.getElementById('pg-win-mult').textContent = mult.toFixed(2) + '×';
-    pgWinTimer = setTimeout(pgDismissWin, tier === 'frito' ? 6000 : tier === 'giga' ? 4000 : 2500);
-  } else {
-    // Brak wygranej
-    if (pitTriggered) {
-      pgSetMsg('⛏️ PIT METER PEŁNY! 8 Free Spinów z Hinekora’s Lock!', '#cc44aa');
-    } else if (freeSpinsAwarded > 0) {
-      pgSetMsg(`🎁 ${freeSpinsAwarded} Free Spinów!`, '#60a5fa');
-    } else if (!isFree) {
-      pgSetMsg('');
-    }
-    if (pgAuto) pgAutoT = setTimeout(pgSpin, pgFreeSpins > 0 ? 400 : 700);
+  socket.emit('casinoPathSpin', { tableId: casinoTableId, bet: pgBet, lines: pgLines, socketToken: casinoSocketToken, discordId: casinoDiscordId });
+}
+
+socket.on('casinoPathResult', function(data) {
+  const grid=data.grid, winLines=data.winLines, payout=data.payout;
+  const balance=data.balance, mult=data.mult, tier=data.tier, label=data.label;
+  const freeSpinsAwarded=data.freeSpinsAwarded||0, freeMode=data.freeMode;
+  const pitMeter=data.pitMeter||0, pitTriggered=data.pitTriggered;
+  const stickyLocks=data.stickyLocks||[], newLocks=data.newLocks||[];
+  const syms=data.syms, linesDef=data.lines;
+
+  if (syms && syms.length)         pgSyms     = syms;
+  if (linesDef && linesDef.length) pgLinesDef = linesDef;
+  pgStickyLocks = stickyLocks;
+
+  const delays = [350, 600, 850, 1100, 1350];
+  for (let c = 0; c < PG_COLS; c++) {
+    (function(col){
+      setTimeout(function() {
+        for (let r = 0; r < PG_ROWS; r++) {
+          const el = document.getElementById('pgc' + col + '_' + r); if (!el) continue;
+          if (el._spinInt) { clearInterval(el._spinInt); el._spinInt = null; }
+          const s = pgSyms[grid[col][r]]; if (!s) continue;
+          const isLocked = s.sticky && pgStickyLocks.find(function(l){ return l.col===col && l.row===r; });
+          el.className = 's5-cell pg-cell' + (s.wild ? ' wild' : s.scatter ? ' scatter' : '') + ' landed';
+          if (isLocked) el.classList.add('pg-locked');
+          el.style.height = '58px';
+          el.innerHTML = '<img src="' + s.img + '" style="width:44px;height:44px;object-fit:contain">'
+            + (s.wild && !s.sticky ? '<span class="s5-badge s5-wild-b">W</span>' : '')
+            + (s.scatter ? '<span class="s5-badge s5-scat-b">S</span>' : '')
+            + (isLocked ? '<span class="s5-badge pg-lock-b">\uD83D\uDD12</span>' : '');
+        }
+        if (col === PG_COLS - 1) {
+          setTimeout(function() {
+            pgSpinning = false;
+            const btn = document.getElementById('pg-spin-btn');
+            if (btn) { btn.disabled = false; btn.textContent = '⛏️ SPIN'; }
+            if (casinoWallet) casinoWallet.balance = balance;
+            pgStatSpins++; pgStatPaid += payout; if (payout > pgBestWin) pgBestWin = payout;
+            if (freeSpinsAwarded > 0) { pgFreeSpins += freeSpinsAwarded; pgFreeMode = freeMode; pgUpdateFSBar(); }
+            pgUpdatePit(pitMeter);
+            if (payout > 0) {
+              const isBig = mult >= 1.5;
+              winLines.forEach(function(w) {
+                for (let c2 = 0; c2 < w.streak; c2++) {
+                  const el = document.getElementById('pgc' + c2 + '_' + w.line[c2]);
+                  if (el) el.classList.add(isBig ? 'bigwin' : 'win');
+                }
+              });
+              const winLineIdxs = winLines.map(function(w){ return w.li; });
+              if (winLineIdxs.length) pgDrawLines(winLineIdxs, 0.85);
+              else if (pgLinesDef.length) pgDrawLines([0], 0.85);
+              pgAddWinLog(payout, mult, tier);
+              s5Fireworks(tier);
+              pgUpdateStats();
+              pgShowWinScreen(payout, mult, label, tier, function() {
+                pgSetMsg(label + '! +' + payout.toLocaleString('pl-PL') + ' AT$ (' + mult.toFixed(1) + '\u00d7)', isBig ? 'big' : 'win');
+                pgUpdateStats();
+                if (pgAuto) pgAutoT = setTimeout(pgSpin, 800);
+              });
+            } else {
+              if (pitTriggered) pgSetMsg('\u26cf\ufe0f PIT METER PE\u0141NY! 8 Free Spin\u00f3w!', 'big');
+              else if (freeSpinsAwarded > 0) pgSetMsg('\uD83C\uDF81 ' + freeSpinsAwarded + ' Free Spin\u00f3w!', 'big');
+              else pgSetMsg(pgFreeSpins > 0 ? ('Free Spin \u2014 ' + pgFreeSpins + ' pozosta\u0142o') : 'Bez wygranej');
+              pgUpdateStats();
+              if (pgAuto) pgAutoT = setTimeout(pgSpin, pgFreeSpins > 0 ? 500 : 1200);
+            }
+          }, 200);
+        }
+      }, delays[col]);
+    }(c));
   }
 });
 
-// ── HELPER: chip buttons ──────────────────────────────────────
-function renderChipBtns(containerId, values, inputId, onSelect) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  container.innerHTML = values.map(v => `<button class="casino-chip-btn" onclick="(function(){document.getElementById('${inputId}').value=${v};${onSelect?'('+onSelect.toString()+')('+v+')':''}})()">${v>=1000?(v/1000)+'k':v}</button>`).join('');
+function pgToggleAuto() {
+  pgAuto = !pgAuto;
+  const b = document.getElementById('pg-auto-btn');
+  if (!b) return;
+  if (pgAuto) {
+    b.textContent = 'Stop'; b.classList.add('on');
+    var run = function() {
+      if (!pgAuto || (casinoWallet && casinoWallet.balance < pgBet * pgLines && pgFreeSpins === 0)) {
+        pgAuto = false; b.textContent = 'Auto'; b.classList.remove('on'); return;
+      }
+      const winOv = document.getElementById('pg-win-ov');
+      if (pgSpinning || (winOv && winOv.classList.contains('show'))) { pgAutoT = setTimeout(run, 300); return; }
+      pgSpin(); pgAutoT = setTimeout(run, 1800);
+    };
+    setTimeout(run, 300);
+  } else { clearTimeout(pgAutoT); b.textContent = 'Auto'; b.classList.remove('on'); }
 }
 
 
-// ══ LINK DO POKOJU ════════════════════════════════════════════
-function copyRoomLink(e) {
-  if (e) e.preventDefault();
-  const link = document.getElementById('lobby-join-link');
-  if (!link) return;
-  const url = link.href;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(url).then(() => showToast('🔗 Link skopiowany!', 'success'));
-  } else {
-    const ta = document.createElement('textarea');
-    ta.value = url; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    showToast('🔗 Link skopiowany!', 'success');
-  }
+// ══ PANEL GRACZE ONLINE ════════════════════════════════════════
+let _opOpen = false, _opRefreshTimer = null;
+function toggleOnlinePanel() { _opOpen ? closeOnlinePanel() : openOnlinePanel(); }
+function openOnlinePanel() {
+  _opOpen = true;
+  document.getElementById('online-panel').classList.add('open');
+  document.getElementById('op-overlay').classList.add('open');
+  loadOnlinePlayers();
+  _opRefreshTimer = setInterval(loadOnlinePlayers, 15000);
 }
-
-function shareRoomLink() {
-  const link = document.getElementById('lobby-join-link');
-  if (!link) return;
-  const url = link.href;
-  const code = S.roomId || '';
-  const game = (S.room && S.room.gameType) ? S.room.gameType : 'grę';
-  if (navigator.share) {
-    navigator.share({ title: 'AT Gaming — dołącz do pokoju', text: `Dołącz do pokoju ${code}!`, url })
-      .catch(() => {});
-  } else {
-    copyRoomLink(null);
-  }
+function closeOnlinePanel() {
+  _opOpen = false;
+  document.getElementById('online-panel').classList.remove('open');
+  document.getElementById('op-overlay').classList.remove('open');
+  if (_opRefreshTimer) { clearInterval(_opRefreshTimer); _opRefreshTimer = null; }
 }
-
-// ── AUTO-JOIN z URL ?join=XXXXX ─────────────────────────────────
-function checkUrlJoin() {
-  const params = new URLSearchParams(window.location.search);
-  const code   = params.get('join');
-  if (!code || code.length !== 5) return;
-  // Uzupełnij kod w polu i otwórz ekran dołączania
-  const joinInput = document.getElementById('join-code');
-  if (joinInput) joinInput.value = code.toUpperCase();
-  // Jeśli nick jest zapamiętany — dołącz od razu, inaczej pokaż ekran join
-  try {
-    const savedNick = localStorage.getItem('atgaming_nick');
-    if (savedNick) {
-      S.playerName = savedNick;
-      const nameInput = document.getElementById('join-name');
-      if (nameInput) nameInput.value = savedNick;
-      socket.emit('joinRoom', { roomId: code.toUpperCase(), playerName: savedNick });
-      return;
-    }
-  } catch(e) {}
-  showScreen('join');
-}
-
-// ══ GRACZE ONLINE (Discord) ════════════════════════════════════
 async function loadOnlinePlayers() {
-  const el = document.getElementById('online-players-list');
-  if (!el) return;
-  el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:48px">Ładowanie...</div>';
+  const body = document.getElementById('online-panel-body');
+  if (!body) return;
   try {
-    const [playersRes, walletsRes] = await Promise.all([
-      fetch('/api/online-players'),
-      fetch('/api/casino/leaderboard?limit=200'),
-    ]);
-    const players = await playersRes.json();
-    const wallets = walletsRes.ok ? await walletsRes.json() : [];
-
-    const walletMap = {};
-    wallets.forEach(w => { walletMap[w.discordId] = w; });
-
-    if (!players.length) {
-      el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:48px">Brak zalogowanych graczy Discord online.</div>';
-      return;
-    }
-
-    el.innerHTML = `
-      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">${players.length} gracz${players.length === 1 ? '' : players.length < 5 ? 'e' : 'y'} online</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        ${players.map(p => {
-          const w = walletMap[p.id];
-          const bal = w ? w.balance.toLocaleString('pl-PL') + ' AT$' : '—';
-          const room = p.room ? `<span style="font-size:11px;background:rgba(124,92,252,.15);color:var(--accent);padding:2px 8px;border-radius:20px;margin-left:6px">🎮 ${escHtml(p.room)}</span>` : '';
-          const casino = p.casino ? `<span style="font-size:11px;background:rgba(255,200,0,.12);color:#ffd200;padding:2px 8px;border-radius:20px;margin-left:6px">🎰 ${escHtml(p.casino)}</span>` : '';
-          return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:14px">
-            ${p.avatar ? `<img src="${p.avatar}" style="width:40px;height:40px;border-radius:50%;flex-shrink:0">` : `<div style="width:40px;height:40px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${(p.globalName||p.username||'?')[0].toUpperCase()}</div>`}
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:700;font-size:15px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">${escHtml(p.globalName||p.username)}${room}${casino}</div>
-              <div style="font-size:12px;color:var(--muted);margin-top:2px">💰 ${bal}</div>
-            </div>
-            <div style="font-size:11px;color:var(--muted);flex-shrink:0">online</div>
-          </div>`;
-        }).join('')}
-      </div>`;
+    const [pRes, wRes] = await Promise.all([fetch('/api/online-players'), fetch('/api/casino/leaderboard?limit=200')]);
+    const players = await pRes.json();
+    const wallets = wRes.ok ? await wRes.json() : [];
+    const wMap = {};
+    wallets.forEach(function(w){ wMap[w.discordId] = w; });
+    const cnt = players.length;
+    ['op-count-badge','op-toggle-count'].forEach(function(id){ const el=document.getElementById(id); if(el) el.textContent=cnt; });
+    if (!cnt) { body.innerHTML = '<div style="color:var(--muted);text-align:center;padding:32px 8px;font-size:13px">Brak graczy online</div>'; return; }
+    body.innerHTML = players.map(function(p) {
+      const bal = wMap[p.id] ? wMap[p.id].balance.toLocaleString('pl-PL') + ' AT$' : '-';
+      const act = p.casino ? '<span class="op-badge casino">' + escHtml(p.casino) + '</span>' : (p.room ? '<span class="op-badge room">' + escHtml(p.room) + '</span>' : '');
+      const initials = (p.globalName||p.username||'?')[0].toUpperCase();
+      const av = p.avatar ? '<img class="op-avatar" src="' + p.avatar + '">' : '<div class="op-avatar-placeholder">' + initials + '</div>';
+      return '<div class="op-player">' + av + '<div class="op-info"><div class="op-name">' + escHtml(p.globalName||p.username) + '</div><div class="op-bal">' + bal + '</div>' + (act ? '<div>' + act + '</div>' : '') + '</div><div class="op-dot"></div></div>';
+    }).join('');
   } catch(e) {
-    el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:48px">Błąd ładowania.</div>';
+    const b = document.getElementById('online-panel-body');
+    if (b) b.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:32px">Blad ladowania</div>';
   }
+}
+
+// ── registerOnline — wysylaj gdy discord zalogowany ──────────────────────────
+function tryRegisterOnline() {
+  if (casinoSocketToken) socket.emit('registerOnline', { socketToken: casinoSocketToken });
+  else socket.emit('registerOnline', {});
 }
 
 // ── WAVELENGTH ─────────────────────────────────────────────────────
