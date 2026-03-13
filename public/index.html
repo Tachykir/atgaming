@@ -700,6 +700,9 @@ select.input option{background:var(--surface2);}
   100% { transform:translateY(-80px) rotate(360deg); opacity:0; }
 }
 .coin-float { position:fixed; font-size:28px; pointer-events:none; animation:coinFloat 1.4s ease forwards; z-index:999; }
+@keyframes s5fw     { 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0} }
+@keyframes s5rocket { 0%{transform:translateY(0) scale(1);opacity:1} 100%{transform:translateY(-60vh) scale(0);opacity:0} }
+@keyframes s5spark  { 0%{transform:translate(0,0) scale(1);opacity:1} 80%{opacity:.5} 100%{transform:translate(var(--sdx),var(--sdy)) scale(0);opacity:0} }
 @keyframes jackpotFlash { 0%,100%{background:rgba(255,200,0,.1)} 50%{background:rgba(255,200,0,.3)} }
 .jackpot-flash { animation: jackpotFlash .3s ease 4; }
 
@@ -1307,9 +1310,9 @@ select.input option{background:var(--surface2);}
       <div class="casino-tables-grid" id="casino-bj-tables"><div style="color:var(--muted);padding:16px">Brak aktywnych stołów</div></div>
     </div>
 
-    <!-- Automaty -->
+    <!-- Lucky Fruits -->
     <div class="casino-lb-section">
-      <h3>🎰 Automaty (Slots)</h3>
+      <h3>🍀 Lucky Fruits</h3>
       <div class="casino-tables-grid" id="casino-slots-tables"></div>
     </div>
 
@@ -4352,7 +4355,7 @@ socket.on('casinoSlotsResult', ({ grid, winLines, payout, net, balance, bet, act
           if (freeSpinsAwarded > 0) { s5FreeSpins += freeSpinsAwarded; s5UpdateFSBar(); }
 
           if (payout > 0) {
-            const isBig = mult >= 5;
+            const isBig = mult >= 1.5;
             // Podświetl komórki
             winLines.forEach(w => { for (let c2 = 0; c2 < w.streak; c2++) { const el = document.getElementById(`s5c${c2}_${w.line[c2]}`); if (el) el.classList.add(isBig ? 'bigwin' : 'win'); } });
             if (winLines.length === 0) { s5LinesDef.length && s5LinesDef[0].forEach((r, c2) => { const el = document.getElementById(`s5c${c2}_${r}`); if (el) el.classList.add(isBig ? 'bigwin' : 'win'); }); }
@@ -4361,9 +4364,9 @@ socket.on('casinoSlotsResult', ({ grid, winLines, payout, net, balance, bet, act
             if (winLineIdxs.length && s5LinesDef.length) s5DrawLines(winLineIdxs, 0.85, s5LinesDef);
             else if (s5LinesDef.length) s5DrawLines([0], 0.85, s5LinesDef);
 
-            s5AddPit(tier === 'frito' ? 5 : tier === 'giga' ? 4 : tier === 'huge' ? 3 : isBig ? 2 : 1);
+            s5AddPit(tier === 'frito' ? 5 : tier === 'giga' ? 4 : tier === 'huge' ? 3 : tier === 'mega' ? 2 : 1);
             s5AddWinLog(payout, mult, tier);
-            spawnCoinFloat(payout);
+            s5Fireworks(tier);
             s5UpdateStats();
             s5ShowWinScreen(payout, mult, label, tier, () => {
               s5SetMsg(label + '! +' + payout.toLocaleString('pl-PL') + ' AT$ (' + mult.toFixed(1) + '×)', isBig ? 'big' : 'win');
@@ -4393,8 +4396,58 @@ function s5ToggleAuto() {
   } else { clearTimeout(s5AutoT); b.textContent = 'Auto'; b.classList.remove('on'); }
 }
 
+// ── FAJERWERKI (skalowane do tieru wygranej) ──────────────────
+function s5Fireworks(tier) {
+  const cfg = {
+    win:   { particles: 8,  rockets: 0, duration: 900,  emojis: ['🪙'],              colors: ['#ffd200','#fff'] },
+    big:   { particles: 18, rockets: 1, duration: 1400, emojis: ['🪙','💰'],          colors: ['#ffd200','#60a5fa','#fff'] },
+    mega:  { particles: 32, rockets: 2, duration: 2000, emojis: ['💰','⭐'],           colors: ['#a78bfa','#ffd200','#34d399','#fff'] },
+    huge:  { particles: 50, rockets: 3, duration: 2800, emojis: ['💰','⭐','🎉'],      colors: ['#f9a8d4','#ffd200','#a78bfa','#34d399','#60a5fa'] },
+    giga:  { particles: 80, rockets: 5, duration: 4000, emojis: ['💰','🎉','🌟','✨'], colors: ['#ffd200','#f9a8d4','#a78bfa','#34d399','#60a5fa','#fb923c'] },
+    frito: { particles: 140,rockets: 10,duration: 7000, emojis: ['💰','🎉','🌟','✨','🍀','🔥'], colors: ['#ffd200','#f9a8d4','#a78bfa','#34d399','#60a5fa','#fb923c','#fff','#ff0','#0ff'] },
+  };
+  const c = cfg[tier] || cfg.win;
+
+  // Cząsteczki rozpraszające od centrum
+  for (let i = 0; i < c.particles; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.style.cssText = `position:fixed;z-index:9999;pointer-events:none;font-size:${14 + Math.random()*14}px;left:${20+Math.random()*60}vw;top:${30+Math.random()*40}vh;animation:s5fw ${0.8+Math.random()*0.8}s ease-out forwards;--dx:${(Math.random()-0.5)*180}px;--dy:${-(40+Math.random()*160)}px`;
+      el.textContent = c.emojis[Math.floor(Math.random() * c.emojis.length)];
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), c.duration);
+    }, i * (c.duration / c.particles / 2));
+  }
+
+  // Rakiety — smugi lecące w górę i eksplodujące
+  for (let ri = 0; ri < c.rockets; ri++) {
+    setTimeout(() => {
+      // Smuga rakiety
+      const trail = document.createElement('div');
+      const rx = 15 + Math.random() * 70;
+      trail.style.cssText = `position:fixed;z-index:9998;pointer-events:none;width:3px;height:3px;border-radius:50%;background:#fff;left:${rx}vw;bottom:10vh;animation:s5rocket 0.6s ease-in forwards`;
+      document.body.appendChild(trail);
+      setTimeout(() => trail.remove(), 700);
+
+      // Eksplozja
+      setTimeout(() => {
+        const burstCount = 12 + Math.floor(Math.random() * 10);
+        for (let b = 0; b < burstCount; b++) {
+          const spark = document.createElement('div');
+          const angle = (b / burstCount) * Math.PI * 2;
+          const dist  = 60 + Math.random() * 80;
+          const col   = c.colors[Math.floor(Math.random() * c.colors.length)];
+          spark.style.cssText = `position:fixed;z-index:9999;pointer-events:none;width:4px;height:4px;border-radius:50%;background:${col};left:${rx}vw;top:${15+Math.random()*25}vh;animation:s5spark 0.9s ease-out forwards;--sdx:${Math.cos(angle)*dist}px;--sdy:${Math.sin(angle)*dist}px`;
+          document.body.appendChild(spark);
+          setTimeout(() => spark.remove(), 1000);
+        }
+      }, 600);
+    }, ri * (c.duration / c.rockets / 3) + Math.random() * 300);
+  }
+}
+
 function spawnCoinFloat(amount) {
-  const count = amount >= 5000 ? 8 : amount >= 1000 ? 5 : amount >= 500 ? 3 : 1;
+  const count = amount >= 5000 ? 6 : amount >= 1000 ? 4 : amount >= 500 ? 2 : 1;
   for (let i = 0; i < count; i++) {
     setTimeout(() => {
       const el = document.createElement('div'); el.className = 'coin-float';

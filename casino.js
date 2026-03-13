@@ -294,9 +294,10 @@ function deleteTable(tableId) {
 
 // Predefiniowane jednorazowo (na start serwera) - można też tworzyć przez API
 function initTables() {
-  // Automaty (zawsze 1 wspólny stół per poziom stawek)
-  createTable({ game:'slots', name:'Automaty — Grosze', config:{ minBet:10, maxBet:100, maxPlayers:99 }});
-  createTable({ game:'slots', name:'Automaty — Złoto',  config:{ minBet:100, maxBet:1000, maxPlayers:99 }});
+  // Lucky Fruits — 3 warianty stawek
+  createTable({ game:'slots', name:'Lucky Fruits — Low',    config:{ minBet:10,   maxBet:5000,   maxPlayers:99 }});
+  createTable({ game:'slots', name:'Lucky Fruits — Medium', config:{ minBet:100,  maxBet:25000,  maxPlayers:99 }});
+  createTable({ game:'slots', name:'Lucky Fruits — High',   config:{ minBet:1000, maxBet:100000, maxPlayers:99 }});
   // Ruletka
   createTable({ game:'roulette', name:'Ruletka Europejska', config:{ minBet:50, maxBet:2000, maxPlayers:20 }});
   // Pachinko

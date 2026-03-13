@@ -39,12 +39,12 @@ const LINES = [
 ];
 
 const WIN_TIERS = [
-  { min: 0,   max: 5,        tier: 'win',   label: 'Win'               },
-  { min: 5,   max: 15,       tier: 'big',   label: 'Big Win'           },
-  { min: 15,  max: 30,       tier: 'mega',  label: 'Mega Win'          },
-  { min: 30,  max: 60,       tier: 'huge',  label: 'Huge Win'          },
-  { min: 60,  max: 100,      tier: 'giga',  label: 'Giga Win'          },
-  { min: 100, max: Infinity,  tier: 'frito', label: 'Mega Giga Frito Win' },
+  { min: 0,    max: 1.5,      tier: 'win',   label: 'Win'                  },
+  { min: 1.5,  max: 5,        tier: 'big',   label: 'Big Win'              },
+  { min: 5,    max: 20,       tier: 'mega',  label: 'Mega Win'             },
+  { min: 20,   max: 50,       tier: 'huge',  label: 'Huge Win'             },
+  { min: 50,   max: 500,      tier: 'giga',  label: 'Giga Win'             },
+  { min: 500,  max: Infinity, tier: 'frito', label: 'Mega Giga Frito Win'  },
 ];
 
 function getTier(mult) {
@@ -59,21 +59,42 @@ function drumRnd() {
 
 function drawOutcome(totBet) {
   const r = Math.random();
-  if (r < 0.65) return { type: 'none', payout: 0, mult: 0 };
-  if (r < 0.90) {
-    const m = 0.3 + Math.random() * 3.7;
-    return { type: 'small', payout: Math.round(m * totBet), mult: m };
+
+  // 78.95% — brak wygranej
+  if (r < 0.7895) return { type: 'none', payout: 0, mult: 0 };
+
+  // 15% — Win: 0.3×–1.5×
+  if (r < 0.9395) {
+    const m = 0.3 + Math.random() * 1.2;
+    return { type: 'win', payout: Math.round(m * totBet), mult: m };
   }
-  if (r < 0.975) {
-    const r2 = Math.random();
-    let m;
-    if      (r2 < 0.50) m = 5  + Math.random() * 10;
-    else if (r2 < 0.78) m = 15 + Math.random() * 15;
-    else if (r2 < 0.93) m = 30 + Math.random() * 30;
-    else                m = 60 + Math.random() * 40;
+
+  // 3% — Big Win: 1.5×–4×
+  if (r < 0.9695) {
+    const m = 1.5 + Math.random() * 2.5;
     return { type: 'big', payout: Math.round(m * totBet), mult: m };
   }
-  const m = 100 + Math.random() * 400;
+
+  // 1.5% — Mega Win: 5×–15×
+  if (r < 0.9845) {
+    const m = 5 + Math.random() * 10;
+    return { type: 'mega', payout: Math.round(m * totBet), mult: m };
+  }
+
+  // 1% — Huge Win: 20×–40×
+  if (r < 0.9945) {
+    const m = 20 + Math.random() * 20;
+    return { type: 'huge', payout: Math.round(m * totBet), mult: m };
+  }
+
+  // 0.5% — Giga Win: 50×–100×
+  if (r < 0.9995) {
+    const m = 50 + Math.random() * 50;
+    return { type: 'giga', payout: Math.round(m * totBet), mult: m };
+  }
+
+  // 0.05% — Mega Giga Frito Win: 500×–1500×
+  const m = 500 + Math.random() * 1000;
   return { type: 'frito', payout: Math.round(m * totBet), mult: m };
 }
 
@@ -83,15 +104,15 @@ function buildGrid(outcome) {
   if (outcome.type === 'none') return grid;
   const m = outcome.mult;
   let symIdx, streak, useWild;
-  if (outcome.type === 'frito') { symIdx = 0; streak = 5; useWild = true;  }
-  else if (m >= 60)             { symIdx = 0; streak = 5; useWild = false; }
-  else if (m >= 30)             { symIdx = 1; streak = 5; useWild = true;  }
-  else if (m >= 15)             { symIdx = 1; streak = 4; useWild = false; }
-  else if (m >= 5)              { symIdx = 2; streak = 4; useWild = false; }
-  else                          { symIdx = 3 + Math.floor(Math.random() * 4); streak = 3; useWild = false; }
+  if (outcome.type === 'frito')      { symIdx = 0; streak = 5; useWild = true;  }
+  else if (m >= 50)                  { symIdx = 0; streak = 5; useWild = false; }
+  else if (m >= 20)                  { symIdx = 1; streak = 5; useWild = true;  }
+  else if (m >= 5)                   { symIdx = 1; streak = 4; useWild = false; }
+  else if (m >= 1.5)                 { symIdx = 2; streak = 4; useWild = false; }
+  else                               { symIdx = 3 + Math.floor(Math.random() * 4); streak = 3; useWild = false; }
   for (let c = 0; c < streak; c++) grid[c][LINES[0][c]] = symIdx;
   if (useWild && streak >= 4) grid[2][LINES[0][2]] = 8;
-  if (m >= 15) {
+  if (m >= 5) {
     const line2 = LINES[3];
     const s2 = Math.min(symIdx + 1, 7);
     const str2 = Math.max(3, streak - 1);
