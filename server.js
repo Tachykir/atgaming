@@ -81,7 +81,9 @@ app.get('/auth/socket-token', (req, res) => {
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 if (!process.env.ADMIN_PASSWORD) {
   console.warn('⚠️  UWAGA: ADMIN_PASSWORD nie jest ustawiony w env! Używam domyślnego hasła "admin123" — zmień to w produkcji!');
-} (persystentny — zapisywany do pliku JSON) ───
+}
+
+// ─── LEADERBOARD (persystentny - zapisywany do pliku JSON) ───
 // Structure: { gameId: [ { name, score, date, category, difficulty } ] }
 const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard_data.json');
 const LEADERBOARD_MAX = 100; // max entries per game
