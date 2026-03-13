@@ -301,10 +301,13 @@ module.exports = {
     // Wybór figury do promocji
     if (event === 'chessPromotion') {
       if (!gs.pendingPromotion) return;
+      // FIX #3: Sprawdź czy to właściwy gracz wybiera figurę
+      const promotingPlayerIsWhite = !gs.whiteTurn; // biały ruszył → whiteTurn już false
+      const expectedId = promotingPlayerIsWhite ? gs.whiteId : gs.blackId;
+      if (socket.id !== expectedId) return; // przeciwnik nie może wybrać twojej figury
       const { r, c } = gs.pendingPromotion;
-      const white = gs.whiteTurn === false; // był ruch białych → teraz czarne czekają
-      const validPieces = white ? ['Q','R','B','N'] : ['q','r','b','n'];
-      const piece = validPieces.includes(data.piece) ? data.piece : (white ? 'Q' : 'q');
+      const validPieces = promotingPlayerIsWhite ? ['Q','R','B','N'] : ['q','r','b','n'];
+      const piece = validPieces.includes(data.piece) ? data.piece : (promotingPlayerIsWhite ? 'Q' : 'q');
       gs.board[r][c] = piece;
       gs.pendingPromotion = null;
 

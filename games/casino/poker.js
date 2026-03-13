@@ -199,10 +199,12 @@ function finishRound(table, gs, io) {
     });
   }
 
+  // FIX #6: Reszta z Math.floor trafia do pierwszego zwycięzcy (standardowa zasada pokera)
   const share = Math.floor(gs.pot / winners.length);
-  winners.forEach(sid => {
+  const remainder = gs.pot - share * winners.length;
+  winners.forEach((sid, i) => {
     const p = table.players.find(p => p.socketId === sid);
-    if (p) p.sessionChips += share;
+    if (p) p.sessionChips += share + (i === 0 ? remainder : 0);
   });
 
   gs.phase        = 'showdown';
@@ -403,7 +405,14 @@ function handleAction(table, socketId, event, data, io) {
   const activePlayers = table.players.filter(p => !gs.folded[p.socketId] && !gs.allIn[p.socketId]);
   const allMatched    = activePlayers.every(pl => (gs.currentBet[pl.socketId]||0) >= gs.callAmount);
 
-  if (gs.actingQueue.length === 0 || allMatched) {
+  // FIX #7: Big Blind zawsze dostaje opcję preflop, nawet gdy wszyscy wyrównali
+  // BB może podnieść, więc runda zakładów nie kończy się, dopóki BB nie zagra
+  const bbHasOption = gs.phase === 'preflop'
+    && gs.bigBlind
+    && gs.lastRaiser === gs.bigBlind  // nikt nie podbił po BB (lastRaiser to wciąż BB)
+    && gs.actingQueue.includes(gs.bigBlind); // BB jeszcze w kolejce
+
+  if (gs.actingQueue.length === 0 || (allMatched && !bbHasOption)) {
     nextPhase(table, gs, io);
   } else {
     gs.actingPlayer = gs.actingQueue[0];

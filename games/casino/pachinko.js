@@ -100,7 +100,8 @@ function registerHandlers(socket, io, casino) {
     if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
 
     const cfg = table.config;
-    const betAmt = Math.max(1, Math.min(100000, Number(bet)||cfg.minBet));
+    const maxAllowed = cfg.maxBet || 100000;
+    const betAmt = Math.max(cfg.minBet || 1, Math.min(maxAllowed, Number(bet)||cfg.minBet));
     const wallet = await casino.ensureWallet(discordUser);
     if (wallet.balance < betAmt) return socket.emit('casinoError',{message:`Za mało AT$! Masz ${wallet.balance}`});
 

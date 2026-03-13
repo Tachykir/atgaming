@@ -570,6 +570,9 @@ io.on('connection', (socket) => {
 
   socket.on('playAgain', ({ roomId }) => {
     const room = rooms[roomId]; if (!room || room.hostId !== socket.id) return;
+    // FIX #8: Wyczyść timery przed resetem pokoju
+    if (room.gameState?.questionTimer) clearTimeout(room.gameState.questionTimer);
+    if (room.gameState?.roundTimer)    clearTimeout(room.gameState.roundTimer);
     const nr = createRoom(roomId, room.gameType, room.hostId, room.gameMasterName || '', room.isGameMaster, room.config);
     nr.players = room.players.map(p => ({ ...p, score: 0 }));
     if (room.isGameMaster) { nr.gameMasterId = room.gameMasterId; nr.gameMasterName = room.gameMasterName; }
@@ -739,7 +742,8 @@ io.on('connection', (socket) => {
   });
 
   // Usuń stół (tylko twórca lub jeśli pusty)
-  socket.on('casinoDeleteTable', ({ tableId }) => {
+  socket.on('casinoDeleteTable', (data) => {
+    const { tableId } = data;
     const table = casino.casinoTables[tableId];
     if (!table) return;
     const discordUser = socket.getDiscordUser(data);
@@ -796,7 +800,19 @@ io.on('connection', (socket) => {
 
     const player = table.players[idx];
 
-    // Oddaj pozostałe żetony do portfela
+    // FIX #5: Zwróć zakłady ruletki jeśli gracz rozłączył się podczas fazy betting
+    if (table.game === 'roulette' && player.discordId) {
+      const gs = table.gameState;
+      if (gs && gs.phase === 'betting' && gs.bets[player.discordId]?.length > 0) {
+        const refund = gs.bets[player.discordId].reduce((s, b) => s + b.amount, 0);
+        if (refund > 0) {
+          casino.updateBalance(player.discordId, refund).catch(() => {});
+          delete gs.bets[player.discordId];
+        }
+      }
+    }
+
+    // Oddaj pozostałe żetony do portfela (poker/blackjack)
     if (player.discordId && player.sessionChips > 0) {
       casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
     }
@@ -837,11 +853,20 @@ io.on('connection', (socket) => {
       if (idx !== -1) {
         const name = room.players[idx].name;
         room.players.splice(idx, 1);
-        if (room.players.length === 0 && room.gameMasterId !== socket.id) { delete rooms[roomId]; continue; }
+        if (room.players.length === 0 && room.gameMasterId !== socket.id) {
+          // FIX #8: Wyczyść timery quizu/wordrace przed usunięciem pokoju
+          if (room.gameState?.questionTimer) clearTimeout(room.gameState.questionTimer);
+          if (room.gameState?.roundTimer)    clearTimeout(room.gameState.roundTimer);
+          delete rooms[roomId];
+          continue;
+        }
         if (room.hostId === socket.id && room.players[0]) room.hostId = room.players[0].id;
         io.to(roomId).emit('playerLeft', { room, playerName: name });
         io.to(roomId).emit('chatMessage', { name: '🔔 System', message: `${name} opuścił grę`, isSystem: true, time: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) });
       } else if (room.gameMasterId === socket.id) {
+        // FIX #8: Wyczyść timery też przy usunięciu pokoju przez GM
+        if (room.gameState?.questionTimer) clearTimeout(room.gameState.questionTimer);
+        if (room.gameState?.roundTimer)    clearTimeout(room.gameState.roundTimer);
         io.to(roomId).emit('playerLeft', { room, playerName: room.gameMasterName + ' (GM)' });
         delete rooms[roomId];
       }

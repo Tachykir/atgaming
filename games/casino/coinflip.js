@@ -51,11 +51,17 @@ function registerHandlers(socket, io, casino) {
     if (challenge.status !== 'open') return socket.emit('casinoError', { message: 'Wyzwanie już przyjęte!' });
     if (challenge.creator.id === discordUser.id) return socket.emit('casinoError', { message: 'Nie możesz przyjąć własnego wyzwania!' });
 
+    // FIX #2: Ustaw status PRZED pierwszym await, żeby uniknąć race condition
+    // (Node.js single-thread, ale między await mogą dojść inne eventy)
+    challenge.status = 'flipping';
+
     const wallet = await casino.ensureWallet(discordUser);
-    if (wallet.balance < challenge.bet) return socket.emit('casinoError', { message: `Za mało AT$! Masz ${wallet.balance}` });
+    if (wallet.balance < challenge.bet) {
+      challenge.status = 'open'; // Cofnij jeśli brak środków
+      return socket.emit('casinoError', { message: `Za mało AT$! Masz ${wallet.balance}` });
+    }
 
     await casino.updateBalance(discordUser.id, -challenge.bet);
-    challenge.status = 'flipping';
     challenge.opponent = { id: discordUser.id, name: discordUser.globalName || discordUser.username, avatar: discordUser.avatar };
 
     io.to('casino:' + tableId).emit('casinoCoinflipState', buildPublicState(table.gameState));

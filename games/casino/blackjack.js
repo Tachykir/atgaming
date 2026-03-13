@@ -182,8 +182,14 @@ function placeBet(table, socketId, amount, io) {
   if (!p) return;
 
   const cfg = table.config;
-  const bet = Math.max(1, Math.min(100000, Number(amount) || cfg.minBet));
+  const maxAllowed = cfg.maxBet || 100000;
+  const bet = Math.max(cfg.minBet || 1, Math.min(maxAllowed, Number(amount) || cfg.minBet));
   if (p.sessionChips < bet) return;
+
+  // FIX #9: Jeśli gracz dołączył PO startBettingWindow, ustaw jego sessionChipsStart teraz
+  if (gs.sessionChipsStart && gs.sessionChipsStart[socketId] === undefined) {
+    gs.sessionChipsStart[socketId] = p.sessionChips;
+  }
 
   gs.bets[socketId] = bet;
   emitTableState(table, io);

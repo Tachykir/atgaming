@@ -158,7 +158,8 @@ function registerHandlers(socket, io, casino) {
     if (!discordUser) return;
 
     const cfg = table.config;
-    const betAmt = Math.max(1, Math.min(100000, Number(amount)||cfg.minBet));
+    const maxAllowed = cfg.maxBet || 100000;
+    const betAmt = Math.max(cfg.minBet || 1, Math.min(maxAllowed, Number(amount)||cfg.minBet));
     const wallet = await casino.getWallet(discordUser.id);
     if (!wallet || wallet.balance < betAmt) return socket.emit('casinoError',{message:'Za mało AT$!'});
 
