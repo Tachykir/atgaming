@@ -3,4 +3,3 @@ node_modules
 casino_data.json
 leaderboard_data.json
 *.log
-socket_tokens.json

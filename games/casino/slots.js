@@ -66,52 +66,45 @@ function getLuckyState(userId) {
   return luckyFruitState.get(userId);
 }
 
-const MAX_WIN_MULT = 1000;
-
-function capS(result, totBet) {
-  const m = Math.min(result.mult, MAX_WIN_MULT);
-  return { type: result.type, mult: m, payout: Math.round(m * totBet) };
-}
-
 function drawOutcome(totBet) {
   const r = Math.random();
 
-  // 73.90% — brak wygranej
-  if (r < 0.7390) return { type: 'none', payout: 0, mult: 0 };
+  // 73.9% — brak wygranej
+  if (r < 0.739) return { type: 'none', payout: 0, mult: 0 };
 
-  // 22.05% — Win: 0.3×–1.5×
-  if (r < 0.9595) {
+  // 20% — Win: 0.3×–1.5×
+  if (r < 0.939) {
     const m = 0.3 + Math.random() * 1.2;
-    return capS({ type: 'win', mult: m }, totBet);
+    return { type: 'win', payout: Math.round(m * totBet), mult: m };
   }
 
-  // 2.00% — Big Win: 1.5×–4×
-  if (r < 0.9795) {
+  // 3% — Big Win: 1.5×–4×
+  if (r < 0.969) {
     const m = 1.5 + Math.random() * 2.5;
-    return capS({ type: 'big', mult: m }, totBet);
+    return { type: 'big', payout: Math.round(m * totBet), mult: m };
   }
 
-  // 1.00% — Mega Win: 5×–15×
-  if (r < 0.9895) {
+  // 1.5% — Mega Win: 5×–15×
+  if (r < 0.984) {
     const m = 5 + Math.random() * 10;
-    return capS({ type: 'mega', mult: m }, totBet);
+    return { type: 'mega', payout: Math.round(m * totBet), mult: m };
   }
 
-  // 0.75% — Huge Win: 20×–40×
-  if (r < 0.9970) {
+  // 1% — Huge Win: 20×–40×
+  if (r < 0.994) {
     const m = 20 + Math.random() * 20;
-    return capS({ type: 'huge', mult: m }, totBet);
+    return { type: 'huge', payout: Math.round(m * totBet), mult: m };
   }
 
-  // 0.25% — Giga Win: 50×–100×
-  if (r < 0.9995) {
+  // 0.5% — Giga Win: 50×–100×
+  if (r < 0.999) {
     const m = 50 + Math.random() * 50;
-    return capS({ type: 'giga', mult: m }, totBet);
+    return { type: 'giga', payout: Math.round(m * totBet), mult: m };
   }
 
-  // 0.05% — Mega Giga Frito Win: 150×–400×
-  const m = 150 + Math.random() * 250;
-  return capS({ type: 'frito', mult: m }, totBet);
+  // 0.1% — Mega Giga Frito Win: 500×–1500×
+  const m = 500 + Math.random() * 1000;
+  return { type: 'frito', payout: Math.round(m * totBet), mult: m };
 }
 
 function buildGrid(outcome) {
@@ -141,41 +134,18 @@ function calcLines(grid, betPerLine, activeLines) {
   const wins = [];
   for (let li = 0; li < Math.min(activeLines, LINES.length); li++) {
     const line = LINES[li];
-    let first = -1, streak = 0, wildStreak = 0;
+    let first = -1, streak = 0;
     for (let c = 0; c < 5; c++) {
-      const si = grid[c][line[c]];
-      const s  = SYMS[si];
+      const si = grid[c][line[c]]; const s = SYMS[si];
       if (s.scatter) break;
-      if (s.wild) {
-        streak++;
-        if (first === -1) wildStreak++;  // licznik czystych wildów na początku linii
-        continue;
-      }
+      if (s.wild)    { streak++; continue; }
       if (first === -1)      { first = si; streak++; }
       else if (si === first) { streak++; }
       else break;
     }
-
-    let pay = 0, symIdx = first;
-
-    if (first !== -1) {
-      // Normalny przypadek: symbol (+ ewentualne wildy jako wypełniacze)
-      pay = SYMS[first].p[streak] || 0;
-    } else if (wildStreak > 0) {
-      // Linia złożona wyłącznie z wildów — wypłata według najlepiej płacącego wilda
-      let bestPay = 0, bestSym = -1;
-      for (let c2 = 0; c2 < wildStreak; c2++) {
-        const wsi = grid[c2][line[c2]];
-        const wp  = SYMS[wsi].p[wildStreak] || 0;
-        if (wp > bestPay) { bestPay = wp; bestSym = wsi; }
-      }
-      pay    = bestPay;
-      symIdx = bestSym;
-    }
-
-    if (pay > 0 && symIdx !== -1) {
-      wins.push({ li, line: [...line], streak, symIdx, lineWin: pay * betPerLine });
-    }
+    if (first === -1) continue;
+    const pay = SYMS[first].p[streak] || 0;
+    if (pay > 0) wins.push({ li, line: [...line], streak, symIdx: first, lineWin: pay * betPerLine });
   }
   return wins;
 }
@@ -226,25 +196,14 @@ function registerHandlers(socket, io, casino) {
       state.activeLines = activeLines;
     }
 
-    const rawPayoutS = outcome.payout;
-    const maxAllowedS = totBet * MAX_WIN_MULT;
-    const payout = rawPayoutS > maxAllowedS ? maxAllowedS : rawPayoutS;
+    const payout = outcome.payout;
     if (payout > 0) await casino.updateBalance(discordUser.id, payout);
     await casino.recordGame(discordUser.id);
-    const slotsMult = totBet > 0 ? payout / totBet : 0;
-    const recentWinEntry = payout > 0 ? {
-      payout,
-      mult:  Math.round(slotsMult * 10) / 10,
-      tier:  getTier(slotsMult).tier,
-      isFree,
-      ts:    Date.now(),
-    } : null;
     await casino.updateSlotStats(discordUser.id, 'slots', {
-      spins:     1,
-      spent:     isFree ? 0 : totBet,
-      won:       payout,
-      bestWin:   payout,
-      recentWin: recentWinEntry,
+      spins:   1,
+      spent:   isFree ? 0 : totBet,
+      won:     payout,
+      bestWin: payout,
     });
 
     // Odlicz free spin
