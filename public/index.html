@@ -825,6 +825,8 @@ select.input option{background:var(--surface2);}
 .pg-cell img { display:block; }
 .pg-cell.pg-locked { outline:2px solid #cc44aa !important; background:rgba(204,68,170,.15) !important; box-shadow:0 0 10px rgba(204,68,170,.4); }
 .pg-lock-b { background:#cc44aa !important; color:#fff; }
+
+.at-version{position:fixed;bottom:10px;left:14px;font-size:11px;color:var(--muted);opacity:.5;pointer-events:none;z-index:10;font-family:'DM Mono',monospace;letter-spacing:.03em;}
 </style>
 </head>
 <body>
@@ -1901,6 +1903,8 @@ select.input option{background:var(--surface2);}
   </div>
 </div>
 
+<div class="at-version" id="at-version">AT Gaming</div>
+
 <!-- ══ PANEL GRACZE ONLINE ════════════════════════════════════ -->
 <div id="op-overlay" onclick="closeOnlinePanel()"></div>
 <div id="online-panel">
@@ -2259,6 +2263,14 @@ async function init() {
   initDraggableChat();
   await initDiscordAuth();
   checkUrlJoin();
+  fetch('/api/version').then(r=>r.json()).then(d=>{
+    const el = document.getElementById('at-version');
+    if (!el) return;
+    const year = new Date().getFullYear();
+    el.textContent = d.version
+      ? 'AT Gaming v' + d.version + ' · © ' + year
+      : 'AT Gaming · © ' + year;
+  }).catch(()=>{});
 }
 
 function selectGame(id, el) {

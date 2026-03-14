@@ -272,6 +272,19 @@ app.get('/api/online-players', (req, res) => {
   res.json(deduped);
 });
 
+app.get('/api/version', (req, res) => {
+  const sha = process.env.RAILWAY_GIT_COMMIT_SHA
+           || process.env.GIT_COMMIT
+           || process.env.COMMIT_SHA
+           || process.env.HEROKU_SLUG_COMMIT
+           || null;
+  res.json({
+    version: sha ? sha.slice(0, 7) : null,
+    sha:     sha || null,
+    built:   new Date().toISOString(),
+  });
+});
+
 app.get('/api/rooms', (req, res) => {
   const publicRooms = Object.values(rooms).map(r => {
     const meta = GAMES[r.gameType]?.meta || {};
