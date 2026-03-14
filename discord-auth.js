@@ -91,6 +91,8 @@ class FileSessionStore extends Store {
   }
 }
 
+let _sessionMiddlewareInstance = null;
+
 function setupSession(app) {
   const cfg = getConfig();
   const sessionsFile = path.join(__dirname, 'sessions.json');
@@ -98,7 +100,7 @@ function setupSession(app) {
 
   // Na Railway/Heroku jest reverse proxy — trzeba mu ufać
   app.set('trust proxy', 1);
-  app.use(session({
+  _sessionMiddlewareInstance = session({
     secret: cfg.sessionSecret,
     resave: false,
     saveUninitialized: false,
@@ -109,7 +111,12 @@ function setupSession(app) {
       sameSite: 'lax',
       maxAge: 10 * 365 * 24 * 60 * 60 * 1000,  // permanentna (10 lat)
     },
-  }));
+  });
+  app.use(_sessionMiddlewareInstance);
+}
+
+function getSessionMiddleware() {
+  return _sessionMiddlewareInstance;
 }
 
 // ── ROUTES ────────────────────────────────────────────────────
@@ -212,4 +219,4 @@ function setupRoutes(app) {
   console.log('✅ Discord OAuth2 skonfigurowano');
 }
 
-module.exports = { setupSession, setupRoutes };
+module.exports = { setupSession, setupRoutes, getSessionMiddleware };

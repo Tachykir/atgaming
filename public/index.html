@@ -1972,7 +1972,7 @@ select.input option{background:var(--surface2);}
 
 <script>
 // ── STATE ──────────────────────────────────────────────────────
-const socket = io();
+const socket = io({ withCredentials: true });
 let S = { roomId:null, playerId:null, playerName:null, isHost:false, isGM:false, gameType:null, room:null, selectedGame:null };
 let adminPwd = '';
 let content = {};

@@ -4,3 +4,4 @@ casino_data.json
 *.log
 sessions.json
 leaderboard_data.json
+socket_tokens.json

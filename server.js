@@ -29,46 +29,77 @@ try {
 
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*' } });
+const io     = new Server(server, {
+  cors: {
+    origin: true,           // echo back request origin (same-origin działa, credentials też)
+    credentials: true,
+  },
+});
 
 app.use(express.json());
 
-// ─── SOCKET TOKEN STORE ────────────────────────────────────────
-// Prosty token → discordUser map, omija problemy z sesją przez WS
-const socketTokens = new Map(); // token → discordUser
+// ─── SOCKET TOKEN STORE (persystentny — przeżywa restart serwera) ───────────
+const TOKENS_FILE = path.join(__dirname, 'socket_tokens.json');
+const socketTokens = new Map();
+
+function loadSocketTokens() {
+  try {
+    if (fs.existsSync(TOKENS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8'));
+      const now = Date.now();
+      for (const [token, entry] of Object.entries(data)) {
+        // Tokeny ważne 30 dni
+        if (entry.createdAt && now - entry.createdAt < 30 * 24 * 60 * 60 * 1000) {
+          socketTokens.set(token, entry.user);
+        }
+      }
+      console.log(`🔑 Załadowano ${socketTokens.size} socket tokenów`);
+    }
+  } catch(e) { console.error('socket_tokens load error:', e.message); }
+}
+
+function saveSocketTokens() {
+  try {
+    const data = {};
+    const now = Date.now();
+    for (const [token, value] of socketTokens) {
+      if (token.endsWith('_ts')) continue; // pomiń wpisy timestamps
+      if (value && typeof value === 'object' && value.id) {
+        data[token] = { user: value, createdAt: socketTokens.get(token + '_ts') || now };
+      }
+    }
+    fs.writeFileSync(TOKENS_FILE, JSON.stringify(data));
+  } catch(e) { console.error('socket_tokens save error:', e.message); }
+}
+
+loadSocketTokens();
 
 // ─── ONLINE DISCORD PLAYERS ────────────────────────────────────
 // socket.id → { id, username, globalName, avatar, connectedAt, room, casino }
 const onlineDiscord = new Map();
+
 function createSocketToken(discordUser) {
   // Jeden token per user (unieważnia poprzedni)
-  for (const [k, v] of socketTokens) if (v.id === discordUser.id) socketTokens.delete(k);
+  for (const [k, v] of socketTokens) {
+    if (v && v.id === discordUser.id) {
+      socketTokens.delete(k);
+      socketTokens.delete(k + '_ts');
+    }
+  }
   const token = require('crypto').randomBytes(32).toString('hex');
   socketTokens.set(token, discordUser);
+  socketTokens.set(token + '_ts', Date.now());
+  saveSocketTokens();
   return token;
 }
 
 // ── DISCORD SESSION ───────────────────────────────────────────
 // WAŻNE: nadpisujemy setupSession PRZED wywołaniem, żeby _sessionMiddleware był zapisany
 let _sessionMiddleware = null;
-discordAuth.setupSession = function(app) {
-  const session = require('express-session');
-  const cfg = {
-    secret: process.env.SESSION_SECRET || 'atgaming-secret-change-me',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: (process.env.DISCORD_REDIRECT_URI || '').startsWith('https'),
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    },
-  };
-  _sessionMiddleware = session(cfg);
-  app.set('trust proxy', 1);
-  app.use(_sessionMiddleware);
-};
-discordAuth.setupSession(app); // wywołujemy już nadpisaną wersję
+// Inicjalizuj sesje przez discord-auth (FileSessionStore — sesje przeżywają restart)
+discordAuth.setupSession(app);
+// Pobierz referencję do session middleware żeby wstrzyknąć go do socketów
+_sessionMiddleware = discordAuth.getSessionMiddleware ? discordAuth.getSessionMiddleware() : null;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -529,19 +560,25 @@ app.post('/api/admin/casino/wallets', async (req, res) => {
 
 // ─── SOCKET ────────────────────────────────────────────────────
 // Wstrzyknij sesję do socketów (po inicjalizacji session middleware)
-setImmediate(() => {
-  if (_sessionMiddleware) {
-    io.use((socket, next) => {
-      _sessionMiddleware(socket.request, socket.request.res || {}, next);
-    });
-    io.use((socket, next) => {
-      socket.discordUser = socket.request.session?.discordUser || null;
-      // Helper: odczytaj świeżo z sesji (na wypadek gdyby login nastąpił po połączeniu)
-      socket.getDiscordUser = () => socket.request.session?.discordUser || socket.discordUser || null;
-      next();
-    });
-  }
-});
+// Wstrzyknij session middleware do socketów
+if (_sessionMiddleware) {
+  io.use((socket, next) => {
+    // Daj res stub który ma metodę end (wymagane przez express-session)
+    const resFake = socket.request.res || {
+      getHeader: () => undefined,
+      setHeader: () => {},
+      end: () => {},
+    };
+    _sessionMiddleware(socket.request, resFake, next);
+  });
+  io.use((socket, next) => {
+    socket.discordUser = socket.request.session?.discordUser || null;
+    socket.getDiscordUser = () => socket.request.session?.discordUser || socket.discordUser || null;
+    next();
+  });
+} else {
+  console.warn('⚠️  _sessionMiddleware nie jest dostępne — socket auth może nie działać');
+}
 
 io.on('connection', (socket) => {
 
