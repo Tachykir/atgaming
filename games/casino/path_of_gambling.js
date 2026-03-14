@@ -48,8 +48,8 @@ const DRUM_W   = SYMS.map(s => s.w);
 const DRUM_TOT = DRUM_W.reduce((a, b) => a + b, 0);
 
 // Pit: Lock w=3, Sacred i Valdo NIE są w bębnie pit (osobne roll'e)
-const PIT_LOCK_WEIGHT  = 3;
-const PIT_VALDO_WEIGHT = 0.2; // 10.3% P(>=1/25 cells), czyli ~25% poprzedniej szansy
+const PIT_LOCK_WEIGHT  = 3.90;  // ~8% per cell w pit
+const PIT_VALDO_WEIGHT = 0.35;  // ~0.73% per cell w pit
 const PIT_DRUM_TOT     = DRUM_TOT + PIT_LOCK_WEIGHT + PIT_VALDO_WEIGHT;
 
 // Valdo mnożniki i ich wagi (sumują się do 100%)
@@ -93,7 +93,7 @@ const WIN_TIERS = [
   { min: 5,    max: 20,       tier: 'mega',  label: 'Mega Win'            },
   { min: 20,   max: 50,       tier: 'huge',  label: 'Huge Win'            },
   { min: 50,   max: 500,      tier: 'giga',  label: 'Giga Win'            },
-  { min: 500,  max: Infinity, tier: 'frito', label: 'Mega Giga Frito Win' },
+  { min: 150,  max: Infinity, tier: 'frito', label: 'Mega Giga Frito Win' },
 ];
 
 function getTier(mult) {
@@ -119,20 +119,20 @@ function drumRndPit() {
 function drawOutcome(totBet) {
   const r = Math.random();
   // 73.9% — brak wygranej
-  if (r < 0.739)  return { type: 'none',  payout: 0, mult: 0 };
-  // 20% — Win: 0.3x-1.5x
-  if (r < 0.939)  { const m = 0.3 + Math.random() * 1.2;  return { type: 'win',   payout: Math.round(m * totBet), mult: m }; }
-  // 3% — Big Win: 1.5x-4x
-  if (r < 0.969)  { const m = 1.5 + Math.random() * 2.5;  return { type: 'big',   payout: Math.round(m * totBet), mult: m }; }
-  // 1.5% — Mega Win: 5x-15x
-  if (r < 0.984)  { const m = 5   + Math.random() * 10;   return { type: 'mega',  payout: Math.round(m * totBet), mult: m }; }
-  // 1% — Huge Win: 20x-40x
-  if (r < 0.994)  { const m = 20  + Math.random() * 20;   return { type: 'huge',  payout: Math.round(m * totBet), mult: m }; }
-  // 0.5% — Giga Win: 50x-100x
-  if (r < 0.999)  { const m = 50  + Math.random() * 50;   return { type: 'giga',  payout: Math.round(m * totBet), mult: m }; }
-  // 0.1% — Mega Giga Frito Win: 500x-1500x
-  const m = 500 + Math.random() * 1000;
-  return { type: 'frito', payout: Math.round(m * totBet), mult: m };
+  if (r < 0.739)    return { type: 'none',  payout: 0, mult: 0 };
+  // ~22% — Win: 0.3x-1.5x
+  if (r < 0.959)    { const m = 0.3 + Math.random() * 1.2;   return { type: 'win',   payout: Math.round(m * totBet), mult: m }; }
+  // 2% — Big Win: 1.5x-4x
+  if (r < 0.979)    { const m = 1.5 + Math.random() * 2.5;   return { type: 'big',   payout: Math.round(m * totBet), mult: m }; }
+  // 1% — Mega Win: 5x-15x
+  if (r < 0.989)    { const m = 5   + Math.random() * 10;    return { type: 'mega',  payout: Math.round(m * totBet), mult: m }; }
+  // 0.75% — Huge Win: 20x-40x
+  if (r < 0.9965)   { const m = 20  + Math.random() * 20;    return { type: 'huge',  payout: Math.round(m * totBet), mult: m }; }
+  // 0.25% — Giga Win: 50x-100x
+  if (r < 0.999)    { const m = 50  + Math.random() * 50;    return { type: 'giga',  payout: Math.round(m * totBet), mult: m }; }
+  // 0.05% — Mega Giga Frito Win: 150x-400x, max cap 25000x
+  const m = 150 + Math.random() * 250;
+  return { type: 'frito', payout: Math.min(Math.round(m * totBet), 25000 * totBet), mult: Math.min(m, 25000) };
 }
 
 function buildGrid(outcome, pitMode, stickyLocks, stickyValdos) {

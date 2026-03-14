@@ -5484,7 +5484,8 @@ function pgSpin() {
   for (let c = 0; c < PG_COLS; c++) for (let r = 0; r < PG_ROWS; r++) {
     const el = document.getElementById('pgc' + c + '_' + r); if (!el) continue;
     const isLocked = pgStickyLocks && pgStickyLocks.find(function(l){ return l.col===c && l.row===r; });
-    if (isLocked) continue;
+    const isValdo = pgStickyValdos && pgStickyValdos.find(function(v){ return v.col===c && v.row===r; });
+    if (isLocked || isValdo) continue;
     el.className = 's5-cell pg-cell spinning'; el.style.height = '58px'; el.innerHTML = '';
     el._spinInt = setInterval(function() {
       if (!pgSyms.length) { el.textContent = '?'; return; }
@@ -5591,7 +5592,16 @@ socket.on('casinoPathResult', function(data) {
             pgStatSpins++; pgStatPaid += payout; if (payout > pgBestWin) pgBestWin = payout;
             if (payout > 0) addRecentWin('pg-recent-list', payout, tier);
             pgStatSpent += (pgFreeSpins > 0 ? 0 : pgBet * pgLines);
-            if (freeSpinsAwarded > 0) { pgFreeSpins += freeSpinsAwarded; pgFreeMode = freeMode; pgUpdateFSBar(); }
+            if (freeSpinsAwarded > 0) {
+              pgFreeSpins += freeSpinsAwarded;
+              pgFreeMode = freeMode || pgFreeMode;
+              pgUpdateFSBar();
+              var fsIcon = (freeMode === 'sacred') ? '\u2728' : '\uD83C\uDF81';
+              var fsEl = document.createElement('div'); fsEl.className = 's5-log-tag big';
+              fsEl.textContent = fsIcon + ' +' + freeSpinsAwarded + ' Free Spin\u00f3w!';
+              var fsLg = document.getElementById('pg-win-log');
+              if (fsLg) { fsLg.insertBefore(fsEl, fsLg.firstChild); while(fsLg.children.length>6) fsLg.removeChild(fsLg.lastChild); }
+            }
             pgUpdatePit(pitMeter);
             if (sacredPitBonus > 0) { var sEl=document.createElement('div'); sEl.className='s5-log-tag big'; sEl.textContent='✨ Sacred Orb! +'+sacredPitBonus+' Free Spiny'; var slg=document.getElementById('pg-win-log'); if(slg){slg.insertBefore(sEl,slg.firstChild);while(slg.children.length>6)slg.removeChild(slg.lastChild);} pgSetMsg('✨ Sacred Orb! +'+sacredPitBonus+' Free Spinów!','big'); }
             if (payout > 0) {
