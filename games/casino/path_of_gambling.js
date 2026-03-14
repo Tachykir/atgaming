@@ -15,7 +15,7 @@
 'use strict';
 
 // ─── KONFIGURACJA ─────────────────────────────────────────────────────────────
-const PIT_THRESHOLD  = 30;  // ile niewygrywających spinów napełnia Pit Meter
+const PIT_THRESHOLD  = 100;  // ile niewygrywających spinów napełnia Pit Meter
 const PIT_FREE_SPINS = 8;   // free spiny przyznawane przez Pit
 
 // ─── SYMBOLE ─────────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ const SYMS = [
     id: 'alteration',
     n: 'Orb of Alteration',
     img: '/images/slots/alteration.png',
-    w: 9,
+    w: 8,
     p: [0, 0, 2, 5, 15, 45],
     color: '#4488ff',
     rarity: 'uncommon',
@@ -80,7 +80,7 @@ const SYMS = [
     id: 'transmutation',
     n: 'Orb of Transmutation',
     img: '/images/slots/Transmutation.png',
-    w: 12,
+    w: 6,
     p: [0, 0, 1, 3, 8, 25],
     color: '#2266cc',
     rarity: 'common',
@@ -89,7 +89,7 @@ const SYMS = [
     id: 'scroll',
     n: 'Scroll of Wisdom',
     img: '/images/slots/scroll.png',
-    w: 16,
+    w: 8,
     p: [0, 0, 1, 2, 5, 15],
     color: '#aaaaaa',
     rarity: 'common',
@@ -110,7 +110,7 @@ const SYMS = [
     id: 'mist',
     n: 'Reflecting Mist',
     img: '/images/slots/mist.png',
-    w: 4,
+    w: 1,
     p: [0, 0, 0, 0, 0, 0],
     color: '#aa44ff',
     rarity: 'scatter',
@@ -307,7 +307,7 @@ function registerHandlers(socket, io, casino) {
       activeLines = state.activeLines;
       totBet      = betPerLine * activeLines;
     } else {
-      betPerLine  = Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet)   || cfg.minBet));
+      betPerLine  = Math.round(Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet)));
       activeLines = Math.max(1,          Math.min(50,          Number(lines) || 50));
       totBet      = betPerLine * activeLines;
 
