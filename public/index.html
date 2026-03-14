@@ -533,7 +533,7 @@ select.input option{background:var(--surface2);}
 .s5-reels-outer { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:10px; margin-bottom:10px; position:relative; }
 .s5-reels-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; }
 .s5-reel { display:flex; flex-direction:column; gap:4px; }
-.s5-cell { height:68px; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:28px; position:relative; background:var(--surface2); border:1px solid var(--border); transition:background .12s; }
+.s5-cell { height:68px; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:28px; position:relative; background:transparent; border:1px solid var(--border); transition:background .12s; }
 .s5-cell.wild    { background:rgba(186,117,23,.18); outline:2px solid #BA7517; }
 .s5-cell.scatter { background:rgba(24,95,165,.18);  outline:2px solid #185FA5; }
 .s5-cell.win     { background:rgba(59,109,17,.22);  outline:2px solid #3B6D11; }
@@ -821,7 +821,7 @@ select.input option{background:var(--surface2);}
 #op-overlay{position:fixed;inset:0;z-index:940;display:none;}
 #op-overlay.open{display:block;}
 
-.pg-cell { background:rgba(20,10,40,.6) !important; border-color:rgba(180,120,0,.3) !important; }
+.pg-cell { background:transparent !important; border-color:rgba(180,120,0,.3) !important; }
 .pg-cell img { display:block; }
 .pg-cell.pg-locked { outline:2px solid #cc44aa !important; background:rgba(204,68,170,.15) !important; box-shadow:0 0 10px rgba(204,68,170,.4); }
 .pg-lock-b { background:#cc44aa !important; color:#fff; }
@@ -1397,8 +1397,8 @@ select.input option{background:var(--surface2);}
     </div>
 
     <div style="background:rgba(255,200,0,.06);border:1px solid rgba(255,200,0,.2);border-radius:14px;padding:16px;font-size:13px;color:var(--muted);text-align:center;">
-      💡 Każdy gracz startuje z <strong style="color:#ffd200">10 000 AT$</strong>. 
-      Co niedzielę — gracze poniżej 1 000 AT$ otrzymują doładowanie do 10 000 AT$. 
+      💡 Każdy gracz startuje z <strong style="color:#ffd200">100 000 AT$</strong>. 
+      Co niedzielę — gracze poniżej 10 000 AT$ otrzymują doładowanie do 100 000 AT$. 
       Wymagane: logowanie przez Discord.
     </div>
   </div>
@@ -1595,9 +1595,9 @@ select.input option{background:var(--surface2);}
 
       <!-- Pit meter -->
       <div class="s5-pit-wrap">
-        <div class="s5-pit-lbl"><span>Pit meter — <span id="s5-pit-lvl">poziom 1</span></span><span id="s5-pit-pts">0 / 30</span></div>
+        <div class="s5-pit-lbl"><span>Pit meter — <span id="s5-pit-lvl">poziom 1</span></span><span id="s5-pit-pts">0 / 100</span></div>
         <div class="s5-pit-track"><div class="s5-pit-fill" id="s5-pit-fill" style="width:0%"></div></div>
-        <div class="s5-pit-ticks"><span>0</span><span>10 ★</span><span>20 ★★</span><span>30 — mini gra</span></div>
+        <div class="s5-pit-ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100 — mini gra</span></div>
       </div>
 
       <!-- Komunikat -->
@@ -1852,10 +1852,10 @@ select.input option{background:var(--surface2);}
       <div class="s5-pit-wrap">
         <div class="s5-pit-lbl">
           <span>Pit meter</span>
-          <span id="pg-pit-pts">0 / 30</span>
+          <span id="pg-pit-pts">0 / 100</span>
         </div>
         <div class="s5-pit-track"><div class="s5-pit-fill" id="pg-pit-fill" style="width:0%"></div></div>
-        <div class="s5-pit-ticks"><span>0</span><span>10</span><span>20</span><span>30 — Pit free spiny + Hinekora's Lock</span></div>
+        <div class="s5-pit-ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100 — Pit!</span></div>
       </div>
 
       <!-- Komunikat -->
@@ -4117,7 +4117,7 @@ function renderTableCard(t) {
   return `<div class="casino-table-card ${gameColors[t.game]||''}" onclick="openCasinoTable('${t.id}')">
     <span class="casino-table-status ${t.status}">${statusLabels[t.status]||t.status}</span>
     ${canDelete ? `<div style="position:absolute;top:12px;right:12px">${deleteBtn}</div>` : ''}
-    <div class="t-game">${gameIcons[t.game]||'🎰'}</div>
+    <div class="t-game">${t.game==='path_of_gambling' ? '<img src="/images/slots/poelogo.png" style="width:44px;height:44px;object-fit:contain">' : (gameIcons[t.game]||'🎰')}</div>
     <div class="t-name">${escHtml(t.name)}</div>
     ${stakes ? `<div class="t-stakes">${stakes}</div>` : ''}
     ${seats ? `<div class="t-players">${seats} <span style="color:var(--muted)">${t.playerCount}/${t.maxPlayers}</span></div>` : `<div class="t-stakes">${t.playerCount} graczy online</div>`}
@@ -4302,7 +4302,7 @@ function initSlotsUI(table) {
   document.getElementById('s5-win-log').innerHTML = '';
   document.getElementById('s5-pit-fill').style.width = '0%';
   document.getElementById('s5-pit-lvl').textContent = 'poziom 1';
-  document.getElementById('s5-pit-pts').textContent = '0 / 30';
+  document.getElementById('s5-pit-pts').textContent = '0 / 100';
   document.getElementById('s5-fs-bar').classList.remove('show');
   document.getElementById('s5-mg').classList.remove('show');
   document.getElementById('s5-win-ov').classList.remove('show');
@@ -4413,11 +4413,11 @@ function s5UpdateFSBar() {
 }
 
 function s5AddPit(n) {
-  s5PitPts = Math.min(30, s5PitPts + n);
-  document.getElementById('s5-pit-fill').style.width = (s5PitPts / 30 * 100) + '%';
-  document.getElementById('s5-pit-lvl').textContent  = s5PitPts < 10 ? 'poziom 1' : s5PitPts < 20 ? 'poziom 2' : 'poziom 3!';
-  document.getElementById('s5-pit-pts').textContent  = s5PitPts + ' / 30';
-  if (s5PitPts >= 30) { s5PitPts = 0; document.getElementById('s5-pit-fill').style.width = '0%'; document.getElementById('s5-pit-lvl').textContent = 'poziom 1'; setTimeout(s5TriggerMG, 300); }
+  s5PitPts = Math.min(100, s5PitPts + n);
+  document.getElementById('s5-pit-fill').style.width = (s5PitPts / 100 * 100) + '%';
+  document.getElementById('s5-pit-lvl').textContent  = s5PitPts < 34 ? 'poziom 1' : s5PitPts < 67 ? 'poziom 2' : 'poziom 3!';
+  document.getElementById('s5-pit-pts').textContent  = s5PitPts + ' / 100';
+  if (s5PitPts >= 100) { s5PitPts = 0; document.getElementById('s5-pit-fill').style.width = '0%'; document.getElementById('s5-pit-lvl').textContent = 'poziom 1'; setTimeout(s5TriggerMG, 300); }
 }
 
 function s5TriggerMG() {
@@ -5333,11 +5333,11 @@ function pgUpdateFSBar() {
 }
 
 function pgUpdatePit(meter) {
-  pgPitMeter = Math.min(30, meter || 0);
+  pgPitMeter = Math.min(100, meter || 0);
   const fill = document.getElementById('pg-pit-fill');
-  if (fill) fill.style.width = (pgPitMeter / 30 * 100) + '%';
+  if (fill) fill.style.width = (pgPitMeter / 100 * 100) + '%';
   const pts = document.getElementById('pg-pit-pts');
-  if (pts) pts.textContent = pgPitMeter + ' / 30';
+  if (pts) pts.textContent = pgPitMeter + ' / 100';
 }
 
 function pgAddWinLog(payout, mult, tier) {

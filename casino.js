@@ -9,9 +9,9 @@
 
 'use strict';
 
-const START_BALANCE  = 10_000;
-const WEEKLY_MINIMUM = 1_000;
-const WEEKLY_TOP_UP  = 10_000;
+const START_BALANCE  = 100_000;
+const WEEKLY_MINIMUM = 10_000;
+const WEEKLY_TOP_UP  = 100_000;
 
 const USE_PG = !!process.env.DATABASE_URL;
 let pg = null;
@@ -262,7 +262,7 @@ function scheduleWeeklyTopup(io) {
   async function schedule() {
     const next=nextSunday(), delay=next.getTime()-Date.now();
     console.log(`⏰ Następne doładowanie AT$: ${next.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'})} (za ${Math.round(delay/3600000)}h)`);
-    setTimeout(async()=>{ const topped=await runWeeklyTopup(); if(io&&topped.length>0) io.emit('weeklyTopup',{count:topped.length,message:`📅 Tygodniowe doładowanie! ${topped.length} graczy otrzymało AT$ do 10 000`}); schedule(); },delay);
+    setTimeout(async()=>{ const topped=await runWeeklyTopup(); if(io&&topped.length>0) io.emit('weeklyTopup',{count:topped.length,message:`📅 Tygodniowe doładowanie! ${topped.length} graczy otrzymało AT$ do 100 000`}); schedule(); },delay);
   }
   schedule();
 }

@@ -169,7 +169,7 @@ function registerHandlers(socket, io, casino) {
       activeLines = state.activeLines;
       totBet      = betPerLine * activeLines;
     } else {
-      betPerLine  = Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet));
+      betPerLine  = Math.round(Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet)));
       activeLines = Math.max(1, Math.min(50, Number(lines) || 50));
       totBet      = betPerLine * activeLines;
 

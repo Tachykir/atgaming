@@ -357,22 +357,19 @@ function registerHandlers(socket, io, casino) {
     await casino.recordGame(discordUser.id);
 
     // ── Pit Meter (aktualizuj tylko w normalnych spinach) ─────────────────────
+    // Każdy spin +1 — wygrana NIE resetuje licznika
     let pitTriggered = false;
     if (!isFree) {
-      if (payout > 0) {
-        state.pitMeter = 0; // wygrana resetuje licznik
-      } else {
-        state.pitMeter++;
-        if (state.pitMeter >= PIT_THRESHOLD) {
-          state.pitMeter    = 0;
-          pitTriggered      = true;
-          state.freeSpins   = PIT_FREE_SPINS;
-          state.freeMode    = 'pit';
-          state.betPerLine  = betPerLine;
-          state.activeLines = activeLines;
-          state.stickyLocks = [];
-          freeSpinsAwarded  = PIT_FREE_SPINS;
-        }
+      state.pitMeter++;
+      if (state.pitMeter >= PIT_THRESHOLD) {
+        state.pitMeter    = 0;
+        pitTriggered      = true;
+        state.freeSpins   = PIT_FREE_SPINS;
+        state.freeMode    = 'pit';
+        state.betPerLine  = betPerLine;
+        state.activeLines = activeLines;
+        state.stickyLocks = [];
+        freeSpinsAwarded  = PIT_FREE_SPINS;
       }
     }
 
