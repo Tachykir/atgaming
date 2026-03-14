@@ -191,7 +191,6 @@ function calcLines(grid, betPerLine, activeLines) {
       else if (si === first) { streak++; }
       else break;
     }
-    // Jeśli wszystkie symbole to wilds (Lock/Valdo) — użyj Lock jako symbol
     if (first === -1) {
       if (streak > 0) first = IDX_LOCK; else continue;
     }
@@ -355,9 +354,16 @@ function registerHandlers(socket, io, casino) {
       }
     }
 
-    // ── Wypłata = outcome.payout (kontrolowany RTP przez drawOutcome) ─────────
-    // buildGrid układa symbole pasujące do outcome, calcLines służy do wizualizacji
-    const basePayout  = outcome.payout;
+    // ── Wypłata ──────────────────────────────────────────────────────────────
+    // outcome.payout = kontrolowany RTP (drawOutcome)
+    // linesTotal = rzeczywiste wygrane z linii (używane gdy sticky wilds tworzą kombinację)
+    // Jeśli są sticky wilds na planszy → bierz MAX(outcome, linesTotal)
+    // żeby Lock/Valdo zawsze wypłacały gdy tworzą wygrywającą linię
+    const linesTotal  = winLines.reduce((s, w) => s + w.lineWin, 0);
+    const hasStickyWilds = (state.stickyLocks.length > 0 || state.stickyValdos.length > 0);
+    const basePayout  = hasStickyWilds
+      ? Math.max(outcome.payout, linesTotal)
+      : outcome.payout;
     const payout      = valdoMult > 0 && basePayout > 0
       ? Math.round(basePayout * valdoMult)
       : basePayout;
