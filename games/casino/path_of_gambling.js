@@ -329,8 +329,11 @@ function registerHandlers(socket, io, casino) {
       }
     }
 
-    // ── Wypłata (z opcjonalnym mnożnikiem Valdo) ────────────────────────────
-    const basePayout  = outcome.payout;
+    // ── Wypłata = rzeczywista suma wygranych linii ────────────────────────────
+    // winLines zawiera rzeczywiste trafienia na siatce
+    // outcome.payout służy tylko buildGrid (ukształtowanie wyniku), nie jest używany bezpośrednio
+    const linesTotal  = winLines.reduce((s, w) => s + w.lineWin, 0);
+    const basePayout  = linesTotal > 0 ? linesTotal : 0;
     const payout      = valdoMult > 0 && basePayout > 0
       ? Math.round(basePayout * valdoMult)
       : basePayout;
@@ -399,9 +402,11 @@ function registerHandlers(socket, io, casino) {
       pitMeter:          state.pitMeter,
       pitThreshold:      PIT_THRESHOLD,
       pitTriggered,
-      // Sticky Lock
+      // Sticky Lock + Valdo
       stickyLocks:       [...state.stickyLocks],
       newLocks,
+      stickyValdos:      [...state.stickyValdos],
+      newValdos:         typeof newValdos !== 'undefined' ? newValdos : [],
       // Meta dla frontendu
       sacredPitBonus,
       valdoMult,
