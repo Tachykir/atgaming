@@ -589,6 +589,7 @@ select.input option{background:var(--surface2);}
 .s5-msg { min-height:36px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center; }
 .s5-msg.win  { background:rgba(59,109,17,.12);border-color:#3B6D11;color:#5cf0c8; }
 .s5-msg.big  { background:rgba(186,117,23,.12);border-color:#BA7517;color:#ffd200;font-weight:700; }
+.s5-msg.error { background:rgba(248,113,113,.1);border-color:#f87171;color:#f87171; }
 .s5-fs-bar { background:rgba(24,95,165,.12);border:1px solid #185FA5;border-radius:10px;padding:8px 12px;margin-bottom:8px;display:none;align-items:center;gap:10px; }
 .s5-fs-bar.show { display:flex; }
 .s5-pit-wrap { background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:8px; }
@@ -2773,6 +2774,43 @@ function renderLbContent(entries) {
 // ── SOCKET EVENTS ──────────────────────────────────────────────
 socket.on('connect', () => { S.playerId = socket.id; });
 socket.on('error', ({message}) => showToast(message, 'error'));
+socket.on('disconnect', () => {
+  // Odblokuj automaty jeśli spin był w toku podczas rozłączenia
+  if (pgSpinning) {
+    pgSpinning = false;
+    if (typeof pgPreSpinFreeSpins !== 'undefined') { pgFreeSpins = pgPreSpinFreeSpins; pgUpdateFSBar(); }
+    if (casinoWallet && typeof pgPreSpinBalance !== 'undefined') casinoWallet.balance = pgPreSpinBalance;
+    for (var _dc=0; _dc<PG_COLS; _dc++) for (var _dr=0; _dr<PG_ROWS; _dr++) {
+      var _del = document.getElementById('pgc'+_dc+'_'+_dr);
+      if (_del && _del._spinInt) { clearInterval(_del._spinInt); _del._spinInt = null; }
+    }
+    var pgBtnD = document.getElementById('pg-spin-btn');
+    if (pgBtnD) { pgBtnD.disabled = false; pgBtnD.innerHTML = '<img src="/images/slots/poelogo.png" style="height:28px;width:auto;object-fit:contain"> SPIN'; }
+    pgSetMsg('Rozłączono — odśwież stronę', 'error');
+  }
+  if (s5Spinning) {
+    s5Spinning = false;
+    if (typeof s5PreSpinFreeSpins !== 'undefined') { s5FreeSpins = s5PreSpinFreeSpins; s5UpdateFSBar(); }
+    if (casinoWallet && typeof s5PreSpinBalance !== 'undefined') casinoWallet.balance = s5PreSpinBalance;
+    for (var _dc2=0; _dc2<S5_COLS; _dc2++) for (var _dr2=0; _dr2<S5_ROWS; _dr2++) {
+      var _del2 = document.getElementById('s5c'+_dc2+'_'+_dr2);
+      if (_del2 && _del2._spinInt) { clearInterval(_del2._spinInt); _del2._spinInt = null; }
+    }
+    var s5BtnD = document.getElementById('s5-spin-btn');
+    if (s5BtnD) { s5BtnD.disabled = false; s5BtnD.textContent = '🎰 SPIN'; }
+    s5SetMsg('Rozłączono — odśwież stronę');
+  }
+  // Wyczyść socket token — przy reconnect pobierzemy nowy
+  casinoSocketToken = null;
+});
+socket.on('reconnect', () => {
+  // Po reconneccie pobierz świeży token
+  if (discordUser) {
+    fetch('/auth/socket-token').then(r=>r.json()).then(function(d){
+      if (d.token) { casinoSocketToken = d.token; }
+    }).catch(function(){});
+  }
+});
 
 socket.on('roomCreated', ({roomId, room}) => {
   S.roomId=roomId; S.isHost=true; S.room=room; renderLobby(room); showChat(); showScreen('lobby');
@@ -4412,6 +4450,12 @@ const S5_SPIN_SYMS = ['🍒','🍋','🍊','🍇','⭐','💎','7️⃣','🔔',
 
 function initSlotsUI(table) {
   window._s5Table = table;
+  // Odśwież socket token przy wejściu do stołu jeśli brak
+  if (discordUser && !casinoSocketToken) {
+    fetch('/auth/socket-token').then(r=>r.json()).then(function(d){
+      if (d.token) casinoSocketToken = d.token;
+    }).catch(function(){});
+  }
   document.getElementById('casino-slots-name').textContent = table.name;
   document.getElementById('casino-slots-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
   s5Bet = table.config.minBet || 10;
@@ -4614,9 +4658,21 @@ function s5PreviewLines() {
 
 function s5Spin() {
   if (s5Spinning || !casinoTableId || document.getElementById('s5-win-ov').classList.contains('show')) return;
+  // Jeśli brak tokenu — spróbuj pobrać i ponów spin
+  if (!casinoSocketToken && discordUser) {
+    s5SetMsg('⏳ Autoryzacja...');
+    fetch('/auth/socket-token').then(r=>r.json()).then(function(d){
+      if (d.token) { casinoSocketToken = d.token; s5Spin(); }
+      else s5SetMsg('Błąd autoryzacji — zaloguj się ponownie');
+    }).catch(function(){ s5SetMsg('Błąd połączenia'); });
+    return;
+  }
+  if (!casinoSocketToken) { s5SetMsg('Musisz być zalogowany przez Discord!'); return; }
   const totBet = s5Bet * s5Lines;
   const cost   = s5FreeSpins > 0 ? 0 : totBet;
   if (casinoWallet && casinoWallet.balance < cost && s5FreeSpins === 0) { s5SetMsg('Za mało AT$!'); return; }
+  var s5PreSpinFreeSpins = s5FreeSpins;
+  var s5PreSpinBalance   = casinoWallet ? casinoWallet.balance : 0;
   if (s5FreeSpins > 0) { s5FreeSpins--; s5UpdateFSBar(); }
   else if (casinoWallet) casinoWallet.balance -= cost;
   s5Spinning = true;
@@ -5358,6 +5414,12 @@ let pgTable = null;
 
 function initPathUI(table) {
   pgTable = table;
+  // Odśwież socket token przy wejściu do stołu jeśli brak
+  if (discordUser && !casinoSocketToken) {
+    fetch('/auth/socket-token').then(r=>r.json()).then(function(d){
+      if (d.token) casinoSocketToken = d.token;
+    }).catch(function(){});
+  }
   document.getElementById('casino-path-name').textContent = table.name;
   document.getElementById('casino-path-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '\u2014';
   pgBet = table.config.minBet || 10;
@@ -5539,9 +5601,21 @@ function pgPreviewLines() {
 function pgSpin() {
   const winOv = document.getElementById('pg-win-ov');
   if (pgSpinning || !casinoTableId || (winOv && winOv.classList.contains('show'))) return;
+  // Jeśli brak tokenu — spróbuj pobrać i ponów spin
+  if (!casinoSocketToken && discordUser) {
+    pgSetMsg('⏳ Autoryzacja...');
+    fetch('/auth/socket-token').then(r=>r.json()).then(function(d){
+      if (d.token) { casinoSocketToken = d.token; pgSpin(); }
+      else pgSetMsg('Błąd autoryzacji — zaloguj się ponownie');
+    }).catch(function(){ pgSetMsg('Błąd połączenia'); });
+    return;
+  }
+  if (!casinoSocketToken) { pgSetMsg('Musisz być zalogowany przez Discord!'); return; }
   const totBet = pgBet * pgLines;
   const cost   = pgFreeSpins > 0 ? 0 : totBet;
   if (casinoWallet && casinoWallet.balance < cost && pgFreeSpins === 0) { pgSetMsg('Za ma\u0142o AT$!'); return; }
+  var pgPreSpinFreeSpins = pgFreeSpins;
+  var pgPreSpinBalance   = casinoWallet ? casinoWallet.balance : 0;
   if (pgFreeSpins > 0) { pgFreeSpins--; pgUpdateFSBar(); }
   else if (casinoWallet) casinoWallet.balance -= cost;
   pgSpinning = true;
@@ -5906,6 +5980,36 @@ socket.on('casinoJoined', ({ tableId, sessionChips, walletBalance }) => {
 
 socket.on('casinoError', ({ message }) => {
   showToast(message, 'error');
+  // Odblokuj automaty jeśli spin był w toku
+  if (pgSpinning) {
+    pgSpinning = false;
+    // Przywróć stan sprzed spinu (free spiny i saldo)
+    if (typeof pgPreSpinFreeSpins !== 'undefined') { pgFreeSpins = pgPreSpinFreeSpins; pgUpdateFSBar(); }
+    if (casinoWallet && typeof pgPreSpinBalance !== 'undefined') { casinoWallet.balance = pgPreSpinBalance; }
+    // Zatrzymaj animacje kręcenia
+    for (var _c=0; _c<PG_COLS; _c++) for (var _r=0; _r<PG_ROWS; _r++) {
+      var _el = document.getElementById('pgc'+_c+'_'+_r);
+      if (_el && _el._spinInt) { clearInterval(_el._spinInt); _el._spinInt = null; }
+    }
+    var pgBtn = document.getElementById('pg-spin-btn');
+    if (pgBtn) { pgBtn.disabled = false; pgBtn.innerHTML = '<img src="/images/slots/poelogo.png" style="height:28px;width:auto;object-fit:contain"> SPIN'; }
+    pgUpdateStats();
+    pgSetMsg(message, 'error');
+  }
+  if (s5Spinning) {
+    s5Spinning = false;
+    // Przywróć stan sprzed spinu
+    if (typeof s5PreSpinFreeSpins !== 'undefined') { s5FreeSpins = s5PreSpinFreeSpins; s5UpdateFSBar(); }
+    if (casinoWallet && typeof s5PreSpinBalance !== 'undefined') { casinoWallet.balance = s5PreSpinBalance; }
+    for (var _c2=0; _c2<S5_COLS; _c2++) for (var _r2=0; _r2<S5_ROWS; _r2++) {
+      var _el2 = document.getElementById('s5c'+_c2+'_'+_r2);
+      if (_el2 && _el2._spinInt) { clearInterval(_el2._spinInt); _el2._spinInt = null; }
+    }
+    var s5Btn = document.getElementById('s5-spin-btn');
+    if (s5Btn) { s5Btn.disabled = false; s5Btn.textContent = '🎰 SPIN'; }
+    s5UpdateStats();
+    s5SetMsg(message, 'error');
+  }
 });
 
 // Countdown
