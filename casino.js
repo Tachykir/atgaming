@@ -57,6 +57,18 @@ async function initPg() {
       details JSONB
     )
   `);
+  await pg.query(`
+    CREATE TABLE IF NOT EXISTS casino_slot_stats (
+      discord_id  TEXT NOT NULL,
+      game_id     TEXT NOT NULL,
+      spins       BIGINT NOT NULL DEFAULT 0,
+      spent       BIGINT NOT NULL DEFAULT 0,
+      won         BIGINT NOT NULL DEFAULT 0,
+      best_win    BIGINT NOT NULL DEFAULT 0,
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (discord_id, game_id)
+    )
+  `);
   console.log('🐘 Casino: połączono z PostgreSQL');
 }
 
@@ -322,8 +334,53 @@ function getTablePublic(table) {
   };
 }
 
+// ─── STATYSTYKI SLOTÓW per gracz per gra ────────────────────────
+async function getSlotStats(discordId, gameId) {
+  if (pg) {
+    const r = await pg.query(
+      'SELECT spins,spent,won,best_win FROM casino_slot_stats WHERE discord_id=$1 AND game_id=$2',
+      [discordId, gameId]
+    );
+    if (r.rows[0]) {
+      const row = r.rows[0];
+      return { spins: Number(row.spins), spent: Number(row.spent), won: Number(row.won), bestWin: Number(row.best_win) };
+    }
+    return { spins: 0, spent: 0, won: 0, bestWin: 0 };
+  }
+  // JSON fallback
+  const key = discordId + ':' + gameId;
+  return jsonDb.slotStats?.[key] || { spins: 0, spent: 0, won: 0, bestWin: 0 };
+}
+
+async function updateSlotStats(discordId, gameId, { spins = 0, spent = 0, won = 0, bestWin = 0 }) {
+  if (pg) {
+    await pg.query(`
+      INSERT INTO casino_slot_stats (discord_id, game_id, spins, spent, won, best_win)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (discord_id, game_id) DO UPDATE SET
+        spins    = casino_slot_stats.spins    + $3,
+        spent    = casino_slot_stats.spent    + $4,
+        won      = casino_slot_stats.won      + $5,
+        best_win = GREATEST(casino_slot_stats.best_win, $6),
+        updated_at = NOW()
+    `, [discordId, gameId, spins, spent, won, bestWin]);
+    return;
+  }
+  if (!jsonDb.slotStats) jsonDb.slotStats = {};
+  const key = discordId + ':' + gameId;
+  const cur = jsonDb.slotStats[key] || { spins: 0, spent: 0, won: 0, bestWin: 0 };
+  jsonDb.slotStats[key] = {
+    spins:   cur.spins   + spins,
+    spent:   cur.spent   + spent,
+    won:     cur.won     + won,
+    bestWin: Math.max(cur.bestWin, bestWin),
+  };
+  saveJsonDb();
+}
+
 module.exports = {
   init, getWallet, ensureWallet, updateBalance, recordGame, getLeaderboard, getAllWallets, adminSetBalance,
+  getSlotStats, updateSlotStats,
   scheduleWeeklyTopup, runWeeklyTopup,
   casinoTables, createTable, deleteTable, getTablePublic, initTables,
   START_BALANCE, WEEKLY_MINIMUM, WEEKLY_TOP_UP,

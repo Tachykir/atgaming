@@ -199,6 +199,12 @@ function registerHandlers(socket, io, casino) {
     const payout = outcome.payout;
     if (payout > 0) await casino.updateBalance(discordUser.id, payout);
     await casino.recordGame(discordUser.id);
+    await casino.updateSlotStats(discordUser.id, 'slots', {
+      spins:   1,
+      spent:   isFree ? 0 : totBet,
+      won:     payout,
+      bestWin: payout,
+    });
 
     // Odlicz free spin
     let freeSpinsRemaining = 0;

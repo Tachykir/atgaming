@@ -824,9 +824,15 @@ select.input option{background:var(--surface2);}
 .pg-cell { background:transparent !important; border-color:rgba(180,120,0,.3) !important; }
 .pg-cell img { display:block; }
 .pg-cell.pg-locked { outline:2px solid #cc44aa !important; background:rgba(204,68,170,.15) !important; box-shadow:0 0 10px rgba(204,68,170,.4); }
+.pg-cell.pg-valdo { outline:2px solid #c0a060 !important; background:rgba(192,160,96,.15) !important; box-shadow:0 0 12px rgba(192,160,96,.5); }
+.pg-valdo-b { background:#c0a060 !important; color:#1a1000; font-size:8px; font-weight:800; }
 .pg-lock-b { background:#cc44aa !important; color:#fff; }
 
 .at-version{position:fixed;bottom:10px;left:14px;font-size:11px;color:var(--muted);opacity:.5;pointer-events:none;z-index:10;font-family:'DM Mono',monospace;letter-spacing:.03em;}
+
+.s5-stat-val.profit-pos { color:#4ade80; }
+.s5-stat-val.profit-neg { color:#f87171; }
+.s5-stat-val.profit-zero { color:var(--muted); }
 </style>
 </head>
 <body>
@@ -871,11 +877,6 @@ select.input option{background:var(--surface2);}
       <button class="btn btn-secondary btn-sm" onclick="loadActiveRooms()">🔄 Odśwież</button>
     </div>
     <div id="active-rooms-list">
-      <div style="color:var(--muted);text-align:center;padding:48px">Ładowanie...</div>
-    </div>
-  </div>
-</div>
-    <div id="online-players-list">
       <div style="color:var(--muted);text-align:center;padding:48px">Ładowanie...</div>
     </div>
   </div>
@@ -1580,10 +1581,12 @@ select.input option{background:var(--surface2);}
       <div class="s5-win-log" id="s5-win-log"></div>
 
       <!-- Statystyki sesji -->
-      <div class="s5-stats">
+      <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
         <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="s5-stat-spins">0</div></div>
-        <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="s5-stat-paid">0</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="s5-stat-paid">0 AT$</div></div>
         <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="s5-stat-best">—</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="s5-stat-spent">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="s5-stat-profit">—</div></div>
       </div>
 
       <!-- Free spins -->
@@ -1835,10 +1838,12 @@ select.input option{background:var(--surface2);}
       <div class="s5-win-log" id="pg-win-log"></div>
 
       <!-- Statystyki sesji -->
-      <div class="s5-stats">
+      <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
         <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="pg-stat-spins">0</div></div>
-        <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="pg-stat-paid">0</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="pg-stat-paid">0 AT$</div></div>
         <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="pg-stat-best">—</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="pg-stat-spent">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="pg-stat-profit">—</div></div>
       </div>
 
       <!-- Free spins -->
@@ -4289,11 +4294,43 @@ function leaveCasinoTable() {
 }
 
 // ── AUTOMAT 5-BĘBNOWY (SLOTS) ──────────────────────────────────
+// ── Funkcja wyświetlania profit/loss ─────────────────────────────
+function updateProfitDisplay(elId, spent, won) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (spent === 0) { el.textContent = '—'; el.className = 's5-stat-val profit-zero'; return; }
+  const diff = won - spent;
+  const pct  = ((diff / spent) * 100).toFixed(1);
+  el.textContent = (diff >= 0 ? '+' : '') + pct + '%';
+  el.className   = 's5-stat-val ' + (diff > 0 ? 'profit-pos' : diff < 0 ? 'profit-neg' : 'profit-zero');
+}
+
+// ── Ładuj statystyki slotów z bazy danych ────────────────────────
+async function loadSlotStats(gameId, prefix) {
+  try {
+    const r = await fetch('/api/casino/slot-stats/' + gameId);
+    if (!r.ok) return;
+    const d = await r.json();
+    const spinsEl  = document.getElementById(prefix + '-stat-spins');
+    const paidEl   = document.getElementById(prefix + '-stat-paid');
+    const bestEl   = document.getElementById(prefix + '-stat-best');
+    const spentEl  = document.getElementById(prefix + '-stat-spent');
+    if (spinsEl) spinsEl.textContent = d.spins.toLocaleString('pl-PL');
+    if (paidEl)  paidEl.textContent  = d.won.toLocaleString('pl-PL') + ' AT$';
+    if (bestEl)  bestEl.textContent  = d.bestWin > 0 ? d.bestWin.toLocaleString('pl-PL') + ' AT$' : '—';
+    if (spentEl) spentEl.textContent = d.spent.toLocaleString('pl-PL') + ' AT$';
+    updateProfitDisplay(prefix + '-stat-profit', d.spent, d.won);
+    // Zapisz do zmiennych sesji żeby updateStats mogło je uwzględnić
+    if (prefix === 's5') { s5StatSpins = d.spins; s5StatPaid = d.won; s5BestWin = d.bestWin; s5StatSpent = d.spent; }
+    if (prefix === 'pg') { pgStatSpins = d.spins; pgStatPaid = d.won; pgBestWin = d.bestWin; pgStatSpent = d.spent; }
+  } catch(e) {}
+}
+
 const S5_COLS = 5, S5_ROWS = 3;
 const S5_LINE_COLORS = ['#E24B4A','#185FA5','#3B6D11','#BA7517','#533AB7','#0F6E56','#993C1D','#D4537E','#639922','#5F5E5A'];
 let s5Spinning = false, s5Auto = false, s5AutoT = null, s5WinCb = null, s5WinTimer = null;
 let s5Bet = 10, s5Lines = 50, s5FreeSpins = 0, s5PitPts = 0;
-let s5StatSpins = 0, s5StatPaid = 0, s5BestWin = 0;
+let s5StatSpins = 0, s5StatPaid = 0, s5BestWin = 0, s5StatSpent = 0;
 let s5Syms = [], s5LinesDef = [];
 // Dekoracyjne symbole do animacji kręcenia
 const S5_SPIN_SYMS = ['🍒','🍋','🍊','🍇','⭐','💎','7️⃣','🔔','💫'];
@@ -4304,7 +4341,7 @@ function initSlotsUI(table) {
   document.getElementById('casino-slots-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
   s5Bet = table.config.minBet || 10;
   s5Lines = 50; s5FreeSpins = 0; s5PitPts = 0;
-  s5StatSpins = 0; s5StatPaid = 0; s5BestWin = 0;
+  s5StatSpins = 0; s5StatPaid = 0; s5BestWin = 0; s5StatSpent = 0;
   s5Auto = false;
   document.getElementById('s5-auto-btn').classList.remove('on');
   document.getElementById('s5-auto-btn').textContent = 'Auto';
@@ -4319,6 +4356,7 @@ function initSlotsUI(table) {
   document.getElementById('s5-mg').classList.remove('show');
   document.getElementById('s5-win-ov').classList.remove('show');
   s5ClearSVG();
+  if (casinoDiscordId) loadSlotStats('slots', 's5');
 }
 
 function s5BuildGrid() {
@@ -4413,9 +4451,12 @@ function s5UpdateStats() {
   document.getElementById('s5-bet-val').textContent   = s5Bet;
   document.getElementById('s5-lines-val').textContent = s5Lines;
   document.getElementById('s5-tot-bet').textContent   = (s5Bet * s5Lines).toLocaleString('pl-PL');
-  document.getElementById('s5-stat-spins').textContent = s5StatSpins;
-  document.getElementById('s5-stat-paid').textContent  = s5StatPaid.toLocaleString('pl-PL');
+  document.getElementById('s5-stat-spins').textContent = s5StatSpins.toLocaleString('pl-PL');
+  document.getElementById('s5-stat-paid').textContent  = s5StatPaid.toLocaleString('pl-PL') + ' AT$';
   document.getElementById('s5-stat-best').textContent  = s5BestWin > 0 ? s5BestWin.toLocaleString('pl-PL') + ' AT$' : '—';
+  const s5Spent = document.getElementById('s5-stat-spent');
+  if (s5Spent) s5Spent.textContent = s5StatSpent.toLocaleString('pl-PL') + ' AT$';
+  updateProfitDisplay('s5-stat-profit', s5StatSpent, s5StatPaid);
 }
 
 function s5UpdateFSBar() {
@@ -4538,6 +4579,7 @@ socket.on('casinoSlotsResult', ({ grid, winLines, payout, net, balance, bet, act
           const btn = document.getElementById('s5-spin-btn'); btn.disabled = false; btn.textContent = '🎰 SPIN';
           if (casinoWallet) casinoWallet.balance = balance;
           s5StatSpins++; s5StatPaid += payout; if (payout > s5BestWin) s5BestWin = payout;
+          s5StatSpent += (s5FreeSpins > 0 ? 0 : totBet);
 
           if (freeSpinsAwarded > 0) { s5FreeSpins += freeSpinsAwarded; s5UpdateFSBar(); }
 
@@ -5214,7 +5256,8 @@ const PG_COLS = 5, PG_ROWS = 5;
 const PG_LINE_COLORS = ['#E24B4A','#185FA5','#3B6D11','#BA7517','#533AB7','#0F6E56','#993C1D','#D4537E','#639922','#5F5E5A','#a855f7','#06b6d4','#f59e0b','#10b981','#ef4444'];
 let pgSpinning = false, pgAuto = false, pgAutoT = null, pgWinCb = null, pgWinTimer = null;
 let pgBet = 10, pgLines = 50, pgFreeSpins = 0, pgPitMeter = 0, pgFreeMode = null;
-let pgStatSpins = 0, pgStatPaid = 0, pgBestWin = 0;
+let pgStatSpins = 0, pgStatPaid = 0, pgBestWin = 0, pgStatSpent = 0;
+let pgStickyValdos = [];
 let pgSyms = [], pgLinesDef = [], pgStickyLocks = [];
 let pgTable = null;
 
@@ -5224,7 +5267,8 @@ function initPathUI(table) {
   document.getElementById('casino-path-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '\u2014';
   pgBet = table.config.minBet || 10;
   pgLines = 50; pgFreeSpins = 0; pgPitMeter = 0; pgFreeMode = null; pgStickyLocks = [];
-  pgStatSpins = 0; pgStatPaid = 0; pgBestWin = 0;
+  pgStickyValdos = [];
+  pgStatSpins = 0; pgStatPaid = 0; pgBestWin = 0; pgStatSpent = 0;
   pgAuto = false;
   const autoBtn = document.getElementById('pg-auto-btn');
   if (autoBtn) { autoBtn.classList.remove('on'); autoBtn.textContent = 'Auto'; }
@@ -5239,6 +5283,7 @@ function initPathUI(table) {
   const winOv = document.getElementById('pg-win-ov');
   if (winOv) winOv.classList.remove('show');
   pgClearSVG();
+  if (casinoDiscordId) loadSlotStats('path_of_gambling', 'pg');
 }
 
 function pgBuildGrid() {
@@ -5329,9 +5374,11 @@ function pgUpdateStats() {
   const bal = document.getElementById('casino-path-balance');
   if (bal) bal.textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '\u2014';
   const elems = { 'pg-bet-val': pgBet, 'pg-lines-val': pgLines, 'pg-tot-bet': (pgBet * pgLines).toLocaleString('pl-PL'),
-    'pg-stat-spins': pgStatSpins, 'pg-stat-paid': pgStatPaid.toLocaleString('pl-PL'),
-    'pg-stat-best': pgBestWin > 0 ? pgBestWin.toLocaleString('pl-PL') + ' AT$' : '\u2014' };
+    'pg-stat-spins': pgStatSpins.toLocaleString('pl-PL'), 'pg-stat-paid': pgStatPaid.toLocaleString('pl-PL') + ' AT$',
+    'pg-stat-best': pgBestWin > 0 ? pgBestWin.toLocaleString('pl-PL') + ' AT$' : '\u2014',
+    'pg-stat-spent': pgStatSpent.toLocaleString('pl-PL') + ' AT$' };
   Object.entries(elems).forEach(function(e){ const el=document.getElementById(e[0]); if(el) el.textContent=e[1]; });
+  updateProfitDisplay('pg-stat-profit', pgStatSpent, pgStatPaid);
 }
 
 function pgUpdateFSBar() {
@@ -5428,11 +5475,14 @@ socket.on('casinoPathResult', function(data) {
   const freeSpinsAwarded=data.freeSpinsAwarded||0, freeMode=data.freeMode;
   const pitMeter=data.pitMeter||0, pitTriggered=data.pitTriggered;
   const stickyLocks=data.stickyLocks||[], newLocks=data.newLocks||[];
+  const stickyValdos=data.stickyValdos||[], newValdos=data.newValdos||[];
+  const sacredPitBonus=data.sacredPitBonus||0, valdoMult=data.valdoMult||0;
   const syms=data.syms, linesDef=data.lines;
 
   if (syms && syms.length)         pgSyms     = syms;
   if (linesDef && linesDef.length) pgLinesDef = linesDef;
   pgStickyLocks = stickyLocks;
+    pgStickyValdos = stickyValdos;
 
   const delays = [350, 600, 850, 1100, 1350];
   for (let c = 0; c < PG_COLS; c++) {
@@ -5445,6 +5495,7 @@ socket.on('casinoPathResult', function(data) {
           const isLocked = s.sticky && pgStickyLocks.find(function(l){ return l.col===col && l.row===r; });
           el.className = 's5-cell pg-cell' + (s.wild ? ' wild' : s.scatter ? ' scatter' : '') + ' landed';
           if (isLocked) el.classList.add('pg-locked');
+          if (s.valdo) { el.classList.add('pg-valdo'); var sv=(pgStickyValdos||[]).find(function(v){return v.col===col&&v.row===r;}); if(sv){ var mb=document.createElement('span'); mb.className='s5-badge pg-valdo-b'; mb.textContent=sv.mult+'x'; el.appendChild(mb); } }
           el.style.height = '58px';
           el.innerHTML = '<img src="' + s.img + '" style="width:44px;height:44px;object-fit:contain">'
             + (s.wild && !s.sticky ? '<span class="s5-badge s5-wild-b">W</span>' : '')
@@ -5458,8 +5509,10 @@ socket.on('casinoPathResult', function(data) {
             if (btn) { btn.disabled = false; btn.textContent = '⛏️ SPIN'; }
             if (casinoWallet) casinoWallet.balance = balance;
             pgStatSpins++; pgStatPaid += payout; if (payout > pgBestWin) pgBestWin = payout;
+            pgStatSpent += (pgFreeSpins > 0 ? 0 : pgBet * pgLines);
             if (freeSpinsAwarded > 0) { pgFreeSpins += freeSpinsAwarded; pgFreeMode = freeMode; pgUpdateFSBar(); }
             pgUpdatePit(pitMeter);
+            if (sacredPitBonus > 0) { var sEl=document.createElement('div'); sEl.className='s5-log-tag big'; sEl.textContent='✨ Sacred Orb! +'+sacredPitBonus+' Free Spiny'; var slg=document.getElementById('pg-win-log'); if(slg){slg.insertBefore(sEl,slg.firstChild);while(slg.children.length>6)slg.removeChild(slg.lastChild);} pgSetMsg('✨ Sacred Orb! +'+sacredPitBonus+' Free Spinów!','big'); }
             if (payout > 0) {
               const isBig = mult >= 1.5;
               winLines.forEach(function(w) {
@@ -5472,6 +5525,7 @@ socket.on('casinoPathResult', function(data) {
               if (winLineIdxs.length) pgDrawLines(winLineIdxs, 0.85);
               else if (pgLinesDef.length) pgDrawLines([0], 0.85);
               pgAddWinLog(payout, mult, tier);
+              if (valdoMult > 0) { var vEl=document.createElement('div'); vEl.className='s5-log-tag giga'; vEl.textContent='📦 Valdo\'s Box! x'+valdoMult+' — '+payout.toLocaleString('pl-PL')+' AT$'; var vlg=document.getElementById('pg-win-log'); if(vlg){vlg.insertBefore(vEl,vlg.firstChild);while(vlg.children.length>6)vlg.removeChild(vlg.lastChild);} }
               s5Fireworks(tier);
               pgUpdateStats();
               pgShowWinScreen(payout, mult, label, tier, function() {
@@ -5481,7 +5535,7 @@ socket.on('casinoPathResult', function(data) {
               });
             } else {
               if (pitTriggered) pgSetMsg('\u26cf\ufe0f PIT METER PE\u0141NY! 8 Free Spin\u00f3w!', 'big');
-              else if (freeSpinsAwarded > 0) pgSetMsg('\uD83C\uDF81 ' + freeSpinsAwarded + ' Free Spin\u00f3w!', 'big');
+              else if (freeSpinsAwarded > 0) { var mIcon = freeMode === 'sacred' ? '\u2728' : '\\uD83C\\uDF81'; pgSetMsg(mIcon + ' ' + freeSpinsAwarded + ' Free Spin\\u00f3w!', 'big'); }
               else pgSetMsg(pgFreeSpins > 0 ? ('Free Spin \u2014 ' + pgFreeSpins + ' pozosta\u0142o') : 'Bez wygranej');
               pgUpdateStats();
               if (pgAuto) pgAutoT = setTimeout(pgSpin, pgFreeSpins > 0 ? 500 : 1200);

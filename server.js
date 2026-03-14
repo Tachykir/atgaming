@@ -422,6 +422,16 @@ app.get('/api/casino/wallet', async (req, res) => {
   res.json({ wallet, discordId: user.id });
 });
 
+// Statystyki slotów per gracz
+app.get('/api/casino/slot-stats/:gameId', async (req, res) => {
+  const user = req.session?.discordUser;
+  if (!user) return res.status(401).json({ error: 'Wymagane logowanie przez Discord' });
+  try {
+    const stats = await casino.getSlotStats(user.id, req.params.gameId);
+    res.json(stats);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Ranking AT$
 app.get('/api/casino/leaderboard', async (req, res) => {
   res.json(await casino.getLeaderboard(50));
