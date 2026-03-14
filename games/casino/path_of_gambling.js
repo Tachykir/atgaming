@@ -79,13 +79,12 @@ const LINES = [
   [0,2,4,2,0],[4,2,0,2,4],[1,3,4,3,1],[3,1,0,1,3],
   [0,0,1,2,2],[2,2,1,0,0],[4,4,3,2,2],[2,2,3,4,4],
   [0,1,1,1,0],[4,3,3,3,4],[1,1,2,1,1],[3,3,2,3,3],
-  [0,1,2,3,4],[4,3,2,1,0],[1,2,3,4,4],[0,1,2,1,2],
-  [2,3,4,3,2],[2,1,0,1,0],[3,2,1,2,3],[1,0,0,0,1],
-  [0,0,0,1,2],[0,0,1,2,3],[0,1,2,3,4],[1,2,3,4,4],
-  [4,4,4,3,2],[4,4,3,2,1],[4,3,2,1,0],[3,2,1,0,0],
+  [1,2,3,4,4],[0,1,2,1,2],[2,1,0,1,0],[3,2,1,2,3],[1,0,0,0,1],
+  [0,0,0,1,2],[0,0,1,2,3],[4,4,4,3,2],[4,4,3,2,1],[3,2,1,0,0],
   [0,2,0,2,0],[4,2,4,2,4],[1,3,1,3,1],[3,1,3,1,3],
   [0,1,0,1,0],[4,3,4,3,4],[2,0,2,4,2],[2,4,2,0,2],
   [0,0,2,4,4],[4,4,2,0,0],
+  [0,0,0,0,1],[1,0,0,0,0],[4,4,4,4,3],[3,4,4,4,4],[2,1,2,1,2],
 ];
 
 const WIN_TIERS = [
@@ -255,7 +254,7 @@ function registerHandlers(socket, io, casino) {
     }
 
     // ── Spin ─────────────────────────────────────────────────────────────────
-    const pitMode  = (state.freeMode === 'pit');
+    const pitMode  = (state.freeMode === 'pit' || state.freeMode === 'sacred'); // Sacred = ten sam tryb co Pit (Lock + Valdo)
     const outcome  = drawOutcome(totBet);
     const grid     = buildGrid(outcome, pitMode, state.stickyLocks, state.stickyValdos);
     const winLines = calcLines(grid, betPerLine, activeLines);
@@ -283,13 +282,14 @@ function registerHandlers(socket, io, casino) {
     if (!isFree && !freeSpinsAwarded && sacredCount >= 3) {
       freeSpinsAwarded  = sacredCount === 3 ? 8 : sacredCount === 4 ? 10 : 12;
       state.freeSpins   = freeSpinsAwarded;
-      state.freeMode    = 'sacred';
-      state.betPerLine  = betPerLine;
-      state.activeLines = activeLines;
-      state.stickyLocks = [];
+      state.freeMode     = 'sacred';
+      state.betPerLine   = betPerLine;
+      state.activeLines  = activeLines;
+      state.stickyLocks  = [];
+      state.stickyValdos = [];
     }
 
-    // ── Pit mechaniki (Sacred +3 spiny, Valdo mnożnik) ───────────────────────
+    // ── Pit/Sacred mechaniki (Lock sticky, Valdo box, Sacred +3 spiny) ──────────
     const newLocks = [];
     let sacredPitBonus = 0;
     let valdoMult      = 0;
@@ -329,11 +329,9 @@ function registerHandlers(socket, io, casino) {
       }
     }
 
-    // ── Wypłata = rzeczywista suma wygranych linii ────────────────────────────
-    // winLines zawiera rzeczywiste trafienia na siatce
-    // outcome.payout służy tylko buildGrid (ukształtowanie wyniku), nie jest używany bezpośrednio
-    const linesTotal  = winLines.reduce((s, w) => s + w.lineWin, 0);
-    const basePayout  = linesTotal > 0 ? linesTotal : 0;
+    // ── Wypłata = outcome.payout (kontrolowany RTP przez drawOutcome) ─────────
+    // buildGrid układa symbole pasujące do outcome, calcLines służy do wizualizacji
+    const basePayout  = outcome.payout;
     const payout      = valdoMult > 0 && basePayout > 0
       ? Math.round(basePayout * valdoMult)
       : basePayout;
