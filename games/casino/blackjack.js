@@ -193,6 +193,13 @@ function placeBet(table, socketId, amount, io) {
 
   gs.bets[socketId] = bet;
   emitTableState(table, io);
+
+  // Jeśli wszyscy gracze przy stole obstawili — startuj od razu bez czekania na odliczanie
+  const allBet = table.players.length > 0 && table.players.every(p => gs.bets[p.socketId] > 0);
+  if (allBet) {
+    clearTimeout(countdownTimers[table.id]);
+    setTimeout(() => startDeal(table, io), 800);
+  }
 }
 
 function advanceTurn(table, io) {

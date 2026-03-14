@@ -65,10 +65,15 @@ async function initPg() {
       spent       BIGINT NOT NULL DEFAULT 0,
       won         BIGINT NOT NULL DEFAULT 0,
       best_win    BIGINT NOT NULL DEFAULT 0,
+      pit_meter   INTEGER NOT NULL DEFAULT 0,
+      recent_wins JSONB NOT NULL DEFAULT '[]',
       updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (discord_id, game_id)
     )
   `);
+  // Migracja dla istniejących baz
+  await pg.query(`ALTER TABLE casino_slot_stats ADD COLUMN IF NOT EXISTS pit_meter INTEGER NOT NULL DEFAULT 0`).catch(()=>{});
+  await pg.query(`ALTER TABLE casino_slot_stats ADD COLUMN IF NOT EXISTS recent_wins JSONB NOT NULL DEFAULT '[]'`).catch(()=>{});
   console.log('🐘 Casino: połączono z PostgreSQL');
 }
 
@@ -338,22 +343,32 @@ function getTablePublic(table) {
 async function getSlotStats(discordId, gameId) {
   if (pg) {
     const r = await pg.query(
-      'SELECT spins,spent,won,best_win FROM casino_slot_stats WHERE discord_id=$1 AND game_id=$2',
+      'SELECT spins,spent,won,best_win,pit_meter,recent_wins FROM casino_slot_stats WHERE discord_id=$1 AND game_id=$2',
       [discordId, gameId]
     );
     if (r.rows[0]) {
       const row = r.rows[0];
-      return { spins: Number(row.spins), spent: Number(row.spent), won: Number(row.won), bestWin: Number(row.best_win) };
+      return { spins: Number(row.spins), spent: Number(row.spent), won: Number(row.won), bestWin: Number(row.best_win), pitMeter: Number(row.pit_meter||0), recentWins: row.recent_wins || [] };
     }
-    return { spins: 0, spent: 0, won: 0, bestWin: 0 };
+    return { spins: 0, spent: 0, won: 0, bestWin: 0, pitMeter: 0, recentWins: [] };
   }
   // JSON fallback
   const key = discordId + ':' + gameId;
-  return jsonDb.slotStats?.[key] || { spins: 0, spent: 0, won: 0, bestWin: 0 };
+  const d = jsonDb.slotStats?.[key] || {};
+  return { spins: d.spins||0, spent: d.spent||0, won: d.won||0, bestWin: d.bestWin||0, pitMeter: d.pitMeter||0, recentWins: d.recentWins||[] };
 }
 
-async function updateSlotStats(discordId, gameId, { spins = 0, spent = 0, won = 0, bestWin = 0 }) {
+async function updateSlotStats(discordId, gameId, { spins = 0, spent = 0, won = 0, bestWin = 0, pitMeter = null, recentWin = null }) {
   if (pg) {
+    // Buduj dynamiczny UPDATE żeby obsłużyć opcjonalne pola
+    const params = [discordId, gameId, spins, spent, won, bestWin];
+    let extraSet = '';
+    if (pitMeter !== null) { params.push(pitMeter); extraSet += `, pit_meter = $${params.length}`; }
+    if (recentWin !== null) {
+      params.push(JSON.stringify(recentWin));
+      // Dodaj na początek listy, przytnij do 20 wpisów
+      extraSet += `, recent_wins = (SELECT jsonb_agg(x) FROM (SELECT x FROM jsonb_array_elements($${params.length}::jsonb || recent_wins) AS x LIMIT 20) sub)`;
+    }
     await pg.query(`
       INSERT INTO casino_slot_stats (discord_id, game_id, spins, spent, won, best_win)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -362,19 +377,20 @@ async function updateSlotStats(discordId, gameId, { spins = 0, spent = 0, won = 
         spent    = casino_slot_stats.spent    + $4,
         won      = casino_slot_stats.won      + $5,
         best_win = GREATEST(casino_slot_stats.best_win, $6),
-        updated_at = NOW()
-    `, [discordId, gameId, spins, spent, won, bestWin]);
+        updated_at = NOW()${extraSet}
+    `, params);
     return;
   }
   if (!jsonDb.slotStats) jsonDb.slotStats = {};
   const key = discordId + ':' + gameId;
-  const cur = jsonDb.slotStats[key] || { spins: 0, spent: 0, won: 0, bestWin: 0 };
-  jsonDb.slotStats[key] = {
-    spins:   cur.spins   + spins,
-    spent:   cur.spent   + spent,
-    won:     cur.won     + won,
-    bestWin: Math.max(cur.bestWin, bestWin),
-  };
+  const cur = jsonDb.slotStats[key] || { spins: 0, spent: 0, won: 0, bestWin: 0, pitMeter: 0, recentWins: [] };
+  cur.spins   += spins;
+  cur.spent   += spent;
+  cur.won     += won;
+  cur.bestWin  = Math.max(cur.bestWin, bestWin);
+  if (pitMeter !== null) cur.pitMeter = pitMeter;
+  if (recentWin !== null) { cur.recentWins = [recentWin, ...(cur.recentWins||[])].slice(0, 20); }
+  jsonDb.slotStats[key] = cur;
   saveJsonDb();
 }
 

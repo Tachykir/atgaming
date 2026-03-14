@@ -766,7 +766,7 @@ select.input option{background:var(--surface2);}
   background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
   padding: 12px; text-align: center;
 }
-.pm-stat-val { font-size: 20px; font-weight: 800; font-family: 'DM Mono', monospace; color: var(--accent3); }
+.pm-stat-val { font-size: 16px; font-weight: 800; font-family: 'DM Mono', monospace; color: var(--accent3); word-break: break-all; line-height: 1.25; overflow-wrap: anywhere; }
 .pm-stat-val.profit-pos { color: var(--success); }
 .pm-stat-val.profit-neg { color: var(--error); }
 .pm-stat-label { font-size: 11px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .06em; }
@@ -791,6 +791,22 @@ select.input option{background:var(--surface2);}
 .pm-no-login .pm-nl-title { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
 .pm-no-login .pm-nl-desc { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
 .pm-loading { padding: 32px; text-align: center; color: var(--muted); font-size: 14px; }
+
+
+/* ── TABELA OSTATNICH WYGRANYCH ──────────────────────────────── */
+.recent-wins-wrap { margin-top: 8px; }
+.recent-wins-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
+.recent-wins-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.recent-wins-table th { color: var(--muted); font-weight: 600; padding: 3px 6px; text-align: left; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.recent-wins-table td { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,.04); }
+.recent-wins-table tr:last-child td { border-bottom: none; }
+.rw-tier-win   { color: #ffd200; }
+.rw-tier-big   { color: #60a5fa; }
+.rw-tier-mega  { color: #a78bfa; }
+.rw-tier-huge  { color: #f472b6; }
+.rw-tier-giga  { color: #fb923c; }
+.rw-tier-frito { color: #4ade80; font-weight: 800; }
+.rw-free { font-size: 9px; color: var(--muted); margin-left: 3px; }
 
 /* ── PANEL GRACZE ONLINE ─────────────────────────────── */
 #online-panel-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:900;background:var(--surface);border:1px solid var(--border);border-left:none;border-radius:0 12px 12px 0;padding:10px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:2px 0 12px rgba(0,0,0,.3);transition:background .2s;}
@@ -1595,6 +1611,15 @@ select.input option{background:var(--surface2);}
         <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="s5-stat-profit">—</div></div>
       </div>
 
+      <!-- Ostatnie wygrane -->
+      <div class="recent-wins-wrap" id="s5-recent-wins-wrap" style="display:none">
+        <div class="recent-wins-title">🏆 Ostatnie wygrane (20)</div>
+        <table class="recent-wins-table">
+          <thead><tr><th>Wygrana</th><th>Mnożnik</th><th>Typ</th><th>Kiedy</th></tr></thead>
+          <tbody id="s5-recent-wins-body"></tbody>
+        </table>
+      </div>
+
       <!-- Free spins -->
       <div class="s5-fs-bar" id="s5-fs-bar">
         <div style="font-size:20px;font-weight:700;color:#60a5fa" id="s5-fs-count">0</div>
@@ -1850,6 +1875,15 @@ select.input option{background:var(--surface2);}
         <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="pg-stat-best">—</div></div>
         <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="pg-stat-spent">0 AT$</div></div>
         <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="pg-stat-profit">—</div></div>
+      </div>
+
+      <!-- Ostatnie wygrane -->
+      <div class="recent-wins-wrap" id="pg-recent-wins-wrap" style="display:none">
+        <div class="recent-wins-title">🏆 Ostatnie wygrane (20)</div>
+        <table class="recent-wins-table">
+          <thead><tr><th>Wygrana</th><th>Mnożnik</th><th>Typ</th><th>Kiedy</th></tr></thead>
+          <tbody id="pg-recent-wins-body"></tbody>
+        </table>
       </div>
 
       <!-- Free spins -->
@@ -4312,6 +4346,35 @@ function updateProfitDisplay(elId, spent, won) {
 }
 
 // ── Ładuj statystyki slotów z bazy danych ────────────────────────
+const TIER_LABELS = { win:'Win', big:'Big Win', mega:'Mega Win', huge:'Huge Win', giga:'Giga Win', frito:'Mega Giga Frito' };
+
+function renderRecentWins(prefix, wins) {
+  const wrap = document.getElementById(prefix + '-recent-wins-wrap');
+  const tbody = document.getElementById(prefix + '-recent-wins-body');
+  if (!wrap || !tbody) return;
+  if (!wins || wins.length === 0) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  tbody.innerHTML = wins.map(function(w) {
+    const ago = w.ts ? timeAgo(w.ts) : '';
+    const freeTag = w.isFree ? '<span class="rw-free">FS</span>' : '';
+    const tierClass = 'rw-tier-' + (w.tier || 'win');
+    return '<tr class="' + tierClass + '">'
+      + '<td>' + (w.payout||0).toLocaleString('pl-PL') + ' AT$' + freeTag + '</td>'
+      + '<td>' + (w.mult||0).toFixed(1) + '×</td>'
+      + '<td>' + (TIER_LABELS[w.tier] || 'Win') + '</td>'
+      + '<td style="color:var(--muted)">' + ago + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60)   return s + 's temu';
+  if (s < 3600) return Math.floor(s/60) + 'min temu';
+  if (s < 86400) return Math.floor(s/3600) + 'h temu';
+  return Math.floor(s/86400) + 'd temu';
+}
+
 async function loadSlotStats(gameId, prefix) {
   try {
     const r = await fetch('/api/casino/slot-stats/' + gameId);
@@ -4326,9 +4389,15 @@ async function loadSlotStats(gameId, prefix) {
     if (bestEl)  bestEl.textContent  = d.bestWin > 0 ? d.bestWin.toLocaleString('pl-PL') + ' AT$' : '—';
     if (spentEl) spentEl.textContent = d.spent.toLocaleString('pl-PL') + ' AT$';
     updateProfitDisplay(prefix + '-stat-profit', d.spent, d.won);
-    // Zapisz do zmiennych sesji żeby updateStats mogło je uwzględnić
+    // Zapisz do zmiennych sesji
     if (prefix === 's5') { s5StatSpins = d.spins; s5StatPaid = d.won; s5BestWin = d.bestWin; s5StatSpent = d.spent; }
-    if (prefix === 'pg') { pgStatSpins = d.spins; pgStatPaid = d.won; pgBestWin = d.bestWin; pgStatSpent = d.spent; }
+    if (prefix === 'pg') {
+      pgStatSpins = d.spins; pgStatPaid = d.won; pgBestWin = d.bestWin; pgStatSpent = d.spent;
+      // Przywróć pit meter z DB
+      if (typeof d.pitMeter === 'number') pgUpdatePit(d.pitMeter);
+    }
+    // Renderuj ostatnie wygrane
+    renderRecentWins(prefix, d.recentWins);
   } catch(e) {}
 }
 
@@ -4355,6 +4424,8 @@ function initSlotsUI(table) {
   s5UpdateStats();
   s5SetMsg('Ustaw zakład i naciśnij Spin');
   document.getElementById('s5-win-log').innerHTML = '';
+  var s5rwb = document.getElementById('s5-recent-wins-body'); if (s5rwb) s5rwb.innerHTML = '';
+  var s5rww = document.getElementById('s5-recent-wins-wrap'); if (s5rww) s5rww.style.display = 'none';
   document.getElementById('s5-pit-fill').style.width = '0%';
   document.getElementById('s5-pit-lvl').textContent = 'poziom 1';
   document.getElementById('s5-pit-pts').textContent = '0 / 100';
@@ -4563,7 +4634,7 @@ function s5Spin() {
   socket.emit('casinoSlotsSpin', { tableId: casinoTableId, bet: s5Bet, lines: s5Lines, socketToken: casinoSocketToken, discordId: casinoDiscordId });
 }
 
-socket.on('casinoSlotsResult', ({ grid, winLines, payout, net, balance, bet, activeLines, totBet, mult, tier, label, freeSpinsAwarded, syms, lines: linesDef }) => {
+socket.on('casinoSlotsResult', ({ grid, winLines, payout, net, balance, bet, activeLines, totBet, mult, tier, label, freeSpinsAwarded, freeSpinsRemaining, syms, lines: linesDef }) => {
   s5Syms    = syms    || s5Syms;
   s5LinesDef = linesDef || s5LinesDef;
 
@@ -4588,6 +4659,8 @@ socket.on('casinoSlotsResult', ({ grid, winLines, payout, net, balance, bet, act
           s5StatSpent += (s5FreeSpins > 0 ? 0 : totBet);
 
           if (freeSpinsAwarded > 0) { s5FreeSpins += freeSpinsAwarded; s5UpdateFSBar(); }
+          // Synchronizuj z serwerem
+          if (typeof freeSpinsRemaining === 'number' && freeSpinsRemaining >= 0) { s5FreeSpins = freeSpinsRemaining; s5UpdateFSBar(); }
 
           if (payout > 0) {
             const isBig = mult >= 1.5;
@@ -4601,6 +4674,22 @@ socket.on('casinoSlotsResult', ({ grid, winLines, payout, net, balance, bet, act
 
             s5AddPit(tier === 'frito' ? 5 : tier === 'giga' ? 4 : tier === 'huge' ? 3 : tier === 'mega' ? 2 : 1);
             s5AddWinLog(payout, mult, tier);
+            // Aggiorna tabella ultime vincite live
+            (function() {
+              var tbody = document.getElementById('s5-recent-wins-body');
+              var wrap  = document.getElementById('s5-recent-wins-wrap');
+              if (!tbody || !wrap) return;
+              wrap.style.display = 'block';
+              var tierClass = 'rw-tier-' + tier;
+              var row = '<tr class="' + tierClass + '">'
+                + '<td>' + payout.toLocaleString('pl-PL') + ' AT$</td>'
+                + '<td>' + mult.toFixed(1) + '×</td>'
+                + '<td>' + (TIER_LABELS[tier]||'Win') + '</td>'
+                + '<td style="color:var(--muted)">teraz</td>'
+                + '</tr>';
+              tbody.insertAdjacentHTML('afterbegin', row);
+              while (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length - 1);
+            })();
             s5Fireworks(tier);
             s5UpdateStats();
             s5ShowWinScreen(payout, mult, label, tier, () => {
@@ -5283,6 +5372,8 @@ function initPathUI(table) {
   pgSetMsg('Ustaw zak\u0142ad i naci\u015bnij Spin');
   const logEl = document.getElementById('pg-win-log');
   if (logEl) logEl.innerHTML = '';
+  var pgRwb = document.getElementById('pg-recent-wins-body'); if (pgRwb) pgRwb.innerHTML = '';
+  var pgRww = document.getElementById('pg-recent-wins-wrap'); if (pgRww) pgRww.style.display = 'none';
   pgUpdatePit(0);
   const fsBar = document.getElementById('pg-fs-bar');
   if (fsBar) fsBar.classList.remove('show');
@@ -5393,7 +5484,7 @@ function pgUpdateFSBar() {
   const fc = document.getElementById('pg-fs-count');
   if (fc) fc.textContent = pgFreeSpins;
   const fl = document.getElementById('pg-fs-label');
-  if (fl) fl.textContent = pgFreeMode === 'pit' ? '\u26cf\ufe0f Pit Free Spins \u2014 Lock aktywna!' : '\uD83C\uDF81 Free Spins aktywne';
+  if (fl) fl.textContent = pgFreeMode === 'pit' ? '\u26cf\ufe0f Pit Free Spins \u2014 Lock aktywna!' : pgFreeMode === 'sacred' ? '\u2728 Sacred Free Spins \u2014 Lock + Valdo!' : '\uD83C\uDF81 Free Spins aktywne';
   pgFreeSpins > 0 ? b.classList.add('show') : b.classList.remove('show');
 }
 
@@ -5463,7 +5554,8 @@ function pgSpin() {
   for (let c = 0; c < PG_COLS; c++) for (let r = 0; r < PG_ROWS; r++) {
     const el = document.getElementById('pgc' + c + '_' + r); if (!el) continue;
     const isLocked = pgStickyLocks && pgStickyLocks.find(function(l){ return l.col===c && l.row===r; });
-    if (isLocked) continue;
+    const isValdoLocked = pgStickyValdos && pgStickyValdos.find(function(v){ return v.col===c && v.row===r; });
+    if (isLocked || isValdoLocked) continue;
     el.className = 's5-cell pg-cell spinning'; el.style.height = '58px'; el.innerHTML = '';
     el._spinInt = setInterval(function() {
       if (!pgSyms.length) { el.textContent = '?'; return; }
@@ -5479,6 +5571,7 @@ socket.on('casinoPathResult', function(data) {
   const grid=data.grid, winLines=data.winLines, payout=data.payout;
   const balance=data.balance, mult=data.mult, tier=data.tier, label=data.label;
   const freeSpinsAwarded=data.freeSpinsAwarded||0, freeMode=data.freeMode;
+  const freeSpinsRemaining = typeof data.freeSpinsRemaining === 'number' ? data.freeSpinsRemaining : -1;
   const pitMeter=data.pitMeter||0, pitTriggered=data.pitTriggered;
   const stickyLocks=data.stickyLocks||[], newLocks=data.newLocks||[];
   const stickyValdos=data.stickyValdos||[], newValdos=data.newValdos||[];
@@ -5548,18 +5641,19 @@ socket.on('casinoPathResult', function(data) {
           const el = document.getElementById('pgc' + col + '_' + r); if (!el) continue;
           if (el._spinInt) { clearInterval(el._spinInt); el._spinInt = null; }
           const s = pgSyms[grid[col][r]]; if (!s) continue;
-          const isLocked = s.sticky && pgStickyLocks.find(function(l){ return l.col===col && l.row===r; });
+          const isLocked = s.sticky && !s.valdo && pgStickyLocks.find(function(l){ return l.col===col && l.row===r; });
+          const isValdoSticky = s.valdo && (pgStickyValdos||[]).find(function(v){ return v.col===col && v.row===r; });
+          var svEntry = s.valdo ? (pgStickyValdos||[]).find(function(v){ return v.col===col && v.row===r; }) : null;
           el.className = 's5-cell pg-cell' + (s.wild ? ' wild' : s.scatter ? ' scatter' : '') + ' landed';
           if (isLocked) el.classList.add('pg-locked');
+          if (isValdoSticky) el.classList.add('pg-valdo');
           if (s.sacred) el.classList.add('pg-sacred');
-          if (s.valdo) { el.classList.add('pg-valdo'); }
           el.style.height = '58px';
           el.innerHTML = '<img src="' + s.img + '" style="width:44px;height:44px;object-fit:contain">'
-          if (s.valdo) { el.classList.add('pg-valdo'); var sv2=(pgStickyValdos||[]).find(function(v){return v.col===col&&v.row===r;}); if(sv2){ var mb2=document.createElement('span'); mb2.className='s5-badge pg-valdo-b'; mb2.textContent=sv2.mult+'x'; el.appendChild(mb2); } }
-          if (s.sacred) el.classList.add('pg-sacred');
-            + (s.wild && !s.sticky ? '<span class="s5-badge s5-wild-b">W</span>' : '')
+            + (s.wild && !s.sticky && !s.valdo ? '<span class="s5-badge s5-wild-b">W</span>' : '')
             + (s.scatter ? '<span class="s5-badge s5-scat-b">S</span>' : '')
-            + (isLocked ? '<span class="s5-badge pg-lock-b">\uD83D\uDD12</span>' : '');
+            + (isLocked ? '<span class="s5-badge pg-lock-b">\uD83D\uDD12</span>' : '')
+            + (isValdoSticky && svEntry ? '<span class="s5-badge pg-valdo-b">' + svEntry.mult + 'x</span>' : '');
         }
         if (col === PG_COLS - 1) {
           setTimeout(function() {
@@ -5570,6 +5664,8 @@ socket.on('casinoPathResult', function(data) {
             pgStatSpins++; pgStatPaid += payout; if (payout > pgBestWin) pgBestWin = payout;
             pgStatSpent += (pgFreeSpins > 0 ? 0 : pgBet * pgLines);
             if (freeSpinsAwarded > 0) { pgFreeSpins += freeSpinsAwarded; pgFreeMode = freeMode; pgUpdateFSBar(); }
+            // Synchronizuj z serwerem żeby uniknąć rozbieżności
+            if (freeSpinsRemaining >= 0) { pgFreeSpins = freeSpinsRemaining; pgFreeMode = freeMode || null; pgUpdateFSBar(); }
             pgUpdatePit(pitMeter);
             if (sacredPitBonus > 0) { var sEl=document.createElement('div'); sEl.className='s5-log-tag big'; sEl.textContent='✨ Sacred Orb! +'+sacredPitBonus+' Free Spiny'; var slg=document.getElementById('pg-win-log'); if(slg){slg.insertBefore(sEl,slg.firstChild);while(slg.children.length>6)slg.removeChild(slg.lastChild);} pgSetMsg('✨ Sacred Orb! +'+sacredPitBonus+' Free Spinów!','big'); }
             if (payout > 0) {
@@ -5584,6 +5680,22 @@ socket.on('casinoPathResult', function(data) {
               if (winLineIdxs.length) pgDrawLines(winLineIdxs, 0.85);
               else if (pgLinesDef.length) pgDrawLines([0], 0.85);
               pgAddWinLog(payout, mult, tier);
+              // Aktualizuj tabelę ostatnich wygranych live
+              (function() {
+                var tbody = document.getElementById('pg-recent-wins-body');
+                var wrap  = document.getElementById('pg-recent-wins-wrap');
+                if (!tbody || !wrap) return;
+                wrap.style.display = 'block';
+                var tierClass = 'rw-tier-' + tier;
+                var row = '<tr class="' + tierClass + '">'
+                  + '<td>' + payout.toLocaleString('pl-PL') + ' AT$' + (data.isFree ? '<span class="rw-free">FS</span>' : '') + '</td>'
+                  + '<td>' + mult.toFixed(1) + '×</td>'
+                  + '<td>' + (TIER_LABELS[tier]||'Win') + '</td>'
+                  + '<td style="color:var(--muted)">teraz</td>'
+                  + '</tr>';
+                tbody.insertAdjacentHTML('afterbegin', row);
+                while (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length - 1);
+              })();
               if (valdoMult > 0) { var vEl=document.createElement('div'); vEl.className='s5-log-tag giga'; vEl.textContent='📦 Valdo\'s Box! x'+valdoMult+' — '+payout.toLocaleString('pl-PL')+' AT$'; var vlg=document.getElementById('pg-win-log'); if(vlg){vlg.insertBefore(vEl,vlg.firstChild);while(vlg.children.length>6)vlg.removeChild(vlg.lastChild);} }
               s5Fireworks(tier);
               pgUpdateStats();

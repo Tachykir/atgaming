@@ -6,10 +6,10 @@
  *  - Fracturing Orb  → WILD
  *  - Reflecting Mist → SCATTER (3→8, 4→12, 5→20 free spinów)
  *  - Pit Meter: co 100 spinów → 8 Pit free spinów
- *  - Hinekora's Lock → sticky wild w trybie Pit (w=3 w pit puli)
+ *  - Hinekora's Lock → sticky wild w trybie Pit (8% per pozycja w pit puli)
  *  - Sacred Orb      → SACRED scatter (3→8, 4→10, 5→12 free spinów)
- *                      W trybie Pit: 0.5% szansa/spin → +3 free spiny
- *  - Valdo's Box     → pojawia się tylko w Pit (1% szansa/spin)
+ *                      W trybie Pit: każdy Sacred Orb na planszy → +1 free spin
+ *  - Valdo's Box     → pojawia się tylko w Pit (0.75% per pozycja w pit puli)
  *                      → mnożnik: 2x(90.2%) 3x(6%) 5x(2%) 10x(1%) 20x(0.5%) 50x(0.2%) 100x(0.1%)
  */
 'use strict';
@@ -48,8 +48,8 @@ const DRUM_W   = SYMS.map(s => s.w);
 const DRUM_TOT = DRUM_W.reduce((a, b) => a + b, 0);
 
 // Pit: Lock w=3, Sacred i Valdo NIE są w bębnie pit (osobne roll'e)
-const PIT_LOCK_WEIGHT  = 3;
-const PIT_VALDO_WEIGHT = 0.2; // 10.3% P(>=1/25 cells), czyli ~25% poprzedniej szansy
+const PIT_LOCK_WEIGHT  = 3.8575; // 8.00% per pozycja w trybie Pit
+const PIT_VALDO_WEIGHT = 0.3616; // 0.75% per pozycja w trybie Pit
 const PIT_DRUM_TOT     = DRUM_TOT + PIT_LOCK_WEIGHT + PIT_VALDO_WEIGHT;
 
 // Valdo mnożniki i ich wagi (sumują się do 100%)
@@ -116,23 +116,30 @@ function drumRndPit() {
   return IDX_VALDO;
 }
 
+const MAX_WIN_MULT = 1000; // cap maksymalnej wygranej
+
 function drawOutcome(totBet) {
   const r = Math.random();
-  // 73.9% — brak wygranej
-  if (r < 0.739)  return { type: 'none',  payout: 0, mult: 0 };
-  // 20% — Win: 0.3x-1.5x
-  if (r < 0.939)  { const m = 0.3 + Math.random() * 1.2;  return { type: 'win',   payout: Math.round(m * totBet), mult: m }; }
-  // 3% — Big Win: 1.5x-4x
-  if (r < 0.969)  { const m = 1.5 + Math.random() * 2.5;  return { type: 'big',   payout: Math.round(m * totBet), mult: m }; }
-  // 1.5% — Mega Win: 5x-15x
-  if (r < 0.984)  { const m = 5   + Math.random() * 10;   return { type: 'mega',  payout: Math.round(m * totBet), mult: m }; }
-  // 1% — Huge Win: 20x-40x
-  if (r < 0.994)  { const m = 20  + Math.random() * 20;   return { type: 'huge',  payout: Math.round(m * totBet), mult: m }; }
-  // 0.5% — Giga Win: 50x-100x
-  if (r < 0.999)  { const m = 50  + Math.random() * 50;   return { type: 'giga',  payout: Math.round(m * totBet), mult: m }; }
-  // 0.1% — Mega Giga Frito Win: 500x-1500x
-  const m = 500 + Math.random() * 1000;
-  return { type: 'frito', payout: Math.round(m * totBet), mult: m };
+  // 73.90% — brak wygranej
+  if (r < 0.7390) return { type: 'none',  payout: 0, mult: 0 };
+  // 22.05% — Win: 0.3x–1.5x
+  if (r < 0.9595) { const m = 0.3  + Math.random() * 1.2;  return cap({ type: 'win',   mult: m }, totBet); }
+  // 2.00% — Big Win: 1.5x–4x
+  if (r < 0.9795) { const m = 1.5  + Math.random() * 2.5;  return cap({ type: 'big',   mult: m }, totBet); }
+  // 1.00% — Mega Win: 5x–15x
+  if (r < 0.9895) { const m = 5    + Math.random() * 10;   return cap({ type: 'mega',  mult: m }, totBet); }
+  // 0.75% — Huge Win: 20x–40x
+  if (r < 0.9970) { const m = 20   + Math.random() * 20;   return cap({ type: 'huge',  mult: m }, totBet); }
+  // 0.25% — Giga Win: 50x–100x
+  if (r < 0.9995) { const m = 50   + Math.random() * 50;   return cap({ type: 'giga',  mult: m }, totBet); }
+  // 0.05% — Mega Giga Frito Win: 150x–400x
+  { const m = 150 + Math.random() * 250;
+    return cap({ type: 'frito', mult: m }, totBet); }
+}
+
+function cap(result, totBet) {
+  const m = Math.min(result.mult, MAX_WIN_MULT);
+  return { type: result.type, mult: m, payout: Math.round(m * totBet) };
 }
 
 function buildGrid(outcome, pitMode, stickyLocks, stickyValdos) {
@@ -182,24 +189,46 @@ function calcLines(grid, betPerLine, activeLines) {
   const wins = [];
   for (let li = 0; li < Math.min(activeLines, LINES.length); li++) {
     const line = LINES[li];
-    let first = -1, streak = 0;
+    let first = -1, streak = 0, wildStreak = 0;
     for (let c = 0; c < 5; c++) {
-      const si = grid[c][line[c]]; const s = SYMS[si];
+      const si = grid[c][line[c]];
+      const s  = SYMS[si];
       if (s.scatter) break;
-      if (s.wild)    { streak++; continue; }
+      if (s.wild) {
+        streak++;
+        if (first === -1) wildStreak++;  // licznik czystych wildów na początku linii
+        continue;
+      }
       if (first === -1)      { first = si; streak++; }
       else if (si === first) { streak++; }
       else break;
     }
-    if (first === -1) continue;
-    const pay = SYMS[first].p[streak] || 0;
-    if (pay > 0) wins.push({ li, line: [...line], streak, symIdx: first, lineWin: pay * betPerLine });
+
+    let pay = 0, symIdx = first;
+
+    if (first !== -1) {
+      // Normalny przypadek: symbol (+ ewentualne wildy jako wypełniacze)
+      pay = SYMS[first].p[streak] || 0;
+    } else if (wildStreak > 0) {
+      // Linia złożona wyłącznie z wildów — wypłata według najlepiej płacącego wilda
+      let bestPay = 0, bestSym = -1;
+      for (let c2 = 0; c2 < wildStreak; c2++) {
+        const wsi = grid[c2][line[c2]];
+        const wp  = SYMS[wsi].p[wildStreak] || 0;
+        if (wp > bestPay) { bestPay = wp; bestSym = wsi; }
+      }
+      pay    = bestPay;
+      symIdx = bestSym;
+    }
+
+    if (pay > 0 && symIdx !== -1) {
+      wins.push({ li, line: [...line], streak, symIdx, lineWin: pay * betPerLine });
+    }
   }
   return wins;
 }
 
 // ─── STAN GRACZY ──────────────────────────────────────────────────────────────
-// Przeniesienie do Redis zalecane przy multi-instance deploymencie
 const playerState = new Map();
 
 function getState(userId) {
@@ -207,14 +236,28 @@ function getState(userId) {
     playerState.set(userId, {
       pitMeter:     0,
       freeSpins:    0,
-      freeMode:     null,         // 'scatter' | 'pit' | null
-      stickyLocks:  [],           // [{col, row}] — Hinekora's Lock
-      stickyValdos: [],           // [{col, row, mult}] — Valdo's Box (sticky wild)
+      freeMode:     null,
+      stickyLocks:  [],
+      stickyValdos: [],
       betPerLine:   0,
       activeLines:  50,
+      _pitLoaded:   false,
     });
   }
   return playerState.get(userId);
+}
+
+// Załaduj pitMeter z bazy danych przy pierwszym spinie gracza
+async function ensurePitLoaded(userId, casino) {
+  const state = getState(userId);
+  if (state._pitLoaded) return;
+  state._pitLoaded = true;
+  try {
+    const stats = await casino.getSlotStats(userId, 'path_of_gambling');
+    if (stats && typeof stats.pitMeter === 'number') {
+      state.pitMeter = stats.pitMeter;
+    }
+  } catch(e) {}
 }
 
 // ─── SOCKET HANDLER ───────────────────────────────────────────────────────────
@@ -230,6 +273,7 @@ function registerHandlers(socket, io, casino) {
       return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord!' });
 
     const state  = getState(discordUser.id);
+    await ensurePitLoaded(discordUser.id, casino);
     const isFree = state.freeSpins > 0;
     const cfg    = table.config;
 
@@ -303,10 +347,10 @@ function registerHandlers(socket, io, casino) {
         }
       }
 
-      // Sacred Orb w Pit — 0.5% szansa na +3 free spiny
-      if (Math.random() < 0.005) {
-        sacredPitBonus = 3;
-        state.freeSpins += 3;
+      // Sacred Orb w Pit — +1 free spin za każdy Sacred Orb który wylądował na planszy
+      if (sacredCount > 0) {
+        sacredPitBonus = sacredCount;
+        state.freeSpins += sacredCount;
       }
 
       // Valdo's Box w Pit — pojawia się na bębnie, sticky wild + mnożnik
@@ -332,16 +376,28 @@ function registerHandlers(socket, io, casino) {
     // ── Wypłata = outcome.payout (kontrolowany RTP przez drawOutcome) ─────────
     // buildGrid układa symbole pasujące do outcome, calcLines służy do wizualizacji
     const basePayout  = outcome.payout;
-    const payout      = valdoMult > 0 && basePayout > 0
+    const rawPayout   = valdoMult > 0 && basePayout > 0
       ? Math.round(basePayout * valdoMult)
       : basePayout;
+    // Zastosuj max win cap (1000x totBet)
+    const maxAllowed  = totBet * MAX_WIN_MULT;
+    const payout      = rawPayout > maxAllowed ? maxAllowed : rawPayout;
     if (payout > 0) await casino.updateBalance(discordUser.id, payout);
     await casino.recordGame(discordUser.id);
+    const recentWinEntry = payout > 0 ? {
+      payout,
+      mult:   Math.round((totBet > 0 ? payout / totBet : 0) * 10) / 10,
+      tier:   getTier(totBet > 0 ? payout / totBet : 0).tier,
+      isFree,
+      ts:     Date.now(),
+    } : null;
     await casino.updateSlotStats(discordUser.id, 'path_of_gambling', {
-      spins:   1,
-      spent:   isFree ? 0 : totBet,
-      won:     payout,
-      bestWin: payout,
+      spins:    1,
+      spent:    isFree ? 0 : totBet,
+      won:      payout,
+      bestWin:  payout,
+      pitMeter: state.pitMeter,
+      recentWin: recentWinEntry,
     });
 
     // ── Pit Meter (aktualizuj tylko w normalnych spinach) ─────────────────────
