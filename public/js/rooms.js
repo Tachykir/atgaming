@@ -188,6 +188,7 @@ function appendChatMsg({ name, message, isGM, isSystem, time }) {
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
   if (!chatOpen) { chatUnread++; updateChatBadge(); }
+}
 
 function renderHangman(room, mask, isMyTurn, playerLives, playerEliminated) {
   renderLiveScores(room, 'hangman-scores');
@@ -939,6 +940,7 @@ async function adminLogin() {
 async function loadAdminContent() {
   const r = await fetch('/api/content'); content = await r.json();
   renderAdminTabs();
+}
 
 function renderTTT(gs, room) {
   tttGs = gs;

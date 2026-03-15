@@ -1,4 +1,5 @@
 // wavelength.js — gra Wavelength
+let wlState = null;
 
 function wlSubmitClue() {
   const clue = document.getElementById('wl-clue-input')?.value?.trim();

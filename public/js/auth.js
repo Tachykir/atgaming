@@ -329,7 +329,6 @@ function tryRegisterOnline() {
 }
 
 // ── WAVELENGTH ─────────────────────────────────────────────────────
-let wlState = null;
 let wlMyId = null;
 
 function onWlSlider(val) {
@@ -342,25 +341,3 @@ function onWlSlider(val) {
   }
 }
 
-function wlSubmitClue() {
-  if (casinoSocketToken) socket.emit('registerOnline', { socketToken: casinoSocketToken });
-  else socket.emit('registerOnline', {});
-}
-
-// ── WAVELENGTH ─────────────────────────────────────────────────────
-let wlState = null;
-let wlMyId = null;
-
-function onWlSlider(val) {
-  document.getElementById('wl-slider-val').textContent = val;
-  const ind = document.getElementById('wl-indicator');
-  if (ind) ind.style.left = val + '%';
-  // Wyślij guess w czasie rzeczywistym
-  if (wlState?.phase === 'guessing' && wlState?.psychic !== wlMyId) {
-    socket.emit('wavelengthGuess', { roomId: S.roomId, value: parseInt(val) });
-  }
-}
-
-function wlSubmitClue() {
-  const clue = document.getElementById('wl-clue-input')?.value?.trim();
-  if (!clue) return showToast('Wpisz wskazówkę!', 'error');

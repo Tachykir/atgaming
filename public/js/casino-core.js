@@ -365,4 +365,3 @@ socket.on('weeklyTopup', ({ message }) => {
 });
 
 // ── RENDER POKER ──────────────────────────────────────────────
-function renderCasinoPokerState(state) {

@@ -91,8 +91,6 @@ function renderCasinoPokerState(state) {
   }
 }
 
-// ── RENDER BLACKJACK ──────────────────────────────────────────
-function renderCasinoBJState(state) {
 function casinoPokerAction(type) {
   if (!casinoTableId) return;
   if (type === 'fold')  socket.emit('casinoPokerFold',  { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });

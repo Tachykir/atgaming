@@ -1,6 +1,5 @@
 // admin.js — panel admin
 
-}
 function renderAdminTabs() {
   const ids = Object.keys(content);
   const allIds = [...ids, 'casino'];
