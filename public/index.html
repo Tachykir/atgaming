@@ -856,11 +856,11 @@ select.input option{background:var(--surface2);}
 .casino-notif.cn-big     { border-color:#fbbf24; color:#fbbf24; font-size:15px; }
 
 /* ═══ JACKPOT FRENZY ══════════════════════════════════════════════ */
-.jf-screen { display:flex; flex-direction:column; align-items:stretch; width:100%; min-height:100vh; padding:10px 12px 20px; gap:8px; }
+.jf-screen { display:flex; flex-direction:column; align-items:stretch; width:100%; height:100vh; overflow:hidden; padding:10px 12px 8px; gap:6px; box-sizing:border-box; }
 .jf-header { display:flex; justify-content:space-between; align-items:center; width:100%; }
 .jf-title  { font-size:20px; font-weight:800; }
 .jf-cauldrons { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
-.jf-cauldron  { background:var(--surface); border:2px solid var(--border); border-radius:12px; padding:10px 12px; height:90px; box-sizing:border-box; }
+.jf-cauldron  { background:var(--surface); border:2px solid var(--border); border-radius:12px; padding:8px 10px; height:82px; box-sizing:border-box; }
 .jf-cauldron.green { border-color:rgba(34,197,94,.5); }
 .jf-cauldron.red   { border-color:rgba(239,68,68,.5); }
 .jf-cauldron.blue  { border-color:rgba(59,130,246,.5); }
@@ -893,12 +893,12 @@ select.input option{background:var(--surface2);}
 .jf-fs-badge.red   { background:rgba(239,68,68,.2);  color:#f87171; }
 .jf-fs-badge.blue  { background:rgba(59,130,246,.2); color:#60a5fa; }
 /* Główny layout */
-.jf-main { display:flex; flex-direction:row-reverse; gap:10px; width:100%; align-items:flex-start; overflow-x:auto; }
+.jf-main { display:flex; flex-direction:row; gap:10px; width:100%; flex:1; min-height:0; align-items:stretch; }
 /* Grid */
-.jf-grid-col { flex:0 0 auto; }
-.jf-grid-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; }
-.jf-grid { display:grid; gap:2px; }
-.jf-cell { width:100%; display:flex; align-items:center; justify-content:center; border-radius:5px; background:var(--surface2); border:1px solid rgba(255,255,255,.04); position:relative; overflow:hidden; flex-shrink:0; }
+.jf-grid-col { flex:1; min-width:0; display:flex; flex-direction:column; }
+.jf-grid-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; width:100%; height:100%; box-sizing:border-box; overflow:hidden; }
+.jf-grid { display:grid; gap:2px; width:100%; }
+.jf-cell { display:flex; align-items:center; justify-content:center; border-radius:5px; background:var(--surface2); border:1px solid rgba(255,255,255,.04); position:relative; overflow:hidden; }
 @keyframes jfFallIn  { from{transform:translateY(-100%);opacity:0} to{transform:translateY(0);opacity:1} }
 @keyframes jfFallOut { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
 @keyframes jfCluster { 0%,100%{background:rgba(59,130,246,.18)} 50%{background:rgba(59,130,246,.35)} }
@@ -917,7 +917,7 @@ select.input option{background:var(--surface2);}
 .jf-cell.sticky-silver .jf-coin-badge { color:silver; border-color:silver; }
 .jf-cell.sticky-gold   .jf-coin-badge { color:#fbbf24; border-color:#fbbf24; }
 /* Prawa kolumna */
-.jf-right-col { width:190px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; }
+.jf-right-col { width:200px; flex-shrink:0; display:flex; flex-direction:column; gap:6px; overflow-y:auto; }
 .jf-balance-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
 .jf-balance-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
 .jf-balance-val { font-size:16px; font-weight:800; font-family:'DM Mono',monospace; color:var(--accent3); line-height:1.2; }
@@ -938,10 +938,10 @@ select.input option{background:var(--surface2);}
 .jf-mini-sum-box.show { display:block; }
 .jf-mini-sum-box .msb-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; }
 .jf-mini-sum-box .msb-val { font-size:15px; font-weight:800; color:#fbbf24; font-family:'DM Mono',monospace; }
-.jf-win-log { display:flex; flex-direction:column; gap:3px; }
+.jf-win-log { display:flex; flex-direction:column; gap:3px; overflow-y:auto; max-height:300px; }
 .jf-win-log-title { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
 /* Stats */
-.jf-stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; width:100%; }
+.jf-stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; width:100%; flex-shrink:0; }
 /* Reveal */
 .jf-reveal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:1500; display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:20px; }
 .jf-reveal-overlay.show { display:flex; }
@@ -6441,6 +6441,10 @@ function initJFUI(table) {
   jfRenderChips(table.config.minBet);
   jfUpdateBalance();
   var ab=document.getElementById('jf-auto-btn'); if(ab){ab.textContent='Auto';ab.classList.remove('on');}
+  // Przebuduj grid przy resize
+  window._jfResizeHandler && window.removeEventListener('resize', window._jfResizeHandler);
+  window._jfResizeHandler = function() { if(jfCols) jfBuildGrid(jfCols); };
+  window.addEventListener('resize', window._jfResizeHandler);
   if(casinoDiscordId) {
     fetch('/api/casino/slot-stats/jackpot_frenzy').then(r=>r.json()).then(d=>{
       if(!d) return;
@@ -6476,15 +6480,31 @@ function jfSetBet(v) { jfBet=v; var el=document.getElementById('jf-bet-input'); 
 function jfBuildGrid(cols) {
   jfCols=cols;
   var g=document.getElementById('jf-grid'); if(!g) return;
-  g.style.gridTemplateColumns='repeat('+cols+','+JF_CELL_W+'px)';
+  // Oblicz rozmiar komórki na podstawie dostępnej przestrzeni
   var wrap=document.getElementById('jf-grid-wrap');
-  if(wrap) wrap.style.width=(cols*JF_CELL_W+cols*2+12)+'px';
+  var rightColW=200+10; // 200px kolumna + gap
+  var screenW=window.innerWidth||1536;
+  var availW=Math.min(screenW-rightColW-24, screenW-rightColW-24); // 24px padding
+  // Wysokość: viewport - header(50) - kociołki(100) - stats(60) - padding(50)
+  var availH=Math.min(window.innerHeight||900, 900) - 50 - 100 - 60 - 50;
+  var cellByW=Math.floor((availW-cols*2-12)/cols);
+  var cellByH=Math.floor((availH-JF_ROWS*2-12)/JF_ROWS);
+  var cellSize=Math.max(40, Math.min(cellByW, cellByH, 90));
+  var fontSize=Math.max(14, Math.floor(cellSize*0.45));
+  g.style.gridTemplateColumns='repeat('+cols+','+cellSize+'px)';
   g.innerHTML='';
   for(var c=0;c<cols;c++) for(var r=0;r<JF_ROWS;r++) {
     var el=document.createElement('div');
     el.className='jf-cell'; el.id='jfc'+c+'_'+r;
-    el.style.height=JF_CELL_H+'px'; el.style.fontSize=JF_CELL_FONT+'px';
+    el.style.width=cellSize+'px';
+    el.style.height=cellSize+'px';
+    el.style.fontSize=fontSize+'px';
     g.appendChild(el);
+  }
+  // Aktualizuj szerokość wrappera
+  if(wrap) {
+    var gridW=cols*cellSize+cols*2+12;
+    wrap.style.minWidth=gridW+'px';
   }
 }
 
