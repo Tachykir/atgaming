@@ -117,16 +117,4 @@ function casinoBJAction(type) {
   else if (type==='double') socket.emit('casinoBJDouble', { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
 }
 
-// ── INIT ───────────────────────────────────────────────────────
-// ── INIT ───────────────────────────────────────────────────────
-document.getElementById('join-code').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');});
-document.getElementById('join-code').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
-document.getElementById('create-name').addEventListener('keydown',e=>{if(e.key==='Enter')createRoom();});
-init();
 
-
-// ═══════════════════════════════════════════════════════════
-//  JACKPOT FRENZY — JavaScript
-// ═══════════════════════════════════════════════════════════
-
-// JF variables moved to casino-jf.js

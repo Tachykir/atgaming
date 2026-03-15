@@ -110,8 +110,7 @@ function initDraggableChat() {
 const LETTERS = ['A','Ą','B','C','Ć','D','E','Ę','F','G','H','I','J','K','L','Ł','M','N','Ń','O','Ó','P','R','S','Ś','T','U','W','Y','Z','Ź','Ż'];
 const SCAFFOLD = ['h-head','h-body','h-arm-l','h-arm-r','h-leg-l','h-leg-r'];
 
-let H = { maxWrong: 6, totalRounds: 1, currentRound: 1 };
-
+H = { maxWrong: 6, totalRounds: 1, currentRound: 1 };
 function showToast(msg,type=''){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className=`toast show ${type}`;
@@ -283,3 +282,14 @@ const ROULETTE_RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36])
 let rouletteBetAmount = 50;
 let roulettePendingBets = [];
 
+// ── BOOT ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  const jc = document.getElementById('join-code');
+  if (jc) {
+    jc.addEventListener('input', function(){ this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); });
+    jc.addEventListener('keydown', e => { if(e.key==='Enter') joinRoom(); });
+  }
+  const cn = document.getElementById('create-name');
+  if (cn) cn.addEventListener('keydown', e => { if(e.key==='Enter') createRoom(); });
+  init();
+});

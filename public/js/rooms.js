@@ -25,8 +25,7 @@ function onGameChange() {
   renderConfigSchema(gameId, configSchemas[gameId] || {});
 }
 
-let configSchemas = {};
-
+configSchemas = {};
 function renderConfigSchema(gameId, schema) {
   const container = document.getElementById('dynamic-config');
   if (!container) return;
