@@ -311,23 +311,28 @@ function deleteTable(tableId) {
 // Predefiniowane jednorazowo (na start serwera) - można też tworzyć przez API
 function initTables() {
   // Lucky Fruits — 3 warianty stawek
-  createTable({ game:'slots', name:'Lucky Fruits — Low',    config:{ minBet:10,   maxBet:5000,   maxPlayers:99 }});
-  createTable({ game:'slots', name:'Lucky Fruits — Medium', config:{ minBet:100,  maxBet:25000,  maxPlayers:99 }});
-  createTable({ game:'slots', name:'Lucky Fruits — High',   config:{ minBet:1000, maxBet:100000, maxPlayers:99 }});
+  createTable({ game:'slots', name:'Lucky Fruits — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
+  createTable({ game:'slots', name:'Lucky Fruits — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
+  createTable({ game:'slots', name:'Lucky Fruits — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
   // Ruletka
-  createTable({ game:'roulette', name:'Ruletka Europejska', config:{ minBet:50, maxBet:2000, maxPlayers:20 }});
+  createTable({ game:'roulette', name:'Ruletka Europejska', config:{ minBet:10, maxBet:1000000, maxPlayers:20 }});
   // Pachinko
-  createTable({ game:'pachinko', name:'Pachinko',  config:{ minBet:25, maxBet:500, maxPlayers:99 }});
+  createTable({ game:'pachinko', name:'Pachinko — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
+  createTable({ game:'pachinko', name:'Pachinko — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
+  createTable({ game:'pachinko', name:'Pachinko — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
   // Crash — stały stół (pętla startuje w server.js po init)
-  createTable({ game:'crash', name:'Crash 🚀', config:{ minBet:50, maxBet:10000 }});
+  createTable({ game:'crash', name:'Crash 🚀 — Low',    config:{ minBet:10,   maxBet:10000 }});
+  createTable({ game:'crash', name:'Crash 🚀 — Medium', config:{ minBet:10000, maxBet:1000000 }});
+  createTable({ game:'crash', name:'Crash 🚀 — High',   config:{ minBet:1000000, maxBet:10000000 }});
   // Path of Gambling — 3 warianty stawek
   createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99, level:'low'    }});
   createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99, level:'medium' }});
   createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99, level:'high'   }});
 
-  createTable({ game:'path_of_gambling', name:'Path of Gambling — Low',    config:{ minBet:10,   maxBet:5000,   maxPlayers:99 }});
-  createTable({ game:'path_of_gambling', name:'Path of Gambling — Medium', config:{ minBet:100,  maxBet:25000,  maxPlayers:99 }});
-  createTable({ game:'path_of_gambling', name:'Path of Gambling — High',   config:{ minBet:1000, maxBet:100000, maxPlayers:99 }});
+  // maxBet = totBet (per spin łącznie), betPerLine = maxBet / 50 linii
+  createTable({ game:'path_of_gambling', name:'Path of Gambling — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
+  createTable({ game:'path_of_gambling', name:'Path of Gambling — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
+  createTable({ game:'path_of_gambling', name:'Path of Gambling — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
   console.log(`🃏 Zainicjowano ${Object.keys(casinoTables).length} stołów kasyna`);
 }
 

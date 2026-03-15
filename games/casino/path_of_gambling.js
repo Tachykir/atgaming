@@ -254,8 +254,10 @@ function registerHandlers(socket, io, casino) {
       activeLines = state.activeLines;
       totBet      = betPerLine * activeLines;
     } else {
-      betPerLine  = Math.round(Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet)));
-      activeLines = Math.max(1,          Math.min(50,          Number(lines) || 50));
+      // maxBet = totBet (łączny zakład za spin), betPerLine = totBet / linii
+      const reqTotBet = Math.round(Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet)));
+      activeLines = Math.max(1, Math.min(50, Number(lines) || 50));
+      betPerLine  = Math.round(reqTotBet / activeLines);
       totBet      = betPerLine * activeLines;
 
       const wallet = await casino.ensureWallet(discordUser);
