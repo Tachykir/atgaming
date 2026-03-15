@@ -126,39 +126,70 @@ function getNeighbors(col, row, cols) {
 }
 
 function findClusters(grid, cols) {
-  const visited = Array.from({length:cols}, ()=>Array(ROWS).fill(false));
+  // Dla każdej komórki oblicz z góry czy jest wild
+  const isWild = (c, r) => SYMS[grid[c][r]].wild;
+
+  // Visited per-run: wildy mogą być używane przez wiele klastrów (nie konsumujemy ich)
+  // Dlatego visited dla normalnych symboli jest globalne, ale wildy sprawdzamy lokalnie.
+  const visitedNormal = Array.from({length:cols}, ()=>Array(ROWS).fill(false));
   const clusters = [];
 
   for (let c=0; c<cols; c++) for (let r=0; r<ROWS; r++) {
-    if (visited[c][r]) continue;
+    if (visitedNormal[c][r]) continue;
     const symIdx = grid[c][r];
     const sym = SYMS[symIdx];
-    // Pomiń: kolorowe coiny (nie-wild), sticky monety, ORAZ wildy (coin_br).
-    // Wildy NIE startują własnego BFS — tylko dołączają do klastrów innych symboli.
-    // Gdyby wild startował BFS, ustawiałby visited=true na swoich polach zanim
-    // normalny symbol zdąży je "wchłonąć" — tracilibyśmy wild z klastra.
+
+    // Pomiń koiny (nie-wild), sticky, wildy — nie startują klastrów
     if ((sym.coin && !sym.wild) || sym.sticky || sym.wild) {
-      visited[c][r] = true; continue;
+      visitedNormal[c][r] = true; continue;
     }
 
-    // BFS od normalnego symbolu
+    // BFS od normalnego symbolu.
+    // Wild dołącza do klastra TYLKO jeśli BEZPOŚREDNIO sąsiaduje z co najmniej
+    // jedną komórką tego samego symbolu (nie propaguje dalej przez inne wildy).
+    // Dzięki temu: wild NIE tworzy łańcucha między odległymi skupiskami,
+    // NIE jest kradniony przez inny klaster (każdy klaster ma własny visitedWild).
+    const visitedWild = Array.from({length:cols}, ()=>Array(ROWS).fill(false));
     const queue = [[c,r]];
     const cells = [];
-    visited[c][r] = true;
+    let realSymCount = 0; // liczba NIE-wildowych komórek w klastrze
+    visitedNormal[c][r] = true;
+
     while (queue.length) {
       const [cc,rr] = queue.shift();
       cells.push([cc,rr]);
+      const isCurrentWild = isWild(cc, rr);
+      if (!isCurrentWild) realSymCount++;
+
       for (const [nc,nr] of getNeighbors(cc,rr,cols)) {
-        if (visited[nc][nr]) continue;
         const ni = grid[nc][nr];
-        // Ten sam symbol LUB wild (coin_br, silver, gold) dołącza do klastra
-        if (ni === symIdx || SYMS[ni].wild) {
-          visited[nc][nr] = true; queue.push([nc,nr]);
+        const nsym = SYMS[ni];
+
+        if (ni === symIdx) {
+          // Ten sam symbol — dołącz jeśli nie odwiedzony
+          if (!visitedNormal[nc][nr]) {
+            visitedNormal[nc][nr] = true;
+            queue.push([nc,nr]);
+          }
+        } else if (nsym.wild && !visitedWild[nc][nr]) {
+          // Wild — dołącz TYLKO jeśli BEZPOŚREDNIO sąsiaduje z tym samym symbolem
+          // (sprawdź czy któryś sąsiad wilda == symIdx)
+          // Wild NIE propaguje dalej przez inne wildy — to zapobiega łańcuchom
+          if (!isCurrentWild) {
+            // Wchodzimy w wilda tylko z normalnego symbolu (nie z innego wilda)
+            visitedWild[nc][nr] = true;
+            queue.push([nc,nr]);
+          }
+          // Jeśli currentWild → nie propaguj przez kolejne wildy (brak łańcuchów)
         }
       }
     }
+
     if (cells.length >= CLUSTER_MIN) {
-      const pay = sym.p?.[Math.min(cells.length, sym.p.length-1)] || 0;
+      // BUG 3 FIX: pay lookup bazuje na liczbie PRAWDZIWYCH symboli, nie total cells
+      // Wild zastępuje symbol ale nie dodaje do liczby "płacących" komórek
+      const payIdx = Math.min(realSymCount, sym.p.length - 1);
+      const pay = sym.p?.[payIdx] || 0;
       if (pay > 0) clusters.push({ symIdx, cells, pay });
     }
   }
@@ -175,8 +206,25 @@ function drumRnd(weights, total) {
 function buildGrid(cols, state) {
   const hasSilver = state.miniGames.multiplier || state.miniGames.dublet;
   const hasGold   = state.miniGames.jackpot;
-  const w   = hasSilver ? SILVER_W : hasGold ? GOLD_W : DRUM_W;
-  const tot = hasSilver ? SILVER_TOT : hasGold ? GOLD_TOT : DRUM_TOT;
+
+  let w, tot;
+  if (hasSilver && hasGold) {
+    // BUG 4 FIX: oboje aktywne — użyj wag łączonych żeby obie monety mogły paść
+    const COMBINED_W = [...DRUM_W];
+    COMBINED_W[IDX.silver] = 6;
+    COMBINED_W[IDX.gold]   = 6;
+    w   = COMBINED_W;
+    tot = COMBINED_W.reduce((a,b)=>a+b, 0);
+  } else if (hasSilver) {
+    w   = SILVER_W;
+    tot = SILVER_TOT;
+  } else if (hasGold) {
+    w   = GOLD_W;
+    tot = GOLD_TOT;
+  } else {
+    w   = DRUM_W;
+    tot = DRUM_TOT;
+  }
 
   const grid = Array.from({length:cols}, ()=>Array(ROWS).fill(0));
   const stickyAll = [...state.stickyCoins];
@@ -289,21 +337,24 @@ function registerHandlers(socket, io, casino) {
       }
     }
 
-    // Aktywuj mini-gry
-    let miniStarted = false;
+    // Aktywuj mini-gry i zlicz ile kociołków triggeruje
+    let newMiniGames = 0;
     for (const color of triggeredCauldrons) {
-      if (color==='green')  { state.miniGames.multiplier = true; miniStarted=true; }
-      if (color==='red')    { state.miniGames.jackpot    = true; miniStarted=true; }
-      if (color==='blue')   { state.miniGames.dublet     = true; state.dublet=true; miniStarted=true; }
+      if (color==='green')  { if (!state.miniGames.multiplier) { state.miniGames.multiplier = true; newMiniGames++; } }
+      if (color==='red')    { if (!state.miniGames.jackpot)    { state.miniGames.jackpot    = true; newMiniGames++; } }
+      if (color==='blue')   { if (!state.miniGames.dublet)     { state.miniGames.dublet     = true; state.dublet=true; newMiniGames++; } }
     }
-    if (miniStarted && state.miniSpins === 0) {
-      state.miniSpins = MINI_FREE_SPINS;
-      state.miniWinSum = 0;
-      // Wyczyść sticky coiny przy starcie nowej mini-gry
-      state.stickyCoins = [];
-    } else if (miniStarted && state.miniSpins > 0) {
-      // Dodatkowe spiny jeśli mini-gra już trwa
-      state.miniSpins += MINI_FREE_SPINS;
+    if (newMiniGames > 0) {
+      if (state.miniSpins === 0) {
+        // Świeży start mini-gry: +10 per kociołek
+        state.miniSpins  = MINI_FREE_SPINS * newMiniGames;
+        state.miniWinSum = 0;
+        state.stickyCoins = [];
+      } else {
+        // Stacking: +10 per nowy kociołek (chain w trakcie istniejącej mini-gry niemożliwy,
+        // ale na wypadek edge-case)
+        state.miniSpins += MINI_FREE_SPINS * newMiniGames;
+      }
     }
 
     // ── Nowe sticky coiny ────────────────────────────────────────────────────
