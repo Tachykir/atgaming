@@ -18,7 +18,7 @@
 'use strict';
 
 // ─── KONFIGURACJA ─────────────────────────────────────────────────────────────
-const CAULDRON_MAX      = 5000; // punkty do napełnienia kociołka
+const CAULDRON_MAX      = 2000; // punkty do napełnienia kociołka
 const CAULDRON_CHAIN    = 0.20; // 20% szansa na włączenie pozostałych kociołków
 const MINI_FREE_SPINS   = 10;
 const CLUSTER_MIN       = 5;    // minimalna liczba sąsiadów dla wygranej
@@ -249,21 +249,23 @@ function registerHandlers(socket, io, casino) {
     // ── Grid ─────────────────────────────────────────────────────────────────
     const grid = buildGrid(cols, state);
 
-    // ── Coiny → kociołki ─────────────────────────────────────────────────────
+    // ── Coiny → kociołki (tylko poza mini-grą) ─────────────────────────────
     const coinEvents = [];
-    for (let c=0; c<cols; c++) for (let r=0; r<ROWS; r++) {
-      const sym = SYMS[grid[c][r]];
-      if (!sym.coin) continue;
-      const pts = sym.coinVal[Math.floor(Math.random()*sym.coinVal.length)];
-      // Brązowy coin → kociołek niebieski (Dublet)
-      const color = sym.coin === 'bronze' ? 'blue' : sym.coin;
-      state.cauldron[color] = Math.min(CAULDRON_MAX, state.cauldron[color]+pts);
-      coinEvents.push({col:c, row:r, color, pts, total:state.cauldron[color], isBronze: sym.coin==='bronze'});
+    if (!isFree) {
+      for (let c=0; c<cols; c++) for (let r=0; r<ROWS; r++) {
+        const sym = SYMS[grid[c][r]];
+        if (!sym.coin) continue;
+        const pts = sym.coinVal[Math.floor(Math.random()*sym.coinVal.length)];
+        // Brązowy coin → kociołek niebieski (Dublet)
+        const color = sym.coin === 'bronze' ? 'blue' : sym.coin;
+        state.cauldron[color] = Math.min(CAULDRON_MAX, state.cauldron[color]+pts);
+        coinEvents.push({col:c, row:r, color, pts, total:state.cauldron[color], isBronze: sym.coin==='bronze'});
+      }
     }
 
-    // ── Kociołki pełne? ──────────────────────────────────────────────────────
+    // ── Kociołki pełne? (tylko poza mini-grą) ───────────────────────────────
     const triggeredCauldrons = [];
-    for (const color of ['green','red','blue']) {
+    if (!isFree) for (const color of ['green','red','blue']) {
       if (state.cauldron[color] >= CAULDRON_MAX) {
         state.cauldron[color] = 0;
         triggeredCauldrons.push(color);

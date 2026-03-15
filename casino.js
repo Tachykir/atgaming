@@ -321,9 +321,9 @@ function initTables() {
   // Crash — stały stół (pętla startuje w server.js po init)
   createTable({ game:'crash', name:'Crash 🚀', config:{ minBet:50, maxBet:10000 }});
   // Path of Gambling — 3 warianty stawek
-  createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — Low',    config:{ minBet:10,   maxBet:50000,  maxPlayers:99, level:'low'    }});
-  createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — Medium', config:{ minBet:100,  maxBet:100000, maxPlayers:99, level:'medium' }});
-  createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — High',   config:{ minBet:1000, maxBet:500000, maxPlayers:99, level:'high'   }});
+  createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99, level:'low'    }});
+  createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99, level:'medium' }});
+  createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99, level:'high'   }});
 
   createTable({ game:'path_of_gambling', name:'Path of Gambling — Low',    config:{ minBet:10,   maxBet:5000,   maxPlayers:99 }});
   createTable({ game:'path_of_gambling', name:'Path of Gambling — Medium', config:{ minBet:100,  maxBet:25000,  maxPlayers:99 }});
