@@ -856,11 +856,11 @@ select.input option{background:var(--surface2);}
 .casino-notif.cn-big     { border-color:#fbbf24; color:#fbbf24; font-size:15px; }
 
 /* ═══ JACKPOT FRENZY ══════════════════════════════════════════════ */
-.jf-screen { display:flex; flex-direction:column; align-items:center; width:100%; min-height:100vh; padding:10px 12px 20px; gap:8px; }
-.jf-header { display:flex; justify-content:space-between; align-items:center; width:100%; max-width:1100px; }
+.jf-screen { display:flex; flex-direction:column; align-items:stretch; width:100%; min-height:100vh; padding:10px 12px 20px; gap:8px; }
+.jf-header { display:flex; justify-content:space-between; align-items:center; width:100%; max-width:none; }
 .jf-title  { font-size:20px; font-weight:800; }
 /* Kociołki — stała wysokość, animacja tylko pasek */
-.jf-cauldrons { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; max-width:1100px; }
+.jf-cauldrons { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; max-width:none; }
 .jf-cauldron  { background:var(--surface); border:2px solid var(--border); border-radius:12px; padding:10px 12px; height:90px; box-sizing:border-box; }
 .jf-cauldron.green { border-color:rgba(34,197,94,.5); }
 .jf-cauldron.red   { border-color:rgba(239,68,68,.5); }
@@ -897,9 +897,9 @@ select.input option{background:var(--surface2);}
 .jf-fs-badge.red   { background:rgba(239,68,68,.2);  color:#f87171; }
 .jf-fs-badge.blue  { background:rgba(59,130,246,.2); color:#60a5fa; }
 /* Główny layout */
-.jf-main { display:flex; gap:10px; width:100%; max-width:1100px; align-items:flex-start; flex:1; min-height:0; }
+.jf-main { display:flex; flex-direction:row-reverse; gap:10px; width:100%; max-width:none; align-items:flex-start; overflow-x:auto; }
 /* Grid */
-.jf-grid-col { flex:1; min-width:0; }
+.jf-grid-col { flex:0 0 auto; }
 .jf-grid-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; }
 .jf-grid { display:grid; gap:2px; }
 .jf-cell { width:100%; display:flex; align-items:center; justify-content:center; border-radius:5px; background:var(--surface2); border:1px solid rgba(255,255,255,.04); position:relative; overflow:hidden; flex-shrink:0; }
@@ -6423,8 +6423,11 @@ let jfBet=10;
 let jfStickyCoins=[];
 let jfCauldronMax=5000;
 
+let jfMaxBet = 10000, jfMinBet = 10;
 function initJFUI(table) {
   jfBet=table.config.minBet||10;
+  jfMinBet=table.config.minBet||10;
+  jfMaxBet=table.config.maxBet||10000;
   jfCauldronMax=5000;
   document.getElementById('jf-bet-input').value=jfBet;
   jfSpinning=false; jfAuto=false; jfFreeSpins=0; jfMiniSumVal=0;
@@ -6453,34 +6456,38 @@ function jfUpdateBalance() {
 }
 
 function jfSetMax() {
-  if(!casinoWallet) return;
-  var tbl=casinoTableData; var max=tbl&&tbl.table&&tbl.table.config?tbl.table.config.maxBet:500000;
-  var v=Math.min(casinoWallet.balance,max||500000);
+  var v = casinoWallet ? Math.min(casinoWallet.balance, jfMaxBet) : jfMaxBet;
   jfBet=v; document.getElementById('jf-bet-input').value=v;
 }
 
 function jfRenderChips(minBet) {
-  var chips=[minBet,minBet*5,minBet*20,minBet*100].filter(function(v,i,a){return a.indexOf(v)===i&&v<=500000;});
+  var max=jfMaxBet||10000;
+  var chips=[minBet, Math.round(max*0.1), Math.round(max*0.5), max]
+    .filter(function(v,i,a){return v>0&&a.indexOf(v)===i;});
   var el=document.getElementById('jf-chip-btns'); if(!el) return;
-  el.innerHTML=chips.map(function(c){return '<button class="jf-chip" onclick="jfSetBet('+c+')">'+(c>=1000?(c/1000)+'k':c)+'</button>';}).join('');
+  el.innerHTML=chips.map(function(c){
+    var lbl=c>=1000000?(c/1000000).toFixed(c%1000000===0?0:1)+'M':c>=1000?(c/1000).toFixed(c%1000===0?0:1)+'k':c;
+    return '<button class="jf-chip" onclick="jfSetBet('+c+')" title="'+c.toLocaleString('pl-PL')+' AT$">'+lbl+'</button>';
+  }).join('');
 }
 
 function jfSetBet(v) { jfBet=v; var el=document.getElementById('jf-bet-input'); if(el) el.value=v; }
 
+var JF_CELL_W = 52, JF_CELL_H = 44, JF_CELL_FONT = 20;
 function jfBuildGrid(cols) {
   jfCols=cols;
   var g=document.getElementById('jf-grid'); if(!g) return;
-  // Stała szerokość gridu niezależna od zawartości
-  var gridW=Math.min(window.innerWidth-220,680);
-  var cellW=Math.max(32,Math.floor((gridW-cols*2-12)/cols));
-  var cellH=Math.max(28,Math.floor(cellW*0.75));
-  var fontSize=Math.max(12,Math.floor(cellW*0.42));
-  g.style.gridTemplateColumns='repeat('+cols+','+cellW+'px)';
+  // Stały rozmiar komórki — grid rozszerza się w lewo przy Dublecie
+  g.style.gridTemplateColumns='repeat('+cols+','+JF_CELL_W+'px)';
+  // Dopasuj szerokość wrappera do gridu (żeby się nie rozjeżdżał)
+  var wrap=document.getElementById('jf-grid-wrap');
+  if(wrap) wrap.style.width=(cols*JF_CELL_W+cols*2+12)+'px';
   g.innerHTML='';
   for(var c=0;c<cols;c++) for(var r=0;r<JF_ROWS;r++) {
     var el=document.createElement('div');
     el.className='jf-cell'; el.id='jfc'+c+'_'+r;
-    el.style.height=cellH+'px'; el.style.fontSize=fontSize+'px';
+    el.style.height=JF_CELL_H+'px';
+    el.style.fontSize=JF_CELL_FONT+'px';
     g.appendChild(el);
   }
 }
