@@ -13,6 +13,7 @@ const casinoPachinko = require('./games/casino/pachinko');
 const casinoCrash    = require('./games/casino/crash');
 const casinoCoinflip = require('./games/casino/coinflip');
 const casinoPath     = require('./games/casino/path_of_gambling');
+const casinoJF       = require('./games/casino/jackpot_frenzy');
 
 // Ładuj .env jeśli istnieje
 try {
