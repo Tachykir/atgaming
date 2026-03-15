@@ -18,7 +18,7 @@
 'use strict';
 
 // ─── KONFIGURACJA ─────────────────────────────────────────────────────────────
-const CAULDRON_MAX      = 500;  // punkty do napełnienia kociołka
+const CAULDRON_MAX      = 5000; // punkty do napełnienia kociołka
 const CAULDRON_CHAIN    = 0.20; // 20% szansa na włączenie pozostałych kociołków
 const MINI_FREE_SPINS   = 10;
 const CLUSTER_MIN       = 5;    // minimalna liczba sąsiadów dla wygranej

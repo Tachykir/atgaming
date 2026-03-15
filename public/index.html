@@ -856,67 +856,111 @@ select.input option{background:var(--surface2);}
 .casino-notif.cn-big     { border-color:#fbbf24; color:#fbbf24; font-size:15px; }
 
 /* ═══ JACKPOT FRENZY ══════════════════════════════════════════════ */
-.jf-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:900px; }
-.jf-cauldrons { display:flex; gap:10px; justify-content:center; width:100%; }
-.jf-cauldron { flex:1; background:var(--surface); border:2px solid var(--border); border-radius:14px; padding:10px; text-align:center; position:relative; transition:border-color .3s,box-shadow .3s; }
-.jf-cauldron.active { animation:jfCauldPulse 1s ease-in-out infinite; }
-.jf-cauldron.green  { border-color:#22c55e; }
-.jf-cauldron.red    { border-color:#ef4444; }
-.jf-cauldron.blue   { border-color:#3b82f6; }
-.jf-cauldron.green.active { box-shadow:0 0 20px rgba(34,197,94,.5); }
-.jf-cauldron.red.active   { box-shadow:0 0 20px rgba(239,68,68,.5); }
-.jf-cauldron.blue.active  { box-shadow:0 0 20px rgba(59,130,246,.5); }
-@keyframes jfCauldPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03)} }
-.jf-cld-icon  { font-size:26px; margin-bottom:4px; }
-.jf-cld-name  { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
-.jf-cld-track { height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; margin-bottom:4px; }
-.jf-cld-fill  { height:100%; border-radius:4px; transition:width .4s; }
-.jf-cauldron.green .jf-cld-fill { background:#22c55e; }
-.jf-cauldron.red   .jf-cld-fill { background:#ef4444; }
-.jf-cauldron.blue  .jf-cld-fill { background:#3b82f6; }
-.jf-cld-pts   { font-size:11px; font-weight:700; font-family:'DM Mono',monospace; }
+.jf-screen { display:flex; flex-direction:column; align-items:center; width:100%; min-height:100vh; padding:10px 12px 20px; gap:8px; }
+.jf-header { display:flex; justify-content:space-between; align-items:center; width:100%; max-width:1100px; }
+.jf-title  { font-size:20px; font-weight:800; }
+/* Kociołki — stała wysokość, animacja tylko pasek */
+.jf-cauldrons { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; max-width:1100px; }
+.jf-cauldron  { background:var(--surface); border:2px solid var(--border); border-radius:12px; padding:10px 12px; height:90px; box-sizing:border-box; }
+.jf-cauldron.green { border-color:rgba(34,197,94,.5); }
+.jf-cauldron.red   { border-color:rgba(239,68,68,.5); }
+.jf-cauldron.blue  { border-color:rgba(59,130,246,.5); }
+.jf-cauldron.triggered { border-width:2px; box-shadow:0 0 20px var(--jf-cld-glow,rgba(124,92,252,.5)); }
+.jf-cauldron.green.triggered { --jf-cld-glow:rgba(34,197,94,.6); animation:jfCauldGlow 1.2s ease-out forwards; }
+.jf-cauldron.red.triggered   { --jf-cld-glow:rgba(239,68,68,.6);  animation:jfCauldGlow 1.2s ease-out forwards; }
+.jf-cauldron.blue.triggered  { --jf-cld-glow:rgba(59,130,246,.6); animation:jfCauldGlow 1.2s ease-out forwards; }
+@keyframes jfCauldGlow { 0%{box-shadow:0 0 30px var(--jf-cld-glow)} 100%{box-shadow:0 0 0 transparent} }
+.jf-cld-top  { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+.jf-cld-icon { font-size:16px; }
+.jf-cld-name { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; flex:1; }
+.jf-cld-pts  { font-size:10px; font-weight:700; font-family:'DM Mono',monospace; }
 .jf-cauldron.green .jf-cld-pts { color:#22c55e; }
 .jf-cauldron.red   .jf-cld-pts { color:#ef4444; }
 .jf-cauldron.blue  .jf-cld-pts { color:#3b82f6; }
-.jf-jp-display { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; font-size:10px; }
-.jf-jp-chip { background:var(--surface2); border:1px solid rgba(255,220,50,.3); border-radius:6px; padding:2px 7px; color:#fbbf24; font-weight:700; font-family:'DM Mono',monospace; }
-
+.jf-cld-track { height:5px; background:var(--surface2); border-radius:3px; overflow:hidden; margin-bottom:4px; }
+.jf-cld-fill  { height:100%; border-radius:3px; transition:width .5s cubic-bezier(.25,.46,.45,.94); }
+.jf-cauldron.green .jf-cld-fill { background:linear-gradient(90deg,#16a34a,#4ade80); }
+.jf-cauldron.red   .jf-cld-fill { background:linear-gradient(90deg,#dc2626,#f87171); }
+.jf-cauldron.blue  .jf-cld-fill { background:linear-gradient(90deg,#1d4ed8,#60a5fa); }
+.jf-cld-sub  { display:flex; gap:4px; flex-wrap:wrap; overflow:hidden; height:16px; }
+.jf-jp-chip  { font-size:8px; font-weight:700; padding:1px 5px; border-radius:3px; background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); color:#fbbf24; font-family:'DM Mono',monospace; white-space:nowrap; }
+.jf-cld-active-badge { font-size:8px; font-weight:800; padding:1px 5px; border-radius:3px; }
+.jf-cld-active-badge.green { background:rgba(34,197,94,.2); color:#4ade80; }
+.jf-cld-active-badge.red   { background:rgba(239,68,68,.2);  color:#f87171; }
+.jf-cld-active-badge.blue  { background:rgba(59,130,246,.2); color:#60a5fa; }
+/* FS bar */
+.jf-fs-bar { background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(92,240,200,.06)); border:1px solid rgba(124,92,252,.3); border-radius:8px; padding:5px 12px; font-size:12px; font-weight:700; display:none; width:100%; max-width:1100px; text-align:center; }
+.jf-fs-bar.show { display:block; }
+.jf-fs-badges { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:2px; }
+.jf-fs-badge  { font-size:9px; padding:1px 7px; border-radius:4px; font-weight:800; }
+.jf-fs-badge.green { background:rgba(34,197,94,.2); color:#4ade80; }
+.jf-fs-badge.red   { background:rgba(239,68,68,.2);  color:#f87171; }
+.jf-fs-badge.blue  { background:rgba(59,130,246,.2); color:#60a5fa; }
+/* Główny layout */
+.jf-main { display:flex; gap:10px; width:100%; max-width:1100px; align-items:flex-start; flex:1; min-height:0; }
 /* Grid */
-.jf-grid-outer { overflow-x:auto; width:100%; }
-.jf-grid { display:grid; gap:3px; padding:8px; background:var(--surface); border:1px solid var(--border); border-radius:12px; }
-.jf-cell { width:52px; height:44px; display:flex; align-items:center; justify-content:center; border-radius:7px; font-size:20px; background:var(--surface2); border:1px solid var(--border); position:relative; transition:background .12s; cursor:default; }
-.jf-cell.spinning { animation:jfSpin .15s linear infinite; }
-@keyframes jfSpin { 0%{opacity:1} 50%{opacity:.4} 100%{opacity:1} }
-.jf-cell.cluster { background:rgba(59,130,246,.2); outline:2px solid #3b82f6; }
-.jf-cell.sticky-silver { background:rgba(192,192,192,.15); outline:2px solid silver; box-shadow:0 0 8px rgba(192,192,192,.4); }
-.jf-cell.sticky-gold   { background:rgba(255,220,50,.15);  outline:2px solid #fbbf24; box-shadow:0 0 8px rgba(255,220,50,.5); }
-.jf-cell.coin-green  { background:rgba(34,197,94,.15);  outline:2px solid #22c55e; }
-.jf-cell.coin-red    { background:rgba(239,68,68,.15);   outline:2px solid #ef4444; }
-.jf-cell.coin-blue   { background:rgba(59,130,246,.15);  outline:2px solid #3b82f6; }
-.jf-cell.coin-bronze { background:rgba(180,100,40,.18);   outline:2px solid #b46428; box-shadow:0 0 6px rgba(180,100,40,.35); }
-.jf-coin-badge { position:absolute; top:-4px; right:-4px; font-size:8px; font-weight:800; background:#1a1a2e; border:1px solid; border-radius:4px; padding:1px 3px; font-family:'DM Mono',monospace; line-height:1; }
+.jf-grid-col { flex:1; min-width:0; }
+.jf-grid-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; }
+.jf-grid { display:grid; gap:2px; }
+.jf-cell { width:100%; display:flex; align-items:center; justify-content:center; border-radius:5px; background:var(--surface2); border:1px solid rgba(255,255,255,.04); position:relative; overflow:hidden; flex-shrink:0; }
+@keyframes jfFallIn  { from{transform:translateY(-100%);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes jfFallOut { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
+@keyframes jfCluster { 0%,100%{background:rgba(59,130,246,.18)} 50%{background:rgba(59,130,246,.35)} }
+@keyframes jfCoinPop { 0%{transform:scale(.4);opacity:0} 70%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+.jf-cell.fall-in  { animation:jfFallIn  .25s cubic-bezier(.25,.46,.45,.94) both; }
+.jf-cell.fall-out { animation:jfFallOut .15s ease-in both; }
+.jf-cell.cluster  { animation:jfCluster .6s ease-out; outline:2px solid #3b82f6; }
+.jf-cell.coin-pop { animation:jfCoinPop .3s cubic-bezier(.34,1.56,.64,1) both; }
+.jf-cell.sticky-silver { background:rgba(192,192,192,.1); outline:2px solid rgba(192,192,192,.7); }
+.jf-cell.sticky-gold   { background:rgba(255,220,50,.1);  outline:2px solid rgba(255,220,50,.8); }
+.jf-cell.coin-green  { background:rgba(34,197,94,.1);  outline:1px solid #22c55e; }
+.jf-cell.coin-red    { background:rgba(239,68,68,.1);   outline:1px solid #ef4444; }
+.jf-cell.coin-blue   { background:rgba(59,130,246,.1);  outline:1px solid #3b82f6; }
+.jf-cell.coin-bronze { background:rgba(180,100,40,.12); outline:1px solid #b46428; }
+.jf-coin-badge { position:absolute; top:-1px; right:-1px; font-size:7px; font-weight:800; background:rgba(10,10,15,.9); border:1px solid; border-radius:2px; padding:0 3px; line-height:13px; font-family:'DM Mono',monospace; }
 .jf-cell.sticky-silver .jf-coin-badge { color:silver; border-color:silver; }
 .jf-cell.sticky-gold   .jf-coin-badge { color:#fbbf24; border-color:#fbbf24; }
-
-/* Controls */
-.jf-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center; }
-.jf-fs-bar { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 14px; text-align:center; font-size:13px; font-weight:700; display:none; }
-.jf-fs-bar.show { display:block; }
-.jf-mini-sum { background:var(--surface); border:1px solid rgba(255,220,50,.4); border-radius:10px; padding:8px 16px; font-size:14px; font-weight:800; color:#fbbf24; display:none; text-align:center; }
-.jf-mini-sum.show { display:block; }
-.jf-spin-btn { background:linear-gradient(135deg,#7c5cfc,#5cf0c8); border:none; color:white; font-family:'Syne',sans-serif; font-weight:800; font-size:16px; padding:14px 32px; border-radius:14px; cursor:pointer; transition:all .15s; min-width:120px; }
+/* Prawa kolumna: kontrolki + win log */
+.jf-right-col { width:190px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; }
+.jf-balance-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
+.jf-balance-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.jf-balance-val { font-size:16px; font-weight:800; font-family:'DM Mono',monospace; color:var(--accent3); }
+.jf-bet-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
+.jf-bet-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; }
+.jf-bet-row { display:flex; gap:4px; align-items:center; margin-bottom:5px; }
+.jf-bet-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:5px 8px; color:var(--text); font-family:'Syne',sans-serif; font-size:13px; font-weight:700; width:80px; outline:none; }
+.jf-bet-max { background:rgba(124,92,252,.2); border:1px solid rgba(124,92,252,.4); border-radius:6px; padding:5px 8px; color:var(--accent); font-size:11px; font-weight:700; cursor:pointer; font-family:'Syne',sans-serif; }
+.jf-bet-max:hover { background:rgba(124,92,252,.35); }
+.jf-chip-row { display:flex; gap:3px; flex-wrap:wrap; }
+.jf-chip { background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:3px 7px; font-size:10px; font-weight:700; cursor:pointer; font-family:'DM Mono',monospace; }
+.jf-chip:hover { border-color:var(--accent); color:var(--accent); }
+.jf-spin-btn { background:linear-gradient(135deg,#7c5cfc,#5cf0c8); border:none; color:white; font-family:'Syne',sans-serif; font-weight:800; font-size:15px; padding:12px; border-radius:11px; cursor:pointer; transition:all .15s; width:100%; }
 .jf-spin-btn:disabled { opacity:.5; cursor:not-allowed; }
-.jf-spin-btn:hover:not(:disabled) { transform:scale(1.04); }
-.jf-reveal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1500; display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+.jf-spin-btn:hover:not(:disabled) { transform:scale(1.03); }
+.jf-auto-btn { background:var(--surface2); border:1px solid var(--border); color:var(--muted); font-family:'Syne',sans-serif; font-weight:700; font-size:12px; padding:8px; border-radius:9px; cursor:pointer; width:100%; }
+.jf-auto-btn.on { background:rgba(252,92,125,.15); border-color:var(--error); color:var(--error); }
+.jf-mini-sum-box { background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.3); border-radius:9px; padding:7px 10px; display:none; }
+.jf-mini-sum-box.show { display:block; }
+.jf-mini-sum-box .msb-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; }
+.jf-mini-sum-box .msb-val { font-size:15px; font-weight:800; color:#fbbf24; font-family:'DM Mono',monospace; }
+/* Win log - jak w PoG */
+.jf-win-log { display:flex; flex-direction:column; gap:3px; }
+.jf-win-log-title { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+/* Stats pod planszą */
+.jf-stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; width:100%; max-width:1100px; }
+/* Reveal overlay */
+.jf-reveal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:1500; display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:20px; }
 .jf-reveal-overlay.show { display:flex; }
-.jf-reveal-title { font-size:28px; font-weight:800; color:#fbbf24; text-align:center; }
-.jf-reveal-items { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; max-width:600px; }
-.jf-reveal-item { background:var(--surface); border:2px solid #fbbf24; border-radius:14px; padding:14px 20px; text-align:center; min-width:100px; }
-.jf-reveal-item .ri-icon { font-size:32px; margin-bottom:6px; }
-.jf-reveal-item .ri-val  { font-size:18px; font-weight:800; color:#fbbf24; }
-.jf-reveal-item .ri-pos  { font-size:11px; color:var(--muted); }
-.jf-reveal-total { font-size:36px; font-weight:800; color:#4ade80; }
-.jf-reveal-close { background:var(--accent); border:none; color:white; font-family:'Syne',sans-serif; font-weight:700; font-size:15px; padding:12px 28px; border-radius:12px; cursor:pointer; }
+.jf-reveal-title  { font-size:24px; font-weight:800; color:#fbbf24; text-align:center; }
+.jf-reveal-items  { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:600px; }
+.jf-reveal-item   { background:var(--surface); border:2px solid #fbbf24; border-radius:11px; padding:11px 15px; text-align:center; min-width:85px; }
+.jf-reveal-item .ri-icon { font-size:26px; margin-bottom:4px; }
+.jf-reveal-item .ri-val  { font-size:15px; font-weight:800; color:#fbbf24; }
+.jf-reveal-item .ri-pos  { font-size:10px; color:var(--muted); }
+.jf-reveal-total  { font-size:30px; font-weight:800; color:#4ade80; }
+.jf-reveal-close  { background:var(--accent); border:none; color:white; font-family:'Syne',sans-serif; font-weight:700; font-size:14px; padding:10px 24px; border-radius:10px; cursor:pointer; }
+
+
 
 </style>
 </head>
@@ -1904,74 +1948,120 @@ select.input option{background:var(--surface2);}
 <!-- ══ KASYNO — PATH OF GAMBLING ═════════════════════════════════ -->
 <!-- ══ JACKPOT FRENZY ═══════════════════════════════════════════ -->
 <div class="screen" id="screen-casino-jf">
-  <button class="back-btn" onclick="leaveCasinoTable()">← Wróć</button>
-  <div class="jf-wrap">
+<div class="jf-screen">
 
-    <!-- Kociołki -->
-    <div class="jf-cauldrons">
-      <div class="jf-cauldron green" id="jf-cld-green">
+  <!-- Header -->
+  <div class="jf-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="back-btn" style="position:static;margin:0;padding:8px 12px" onclick="leaveCasinoTable()">←</button>
+      <div class="jf-title">🏆 Jackpot Frenzy</div>
+    </div>
+    <div class="jf-fs-bar" id="jf-fs-bar" style="margin:0;width:auto;flex:1;margin:0 12px">
+      <span>🎰 Mini-gra — <strong id="jf-fs-count">0</strong> spinów</span>
+      <div class="jf-fs-badges" id="jf-fs-active"></div>
+    </div>
+    <div></div>
+  </div>
+
+  <!-- Kociołki — stała wysokość -->
+  <div class="jf-cauldrons">
+    <div class="jf-cauldron green" id="jf-cld-green">
+      <div class="jf-cld-top">
         <div class="jf-cld-icon">🍀</div>
         <div class="jf-cld-name">Mnożniki</div>
-        <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-green" style="width:0%"></div></div>
-        <div class="jf-cld-pts" id="jf-pts-green">0 / 500</div>
+        <div class="jf-cld-pts" id="jf-pts-green">0 / 5000</div>
       </div>
-      <div class="jf-cauldron red" id="jf-cld-red">
+      <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-green" style="width:0%"></div></div>
+      <div class="jf-cld-sub" id="jf-cld-green-sub"></div>
+    </div>
+    <div class="jf-cauldron red" id="jf-cld-red">
+      <div class="jf-cld-top">
         <div class="jf-cld-icon">💰</div>
         <div class="jf-cld-name">Jackpoty</div>
-        <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-red" style="width:0%"></div></div>
-        <div class="jf-cld-pts" id="jf-pts-red">0 / 500</div>
-        <div class="jf-jp-display" id="jf-jp-display"></div>
+        <div class="jf-cld-pts" id="jf-pts-red">0 / 5000</div>
       </div>
-      <div class="jf-cauldron blue" id="jf-cld-blue">
+      <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-red" style="width:0%"></div></div>
+      <div class="jf-cld-sub" id="jf-jp-display"></div>
+    </div>
+    <div class="jf-cauldron blue" id="jf-cld-blue">
+      <div class="jf-cld-top">
         <div class="jf-cld-icon">💎</div>
         <div class="jf-cld-name">Dublet</div>
-        <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-blue" style="width:0%"></div></div>
-        <div class="jf-cld-pts" id="jf-pts-blue">0 / 500</div>
+        <div class="jf-cld-pts" id="jf-pts-blue">0 / 5000</div>
+      </div>
+      <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-blue" style="width:0%"></div></div>
+      <div class="jf-cld-sub" id="jf-cld-blue-sub"></div>
+    </div>
+  </div>
+
+  <!-- Główny layout: grid | prawa kolumna -->
+  <div class="jf-main">
+
+    <!-- Grid (środek) -->
+    <div class="jf-grid-col">
+      <div class="jf-grid-wrap">
+        <div class="jf-grid" id="jf-grid"></div>
       </div>
     </div>
 
-    <!-- Statsy -->
-    <div class="s5-stats" style="grid-template-columns:repeat(5,1fr);width:100%">
-      <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="jf-stat-spins">0</div></div>
-      <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="jf-stat-paid">0 AT$</div></div>
-      <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="jf-stat-best">—</div></div>
-      <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="jf-stat-spent">0 AT$</div></div>
-      <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="jf-stat-profit">—</div></div>
-    </div>
-    <div class="s5-recent-wins"><div class="s5-recent-title">Ostatnie wygrane</div><div class="s5-recent-list" id="jf-recent-list"><span class="s5-recent-item none">—</span></div></div>
+    <!-- Prawa kolumna: saldo, zakład, spin, win log -->
+    <div class="jf-right-col">
 
-    <!-- Grid -->
-    <div class="jf-grid-outer">
-      <div class="jf-grid" id="jf-grid" style="grid-template-columns:repeat(5,52px)"></div>
-    </div>
-
-    <!-- Free spin bar -->
-    <div class="jf-fs-bar" id="jf-fs-bar">🎰 Mini-gra — <span id="jf-fs-count">0</span> spinów</div>
-    <div class="jf-mini-sum" id="jf-mini-sum">Suma wygranych: <span id="jf-mini-sum-val">0</span> AT$</div>
-
-    <!-- Kontrolki -->
-    <div class="jf-controls">
-      <div class="s5-bet-wrap" style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:12px;color:var(--muted)">Zakład:</span>
-        <input class="input" type="number" id="jf-bet-input" style="width:90px;padding:8px;font-size:13px" value="10" min="10">
-        <span style="font-size:12px;color:var(--muted)">AT$</span>
+      <!-- Saldo -->
+      <div class="jf-balance-box">
+        <div class="jf-balance-lbl">Saldo</div>
+        <div class="jf-balance-val" id="jf-balance">— AT$</div>
       </div>
+
+      <!-- Zakład -->
+      <div class="jf-bet-box">
+        <div class="jf-bet-lbl">Zakład</div>
+        <div class="jf-bet-row">
+          <input class="jf-bet-input" type="number" id="jf-bet-input" value="10" min="10">
+          <button class="jf-bet-max" onclick="jfSetMax()">MAX</button>
+        </div>
+        <div class="jf-chip-row" id="jf-chip-btns"></div>
+      </div>
+
+      <!-- SPIN + AUTO -->
       <button class="jf-spin-btn" id="jf-spin-btn" onclick="jfSpin()">🏆 SPIN</button>
-    </div>
+      <button class="jf-auto-btn" id="jf-auto-btn" onclick="jfToggleAuto()">Auto</button>
 
-    <!-- Log wygranych -->
-    <div class="s5-win-log" id="jf-win-log"></div>
+      <!-- Suma mini-gry -->
+      <div class="jf-mini-sum-box" id="jf-mini-sum">
+        <div class="msb-lbl">Suma mini-gry</div>
+        <div class="msb-val" id="jf-mini-sum-val">0 AT$</div>
+      </div>
+
+      <!-- Win log -->
+      <div class="jf-win-log-title">Wygrane</div>
+      <div class="jf-win-log s5-win-log" id="jf-win-log"></div>
+
+    </div>
 
   </div>
+
+  <!-- Statystyki -->
+  <div class="jf-stats-row">
+    <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="jf-stat-spins">0</div></div>
+    <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="jf-stat-paid">0 AT$</div></div>
+    <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="jf-stat-best">—</div></div>
+    <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="jf-stat-spent">0 AT$</div></div>
+    <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="jf-stat-profit">—</div></div>
+  </div>
+
+</div>
 </div>
 
-<!-- Overlay ujawnienia (po mini-grze) -->
+<!-- Reveal overlay -->
 <div class="jf-reveal-overlay" id="jf-reveal-overlay">
-  <div class="jf-reveal-title" id="jf-reveal-title">🏆 Mini-gra zakończona!</div>
+  <div class="jf-reveal-title">🏆 Mini-gra zakończona!</div>
   <div class="jf-reveal-items" id="jf-reveal-items"></div>
   <div class="jf-reveal-total" id="jf-reveal-total"></div>
   <button class="jf-reveal-close" onclick="jfCloseReveal()">Odbierz wygraną</button>
 </div>
+
+
 
 <div class="screen" id="screen-casino-path">
   <div style="position:absolute;top:16px;left:16px;z-index:10">
@@ -6324,259 +6414,266 @@ init();
 //  JACKPOT FRENZY — JavaScript
 // ═══════════════════════════════════════════════════════════
 
-let jfSpinning = false;
-let jfSyms     = [];
-let jfCols     = 5;
-const JF_ROWS  = 10;
-let jfStatSpins=0, jfStatPaid=0, jfBestWin=0, jfStatSpent=0;
-let jfFreeSpins=0, jfMiniSum=0;
-let jfBet      = 10;
-let jfStickyCoins = [];
+let jfSpinning=false, jfAuto=false, jfAutoT=null;
+let jfSyms=[], jfCols=5;
+const JF_ROWS=10;
+let jfStatSpins=0,jfStatPaid=0,jfBestWin=0,jfStatSpent=0;
+let jfFreeSpins=0,jfMiniSumVal=0;
+let jfBet=10;
+let jfStickyCoins=[];
+let jfCauldronMax=5000;
 
 function initJFUI(table) {
-  jfBet = table.config.minBet || 10;
-  document.getElementById('jf-bet-input').value = jfBet;
-  jfSpinning = false; jfFreeSpins = 0; jfMiniSum = 0;
-  jfStatSpins = 0; jfStatPaid = 0; jfBestWin = 0; jfStatSpent = 0;
-  jfStickyCoins = [];
-  jfCols = 5;
+  jfBet=table.config.minBet||10;
+  jfCauldronMax=5000;
+  document.getElementById('jf-bet-input').value=jfBet;
+  jfSpinning=false; jfAuto=false; jfFreeSpins=0; jfMiniSumVal=0;
+  jfStatSpins=0; jfStatPaid=0; jfBestWin=0; jfStatSpent=0;
+  jfStickyCoins=[]; jfCols=5;
   jfBuildGrid(5);
-  jfUpdateCauldrons({green:0,red:0,blue:0}, 500);
-  jfUpdateFSBar(0, false);
-  document.getElementById('jf-mini-sum').classList.remove('show');
-  if (casinoDiscordId) loadSlotStats('jackpot_frenzy', 'jf');
+  jfUpdateCauldrons({green:0,red:0,blue:0},jfCauldronMax);
+  var el=document.getElementById('jf-fs-bar'); if(el) el.classList.remove('show');
+  var ms=document.getElementById('jf-mini-sum'); if(ms) ms.classList.remove('show');
+  var wl=document.getElementById('jf-win-log'); if(wl) wl.innerHTML='';
+  jfRenderChips(table.config.minBet);
+  jfUpdateBalance();
+  var ab=document.getElementById('jf-auto-btn'); if(ab){ab.textContent='Auto';ab.classList.remove('on');}
+  if(casinoDiscordId) {
+    fetch('/api/casino/slot-stats/jackpot_frenzy').then(r=>r.json()).then(d=>{
+      if(!d) return;
+      jfStatSpins=d.spins||0; jfStatPaid=d.won||0; jfBestWin=d.bestWin||0; jfStatSpent=d.spent||0;
+      jfUpdateStats();
+    }).catch(()=>{});
+  }
 }
 
+function jfUpdateBalance() {
+  var el=document.getElementById('jf-balance');
+  if(el&&casinoWallet) el.textContent=casinoWallet.balance.toLocaleString('pl-PL')+' AT$';
+}
+
+function jfSetMax() {
+  if(!casinoWallet) return;
+  var tbl=casinoTableData; var max=tbl&&tbl.table&&tbl.table.config?tbl.table.config.maxBet:500000;
+  var v=Math.min(casinoWallet.balance,max||500000);
+  jfBet=v; document.getElementById('jf-bet-input').value=v;
+}
+
+function jfRenderChips(minBet) {
+  var chips=[minBet,minBet*5,minBet*20,minBet*100].filter(function(v,i,a){return a.indexOf(v)===i&&v<=500000;});
+  var el=document.getElementById('jf-chip-btns'); if(!el) return;
+  el.innerHTML=chips.map(function(c){return '<button class="jf-chip" onclick="jfSetBet('+c+')">'+(c>=1000?(c/1000)+'k':c)+'</button>';}).join('');
+}
+
+function jfSetBet(v) { jfBet=v; var el=document.getElementById('jf-bet-input'); if(el) el.value=v; }
+
 function jfBuildGrid(cols) {
-  jfCols = cols;
-  const g = document.getElementById('jf-grid');
-  if (!g) return;
-  g.style.gridTemplateColumns = `repeat(${cols},52px)`;
-  g.innerHTML = '';
-  for (let c=0; c<cols; c++) for (let r=0; r<JF_ROWS; r++) {
-    const el = document.createElement('div');
-    el.className = 'jf-cell';
-    el.id = `jfc${c}_${r}`;
+  jfCols=cols;
+  var g=document.getElementById('jf-grid'); if(!g) return;
+  // Stała szerokość gridu niezależna od zawartości
+  var gridW=Math.min(window.innerWidth-220,680);
+  var cellW=Math.max(32,Math.floor((gridW-cols*2-12)/cols));
+  var cellH=Math.max(28,Math.floor(cellW*0.75));
+  var fontSize=Math.max(12,Math.floor(cellW*0.42));
+  g.style.gridTemplateColumns='repeat('+cols+','+cellW+'px)';
+  g.innerHTML='';
+  for(var c=0;c<cols;c++) for(var r=0;r<JF_ROWS;r++) {
+    var el=document.createElement('div');
+    el.className='jf-cell'; el.id='jfc'+c+'_'+r;
+    el.style.height=cellH+'px'; el.style.fontSize=fontSize+'px';
     g.appendChild(el);
   }
 }
 
-function jfRenderGrid(grid, clusters, stickyCoins, newSticky) {
-  const clusterCells = new Set();
-  (clusters||[]).forEach(cl => cl.cells.forEach(([c,r]) => clusterCells.add(`${c},${r}`)));
-  const stickyMap = {};
-  (stickyCoins||[]).forEach(s => { stickyMap[`${s.col},${s.row}`] = s; });
-
-  for (let c=0; c<jfCols; c++) for (let r=0; r<JF_ROWS; r++) {
-    const el = document.getElementById(`jfc${c}_${r}`);
-    if (!el) continue;
-    const si = grid[c]?.[r];
-    if (si === undefined) continue;
-    const s = jfSyms[si] || {};
-    const key = `${c},${r}`;
-    const sticky = stickyMap[key];
-    const isNew = (newSticky||[]).find(n=>n.col===c&&n.row===r);
-
-    el.className = 'jf-cell';
-    if (sticky) {
-      el.className += sticky.type==='silver' ? ' sticky-silver' : ' sticky-gold';
-    } else if (s.coin) {
-      el.className += s.id === 'coin_br' ? ' coin-bronze' : ' coin-' + s.coin;
-    } else if (clusterCells.has(key)) {
-      el.className += ' cluster';
-    }
-
-    let content = s.e || '?';
-    let badge = '';
-    if (sticky?.type === 'silver' && sticky.mult) {
-      content = '🥈';
-      badge = `<span class="jf-coin-badge">x${sticky.mult}</span>`;
-    } else if (sticky?.type === 'gold' && sticky.jp) {
-      content = '🥇';
-      const jpLabels = {mini:'Mini',minor:'Minor',major:'Major',mega:'Mega',grand:'GRAND'};
-      badge = `<span class="jf-coin-badge">${jpLabels[sticky.jp]||sticky.jp}</span>`;
-    }
-
-    // Brązowy coin — pokaż W (wild)
-    if (s.id === 'coin_br') badge = '<span class="s5-badge s5-wild-b">W</span>';
-    el.innerHTML = content + badge;
-    if (isNew) el.style.animation = 'jfCauldPulse .4s ease-out';
+function jfAnimateOut(sMap) {
+  for(var c=0;c<jfCols;c++) for(var r=0;r<JF_ROWS;r++) {
+    if(sMap[c+','+r]) continue;
+    var el=document.getElementById('jfc'+c+'_'+r); if(!el) continue;
+    el.classList.remove('fall-in','cluster','coin-pop');
+    el.classList.add('fall-out');
   }
 }
 
-function jfUpdateCauldrons(cauldron, max) {
-  for (const color of ['green','red','blue']) {
-    const pts = cauldron[color] || 0;
-    const pct = Math.min(100, (pts/max)*100);
-    const fill = document.getElementById('jf-fill-'+color);
-    const label = document.getElementById('jf-pts-'+color);
-    const cld = document.getElementById('jf-cld-'+color);
-    if (fill)  fill.style.width = pct + '%';
-    if (label) label.textContent = pts + ' / ' + max;
-    if (cld)   cld.classList.toggle('active', pts >= max * 0.8);
+function jfRenderGrid(grid,clusters,stickyCoins,newSticky,animIn) {
+  var cSet=new Set(); (clusters||[]).forEach(function(cl){cl.cells.forEach(function(p){cSet.add(p[0]+','+p[1]);});});
+  var sMap={}; (stickyCoins||[]).forEach(function(s){sMap[s.col+','+s.row]=s;});
+  var nSet=new Set(); (newSticky||[]).forEach(function(s){nSet.add(s.col+','+s.row);});
+  for(var c=0;c<jfCols;c++) for(var r=0;r<JF_ROWS;r++) {
+    var el=document.getElementById('jfc'+c+'_'+r); if(!el) continue;
+    var si=grid[c]&&grid[c][r]!==undefined?grid[c][r]:0;
+    var s=jfSyms[si]||{e:'?'};
+    var key=c+','+r, sticky=sMap[key];
+    el.className='jf-cell';
+    if(sticky) { el.className+=sticky.type==='silver'?' sticky-silver':' sticky-gold'; }
+    else if(s.id==='coin_br') { el.className+=' coin-bronze'; }
+    else if(s.coin) { el.className+=' coin-'+s.coin; }
+    if(cSet.has(key)) el.classList.add('cluster');
+    if(animIn&&!sticky) { el.classList.add('fall-in'); el.style.animationDelay=(c*0.035)+'s'; }
+    else el.style.animationDelay='';
+    if(nSet.has(key)) el.classList.add('coin-pop');
+    var content=s.e||'?', badge='';
+    if(sticky&&sticky.type==='silver'&&sticky.mult) { content='🥈'; badge='<span class="jf-coin-badge">x'+sticky.mult+'</span>'; }
+    else if(sticky&&sticky.type==='gold'&&sticky.jp) { var jl2={mini:'Mini',minor:'Minor',major:'Major',mega:'Mega',grand:'GRAND'}; content='🥇'; badge='<span class="jf-coin-badge">'+(jl2[sticky.jp]||sticky.jp)+'</span>'; }
+    else if(s.id==='coin_br') { badge='<span class="s5-badge s5-wild-b">W</span>'; }
+    el.innerHTML=content+badge;
   }
+}
+
+function jfUpdateCauldrons(cauldron,max) {
+  ['green','red','blue'].forEach(function(color) {
+    var pts=cauldron[color]||0, pct=Math.min(100,(pts/max)*100);
+    var fill=document.getElementById('jf-fill-'+color); if(fill) fill.style.width=pct+'%';
+    var lbl=document.getElementById('jf-pts-'+color); if(lbl) lbl.textContent=pts.toLocaleString('pl-PL')+' / '+max.toLocaleString('pl-PL');
+  });
 }
 
 function jfUpdateJPDisplay(progressiveJP) {
-  const el = document.getElementById('jf-jp-display');
-  if (!el || !progressiveJP) return;
-  const labels = {mini:'Mini',minor:'Minor',major:'Major',mega:'Mega',grand:'GRAND'};
-  el.innerHTML = Object.entries(progressiveJP).map(([k,v]) =>
-    `<span class="jf-jp-chip">${labels[k]}: ${Math.round(v).toLocaleString('pl-PL')}</span>`
-  ).join('');
+  var el=document.getElementById('jf-jp-display'); if(!el||!progressiveJP) return;
+  var labels={mini:'Mini',minor:'Minor',major:'Major',mega:'Mega',grand:'GRAND'};
+  el.innerHTML=Object.entries(progressiveJP).map(function(e){return '<span class="jf-jp-chip">'+labels[e[0]]+': '+Math.round(e[1]).toLocaleString('pl-PL')+'</span>';}).join('');
 }
 
-function jfUpdateFSBar(count, active) {
-  const bar = document.getElementById('jf-fs-bar');
-  const cnt = document.getElementById('jf-fs-count');
-  if (!bar) return;
-  bar.classList.toggle('show', active && count > 0);
-  if (cnt) cnt.textContent = count;
+function jfUpdateFSBar(count,active,miniGames) {
+  var bar=document.getElementById('jf-fs-bar'); if(!bar) return;
+  bar.classList.toggle('show',active&&count>0);
+  var cnt=document.getElementById('jf-fs-count'); if(cnt) cnt.textContent=count;
+  var act=document.getElementById('jf-fs-active'); if(act&&miniGames) {
+    var b='';
+    if(miniGames.multiplier) b+='<span class="jf-fs-badge green">🍀 Mnożniki</span>';
+    if(miniGames.jackpot)    b+='<span class="jf-fs-badge red">💰 Jackpoty</span>';
+    if(miniGames.dublet)     b+='<span class="jf-fs-badge blue">💎 Dublet</span>';
+    act.innerHTML=b;
+  }
 }
 
-function jfUpdateMiniSum(sum, show) {
-  const el = document.getElementById('jf-mini-sum');
-  const val = document.getElementById('jf-mini-sum-val');
-  if (!el) return;
-  el.classList.toggle('show', show);
-  if (val) val.textContent = sum.toLocaleString('pl-PL');
+function jfUpdateMiniSum(sum,show) {
+  var el=document.getElementById('jf-mini-sum'); if(!el) return;
+  el.classList.toggle('show',show);
+  var v=document.getElementById('jf-mini-sum-val'); if(v) v.textContent=sum.toLocaleString('pl-PL')+' AT$';
+}
+
+function jfAddWinLog(payout,tier,label) {
+  var lg=document.getElementById('jf-win-log'); if(!lg) return;
+  var el=document.createElement('div');
+  el.className='s5-log-tag '+(tier||'win');
+  el.textContent=(label?label+' ':'')+(payout>0?'+'+payout.toLocaleString('pl-PL')+' AT$':'');
+  lg.insertBefore(el,lg.firstChild);
+  while(lg.children.length>8) lg.removeChild(lg.lastChild);
 }
 
 function jfUpdateStats() {
-  const s = id => document.getElementById(id);
-  if (s('jf-stat-spins'))  s('jf-stat-spins').textContent  = jfStatSpins.toLocaleString('pl-PL');
-  if (s('jf-stat-paid'))   s('jf-stat-paid').textContent   = jfStatPaid.toLocaleString('pl-PL') + ' AT$';
-  if (s('jf-stat-best'))   s('jf-stat-best').textContent   = jfBestWin>0 ? jfBestWin.toLocaleString('pl-PL')+' AT$' : '—';
-  if (s('jf-stat-spent'))  s('jf-stat-spent').textContent  = jfStatSpent.toLocaleString('pl-PL') + ' AT$';
-  updateProfitDisplay('jf-stat-profit', jfStatSpent, jfStatPaid);
-}
-
-function jfAddLog(payout, tier) {
-  if (payout <= 0) return;
-  const lg = document.getElementById('jf-win-log');
-  if (!lg) return;
-  const el = document.createElement('div');
-  el.className = 's5-log-tag ' + (tier||'win');
-  el.textContent = '+' + payout.toLocaleString('pl-PL') + ' AT$';
-  lg.insertBefore(el, lg.firstChild);
-  while (lg.children.length > 6) lg.removeChild(lg.lastChild);
+  var si=function(id){return document.getElementById(id);};
+  if(si('jf-stat-spins'))  si('jf-stat-spins').textContent=jfStatSpins.toLocaleString('pl-PL');
+  if(si('jf-stat-paid'))   si('jf-stat-paid').textContent=jfStatPaid.toLocaleString('pl-PL')+' AT$';
+  if(si('jf-stat-best'))   si('jf-stat-best').textContent=jfBestWin>0?jfBestWin.toLocaleString('pl-PL')+' AT$':'—';
+  if(si('jf-stat-spent'))  si('jf-stat-spent').textContent=jfStatSpent.toLocaleString('pl-PL')+' AT$';
+  updateProfitDisplay('jf-stat-profit',jfStatSpent,jfStatPaid);
 }
 
 function jfSpin() {
-  if (jfSpinning) return;
-  const betEl = document.getElementById('jf-bet-input');
-  jfBet = parseInt(betEl?.value) || jfBet;
-  if (!casinoTableId || !casinoSocketToken) return showToast('Nie połączono ze stołem', 'error');
-  jfSpinning = true;
-  const btn = document.getElementById('jf-spin-btn');
-  if (btn) { btn.disabled=true; btn.textContent='⏳'; }
-
-  // Animacja spinning
-  for (let c=0; c<jfCols; c++) for (let r=0; r<JF_ROWS; r++) {
-    const sc = jfStickyCoins.find(s=>s.col===c&&s.row===r);
-    if (sc) continue; // sticky zostaje
-    const el = document.getElementById(`jfc${c}_${r}`);
-    if (el) el.classList.add('spinning');
-  }
-
-  socket.emit('casinoJFSpin', { tableId:casinoTableId, bet:jfBet, socketToken:casinoSocketToken, discordId:casinoDiscordId });
+  if(jfSpinning) return;
+  var betEl=document.getElementById('jf-bet-input'); jfBet=parseInt(betEl&&betEl.value)||jfBet;
+  if(!casinoTableId||!casinoSocketToken) return showToast('Nie połączono','error');
+  jfSpinning=true;
+  var btn=document.getElementById('jf-spin-btn'); if(btn){btn.disabled=true;btn.textContent='⏳';}
+  var sMap={}; jfStickyCoins.forEach(function(s){sMap[s.col+','+s.row]=s;});
+  jfAnimateOut(sMap);
+  setTimeout(function(){socket.emit('casinoJFSpin',{tableId:casinoTableId,bet:jfBet,socketToken:casinoSocketToken,discordId:casinoDiscordId});},200);
 }
 
-socket.on('casinoJFResult', function(data) {
-  const { grid, clusters, payout, balance, totBet, isFree, miniSpins, miniWinSum,
-          miniGames, cauldron, cauldronMax, coinEvents, triggeredCauldrons,
-          chainTriggered, stickyCoins, newSticky, miniEnded, multSum, jackpotWins,
-          finalPayout, dublet, cols, syms, progressiveJP, tier } = data;
+function jfToggleAuto() {
+  jfAuto=!jfAuto;
+  var b=document.getElementById('jf-auto-btn'); if(b){b.textContent=jfAuto?'■ Stop':'Auto';b.classList.toggle('on',jfAuto);}
+  if(jfAuto&&!jfSpinning) jfSpin();
+}
 
-  if (syms?.length) jfSyms = syms;
-  jfStickyCoins = stickyCoins || [];
+socket.on('casinoJFResult',function(data) {
+  var grid=data.grid,clusters=data.clusters,payout=data.payout,balance=data.balance;
+  var totBet=data.totBet,isFree=data.isFree,miniSpins=data.miniSpins||0;
+  var miniWinSum=data.miniWinSum||0,miniGames=data.miniGames,cauldron=data.cauldron;
+  var cauldronMax=data.cauldronMax||5000;
+  var triggeredCauldrons=data.triggeredCauldrons||[],chainTriggered=data.chainTriggered||[];
+  var stickyCoins=data.stickyCoins||[],newSticky=data.newSticky||[];
+  var miniEnded=data.miniEnded,multSum=data.multSum||0,jackpotWins=data.jackpotWins||[];
+  var finalPayout=data.finalPayout||0,cols=data.cols||5;
+  var syms=data.syms,progressiveJP=data.progressiveJP,tier=data.tier||'win';
 
-  // Rozszerz/zwęź grid jeśli zmienił się cols
-  if (cols !== jfCols) jfBuildGrid(cols);
+  if(syms&&syms.length) jfSyms=syms;
+  jfStickyCoins=stickyCoins;
+  jfCauldronMax=cauldronMax;
 
-  // Stop spinning
-  for (let c=0; c<jfCols; c++) for (let r=0; r<JF_ROWS; r++) {
-    const el = document.getElementById(`jfc${c}_${r}`); if(el) el.classList.remove('spinning');
-  }
+  if(cols!==jfCols) jfBuildGrid(cols);
 
-  // Render
-  jfRenderGrid(grid, clusters, stickyCoins, newSticky);
-  jfUpdateCauldrons(cauldron, cauldronMax);
+  jfRenderGrid(grid,clusters,stickyCoins,newSticky,true);
+  jfUpdateCauldrons(cauldron,cauldronMax);
   jfUpdateJPDisplay(progressiveJP);
-  jfUpdateFSBar(miniSpins, miniSpins > 0);
-  jfUpdateMiniSum(miniWinSum || 0, miniSpins > 0);
+  jfUpdateFSBar(miniSpins,miniSpins>0,miniGames);
+  jfUpdateMiniSum(miniWinSum,miniSpins>0);
+  jfUpdateBalance();
 
-  // Kociołek trigger — flash
-  (triggeredCauldrons||[]).forEach(color => {
-    const cld = document.getElementById('jf-cld-'+color);
-    if (cld) { cld.style.transition='none'; cld.style.transform='scale(1.15)'; setTimeout(()=>{ cld.style.transform=''; cld.style.transition=''; },400); }
+  // Kociołki — animacja glow (bez resize)
+  triggeredCauldrons.forEach(function(color) {
+    var cld=document.getElementById('jf-cld-'+color);
+    if(cld){cld.classList.remove('triggered');void cld.offsetWidth;cld.classList.add('triggered');}
+    var names={green:'🍀 Mnożniki',red:'💰 Jackpoty',blue:'💎 Dublet'};
+    var msg=(chainTriggered.includes(color)?'⛓️ Chain: ':'🎉 ')+(names[color]||color)+' aktywne!';
+    var tiers={green:'big',red:'mega',blue:'big'};
+    jfAddWinLog(0,tiers[color]||'big',msg);
   });
+
+  // Wygrana z linii podczas mini-gry
+  if(payout>0&&!miniEnded) {
+    jfAddWinLog(payout,tier,'');
+    s5Fireworks(tier);
+  }
 
   // Stats
   jfStatSpins++;
-  jfStatPaid += payout;
-  if (payout > jfBestWin) jfBestWin = payout;
-  jfStatSpent += isFree ? 0 : totBet;
-  if (casinoWallet) casinoWallet.balance = balance;
+  jfStatPaid+=payout;
+  if(payout>jfBestWin) jfBestWin=payout;
+  jfStatSpent+=isFree?0:totBet;
+  if(casinoWallet) casinoWallet.balance=balance;
   jfUpdateStats();
-  if (payout > 0) {
-    jfAddLog(payout, tier);
-    addRecentWin('jf-recent-list', payout, tier);
-  }
 
-  // Mini-gra zakończona — reveal overlay
-  if (miniEnded) {
-    setTimeout(() => jfShowReveal(multSum, jackpotWins, finalPayout), 500);
-  }
+  if(miniEnded) setTimeout(function(){jfShowReveal(multSum,jackpotWins,finalPayout);},400);
 
-  jfSpinning = false;
-  const btn = document.getElementById('jf-spin-btn');
-  if (btn) { btn.disabled=false; btn.textContent='🏆 SPIN'; }
+  jfSpinning=false;
+  var btn=document.getElementById('jf-spin-btn'); if(btn){btn.disabled=false;btn.textContent='🏆 SPIN';}
+  if(jfAuto) jfAutoT=setTimeout(jfSpin,miniSpins>0?500:1200);
 });
 
-function jfShowReveal(multSum, jackpotWins, finalPayout) {
-  const ov = document.getElementById('jf-reveal-overlay');
-  const items = document.getElementById('jf-reveal-items');
-  const total = document.getElementById('jf-reveal-total');
-  if (!ov) return;
-
-  items.innerHTML = '';
-
-  // Srebrne monety
-  if (multSum > 0) {
-    const el = document.createElement('div'); el.className='jf-reveal-item';
-    el.innerHTML = `<div class="ri-icon">🥈</div><div class="ri-val">x${multSum}</div><div class="ri-pos">Mnożnik wygranej</div>`;
+function jfShowReveal(multSum,jackpotWins,finalPayout) {
+  var ov=document.getElementById('jf-reveal-overlay');
+  var items=document.getElementById('jf-reveal-items');
+  var total=document.getElementById('jf-reveal-total');
+  if(!ov) return;
+  items.innerHTML='';
+  // Mnożniki
+  if(multSum>0) {
+    var el=document.createElement('div'); el.className='jf-reveal-item';
+    el.innerHTML='<div class="ri-icon">🥈</div><div class="ri-val">x'+multSum+'</div><div class="ri-pos">Łączny mnożnik</div>';
     items.appendChild(el);
   }
-
   // Jackpoty
-  const jpLabels = {mini:'Mini',minor:'Minor',major:'Major',mega:'Mega',grand:'GRAND'};
-  const jpColors = {mini:'#94a3b8',minor:'#22c55e',major:'#3b82f6',mega:'#a855f7',grand:'#f59e0b'};
-  (jackpotWins||[]).forEach(jw => {
-    const el = document.createElement('div'); el.className='jf-reveal-item';
-    el.style.borderColor = jpColors[jw.jp]||'#fbbf24';
-    el.innerHTML = `<div class="ri-icon">🥇</div><div class="ri-val" style="color:${jpColors[jw.jp]||'#fbbf24'}">${jpLabels[jw.jp]||jw.jp}</div><div class="ri-pos">${jw.amount.toLocaleString('pl-PL')} AT$</div>`;
+  var jl={mini:'Mini',minor:'Minor',major:'Major',mega:'Mega',grand:'GRAND'};
+  var jc={mini:'#94a3b8',minor:'#22c55e',major:'#3b82f6',mega:'#a855f7',grand:'#f59e0b'};
+  (jackpotWins||[]).forEach(function(jw) {
+    var el=document.createElement('div'); el.className='jf-reveal-item';
+    el.style.borderColor=jc[jw.jp]||'#fbbf24';
+    el.innerHTML='<div class="ri-icon">🥇</div><div class="ri-val" style="color:'+(jc[jw.jp]||'#fbbf24')+'">'+(jl[jw.jp]||jw.jp)+'</div><div class="ri-pos">'+jw.amount.toLocaleString('pl-PL')+' AT$</div>';
     items.appendChild(el);
   });
-
-  if (total) total.textContent = '🎉 +' + finalPayout.toLocaleString('pl-PL') + ' AT$';
+  if(total) total.textContent='🎉 +'+finalPayout.toLocaleString('pl-PL')+' AT$';
   ov.classList.add('show');
-  s5Fireworks(finalPayout > 50000 ? 'giga' : finalPayout > 5000 ? 'mega' : 'big');
+  // Win log wpis
+  var tier2=finalPayout>100000?'giga':finalPayout>10000?'mega':finalPayout>1000?'big':'win';
+  jfAddWinLog(finalPayout,tier2,'🏆 Finał');
+  addRecentWin('jf-recent-list',finalPayout,tier2);
+  s5Fireworks(tier2);
 }
 
 function jfCloseReveal() {
-  const ov = document.getElementById('jf-reveal-overlay');
-  if (ov) ov.classList.remove('show');
-}
-
-// Ładuj statsy przy init
-function loadSlotStatsJF() {
-  if (!casinoDiscordId) return;
-  fetch('/api/casino/slot-stats/jackpot_frenzy').then(r=>r.json()).then(d=>{
-    if (!d) return;
-    jfStatSpins=d.spins||0; jfStatPaid=d.won||0; jfBestWin=d.bestWin||0; jfStatSpent=d.spent||0;
-    jfUpdateStats();
-  }).catch(()=>{});
+  var ov=document.getElementById('jf-reveal-overlay'); if(ov) ov.classList.remove('show');
 }
 
 
