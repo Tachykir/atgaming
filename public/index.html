@@ -856,11 +856,12 @@ select.input option{background:var(--surface2);}
 .casino-notif.cn-big     { border-color:#fbbf24; color:#fbbf24; font-size:15px; }
 
 /* ═══ JACKPOT FRENZY ══════════════════════════════════════════════ */
-.jf-screen { display:flex; flex-direction:column; align-items:stretch; width:100%; height:100vh; overflow:hidden; padding:10px 12px 8px; gap:6px; box-sizing:border-box; }
-.jf-header { display:flex; justify-content:space-between; align-items:center; width:100%; }
-.jf-title  { font-size:20px; font-weight:800; }
-.jf-cauldrons { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
-.jf-cauldron  { background:var(--surface); border:2px solid var(--border); border-radius:12px; padding:8px 10px; height:82px; box-sizing:border-box; }
+.jf-screen { display:flex; flex-direction:column; align-items:stretch; width:100%; height:100vh; overflow:hidden; padding:8px 10px 6px; gap:6px; box-sizing:border-box; }
+.jf-header { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.jf-title  { font-size:18px; font-weight:800; }
+/* Kociołki */
+.jf-cauldrons { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; flex-shrink:0; }
+.jf-cauldron  { background:var(--surface); border:2px solid var(--border); border-radius:10px; padding:8px 10px; height:80px; box-sizing:border-box; }
 .jf-cauldron.green { border-color:rgba(34,197,94,.5); }
 .jf-cauldron.red   { border-color:rgba(239,68,68,.5); }
 .jf-cauldron.blue  { border-color:rgba(59,130,246,.5); }
@@ -869,44 +870,49 @@ select.input option{background:var(--surface2);}
 .jf-cauldron.red.triggered   { box-shadow:0 0 30px rgba(239,68,68,.6); }
 .jf-cauldron.blue.triggered  { box-shadow:0 0 30px rgba(59,130,246,.6); }
 @keyframes jfCauldGlow { 0%{opacity:1} 100%{box-shadow:none} }
-.jf-cld-top  { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
-.jf-cld-icon { font-size:16px; }
+.jf-cld-top  { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.jf-cld-icon { font-size:15px; }
 .jf-cld-name { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; flex:1; }
 .jf-cld-pts  { font-size:10px; font-weight:700; font-family:'DM Mono',monospace; }
 .jf-cauldron.green .jf-cld-pts { color:#22c55e; }
 .jf-cauldron.red   .jf-cld-pts { color:#ef4444; }
 .jf-cauldron.blue  .jf-cld-pts { color:#3b82f6; }
-.jf-cld-track { height:5px; background:var(--surface2); border-radius:3px; overflow:hidden; margin-bottom:4px; }
+.jf-cld-track { height:5px; background:var(--surface2); border-radius:3px; overflow:hidden; margin-bottom:3px; }
 .jf-cld-fill  { height:100%; border-radius:3px; transition:width .5s cubic-bezier(.25,.46,.45,.94); }
 .jf-cauldron.green .jf-cld-fill { background:linear-gradient(90deg,#16a34a,#4ade80); }
 .jf-cauldron.red   .jf-cld-fill { background:linear-gradient(90deg,#dc2626,#f87171); }
 .jf-cauldron.blue  .jf-cld-fill { background:linear-gradient(90deg,#1d4ed8,#60a5fa); }
-.jf-cld-sub  { display:flex; gap:4px; flex-wrap:wrap; overflow:hidden; height:16px; }
-.jf-jp-display { display:flex; gap:3px; flex-wrap:wrap; margin-top:4px; }
-.jf-jp-chip  { font-size:8px; font-weight:700; padding:1px 5px; border-radius:3px; background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); color:#fbbf24; font-family:'DM Mono',monospace; white-space:nowrap; }
+.jf-cld-sub  { display:flex; gap:3px; flex-wrap:wrap; overflow:hidden; height:14px; }
+.jf-jp-display { display:flex; gap:3px; flex-wrap:wrap; margin-top:2px; }
+.jf-jp-chip  { font-size:8px; font-weight:700; padding:1px 4px; border-radius:3px; background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); color:#fbbf24; font-family:'DM Mono',monospace; white-space:nowrap; }
 /* FS bar */
-.jf-fs-bar { background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(92,240,200,.06)); border:1px solid rgba(124,92,252,.3); border-radius:8px; padding:5px 12px; font-size:12px; font-weight:700; display:none; width:100%; text-align:center; }
+.jf-fs-bar { background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(92,240,200,.06)); border:1px solid rgba(124,92,252,.3); border-radius:7px; padding:4px 12px; font-size:12px; font-weight:700; display:none; text-align:center; flex-shrink:0; }
 .jf-fs-bar.show { display:block; }
 .jf-fs-badges { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:2px; }
 .jf-fs-badge  { font-size:9px; padding:1px 7px; border-radius:4px; font-weight:800; }
 .jf-fs-badge.green { background:rgba(34,197,94,.2); color:#4ade80; }
 .jf-fs-badge.red   { background:rgba(239,68,68,.2);  color:#f87171; }
 .jf-fs-badge.blue  { background:rgba(59,130,246,.2); color:#60a5fa; }
-/* Główny layout */
-.jf-main { display:flex; flex-direction:row; gap:10px; width:100%; flex:1; min-height:0; align-items:stretch; }
-/* Grid */
-.jf-grid-col { flex:1; min-width:0; display:flex; flex-direction:column; }
-.jf-grid-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; width:100%; height:100%; box-sizing:border-box; overflow:hidden; }
-.jf-grid { display:grid; gap:2px; width:100%; }
-.jf-cell { display:flex; align-items:center; justify-content:center; border-radius:5px; background:var(--surface2); border:1px solid rgba(255,255,255,.04); position:relative; overflow:hidden; }
+/* Główny layout: lewa kolumna(kontrolki) + środek(grid) + prawa kolumna(log) */
+.jf-main { display:flex; flex-direction:row; gap:8px; width:100%; flex:1; min-height:0; }
+/* Lewa kolumna: saldo, zakład, SPIN */
+.jf-left-col { width:180px; flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+/* Grid — ŚRODEK, wycentrowany */
+.jf-grid-col { flex:1; min-width:0; display:flex; align-items:center; justify-content:center; }
+.jf-grid-wrap { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; box-sizing:border-box; transition:width .4s cubic-bezier(.25,.46,.45,.94); }
+.jf-grid { display:grid; gap:2px; }
+.jf-cell { display:flex; align-items:center; justify-content:center; border-radius:5px; background:var(--surface2); border:1px solid rgba(255,255,255,.04); position:relative; overflow:hidden; flex-shrink:0; }
+/* Animacje */
 @keyframes jfFallIn  { from{transform:translateY(-100%);opacity:0} to{transform:translateY(0);opacity:1} }
 @keyframes jfFallOut { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
 @keyframes jfCluster { 0%,100%{background:rgba(59,130,246,.18)} 50%{background:rgba(59,130,246,.35)} }
 @keyframes jfCoinPop { 0%{transform:scale(.4);opacity:0} 70%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
-.jf-cell.fall-in  { animation:jfFallIn  .25s cubic-bezier(.25,.46,.45,.94) both; }
-.jf-cell.fall-out { animation:jfFallOut .15s ease-in both; }
+@keyframes jfDubletExpand { from{transform:scaleX(0.5);opacity:0} to{transform:scaleX(1);opacity:1} }
+.jf-cell.fall-in  { animation:jfFallIn  .22s cubic-bezier(.25,.46,.45,.94) both; }
+.jf-cell.fall-out { animation:jfFallOut .13s ease-in both; }
 .jf-cell.cluster  { animation:jfCluster .6s ease-out; outline:2px solid #3b82f6; }
 .jf-cell.coin-pop { animation:jfCoinPop .3s cubic-bezier(.34,1.56,.64,1) both; }
+.jf-cell.dublet-new { animation:jfFallIn .3s cubic-bezier(.25,.46,.45,.94) both; background:rgba(59,130,246,.08); }
 .jf-cell.sticky-silver { background:rgba(192,192,192,.1); outline:2px solid rgba(192,192,192,.7); }
 .jf-cell.sticky-gold   { background:rgba(255,220,50,.1);  outline:2px solid rgba(255,220,50,.8); }
 .jf-cell.coin-green  { background:rgba(34,197,94,.1);  outline:1px solid #22c55e; }
@@ -916,30 +922,31 @@ select.input option{background:var(--surface2);}
 .jf-coin-badge { position:absolute; top:-1px; right:-1px; font-size:7px; font-weight:800; background:rgba(10,10,15,.9); border:1px solid; border-radius:2px; padding:0 3px; line-height:13px; font-family:'DM Mono',monospace; }
 .jf-cell.sticky-silver .jf-coin-badge { color:silver; border-color:silver; }
 .jf-cell.sticky-gold   .jf-coin-badge { color:#fbbf24; border-color:#fbbf24; }
-/* Prawa kolumna */
-.jf-right-col { width:200px; flex-shrink:0; display:flex; flex-direction:column; gap:6px; overflow-y:auto; }
-.jf-balance-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
-.jf-balance-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
-.jf-balance-val { font-size:16px; font-weight:800; font-family:'DM Mono',monospace; color:var(--accent3); line-height:1.2; }
-.jf-bet-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
-.jf-bet-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; }
-.jf-bet-row { display:flex; gap:4px; align-items:center; margin-bottom:5px; }
-.jf-bet-input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:5px 8px; color:var(--text); font-family:'Syne',sans-serif; font-size:13px; font-weight:700; width:80px; outline:none; }
-.jf-bet-max { background:rgba(124,92,252,.2); border:1px solid rgba(124,92,252,.4); border-radius:6px; padding:5px 8px; color:var(--accent); font-size:11px; font-weight:700; cursor:pointer; font-family:'Syne',sans-serif; }
-.jf-chip-row { display:flex; gap:3px; flex-wrap:wrap; }
-.jf-chip { background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:3px 7px; font-size:10px; font-weight:700; cursor:pointer; font-family:'DM Mono',monospace; }
+/* Prawa kolumna: win log */
+.jf-right-col { width:160px; flex-shrink:0; display:flex; flex-direction:column; gap:4px; overflow-y:auto; }
+/* Kontrolki */
+.jf-balance-box { background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:7px 9px; }
+.jf-balance-lbl { font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.jf-balance-val { font-size:14px; font-weight:800; font-family:'DM Mono',monospace; color:var(--accent3); line-height:1.2; }
+.jf-bet-box { background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:7px 9px; }
+.jf-bet-lbl { font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+.jf-bet-row { display:flex; gap:4px; align-items:center; margin-bottom:4px; }
+.jf-bet-input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 7px; color:var(--text); font-family:'Syne',sans-serif; font-size:12px; font-weight:700; width:72px; outline:none; }
+.jf-bet-max { background:rgba(124,92,252,.2); border:1px solid rgba(124,92,252,.4); border-radius:5px; padding:4px 7px; color:var(--accent); font-size:10px; font-weight:700; cursor:pointer; font-family:'Syne',sans-serif; }
+.jf-chip-row { display:flex; gap:2px; flex-wrap:wrap; }
+.jf-chip { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:2px 6px; font-size:9px; font-weight:700; cursor:pointer; font-family:'DM Mono',monospace; }
 .jf-chip:hover { border-color:var(--accent); color:var(--accent); }
-.jf-spin-btn { background:linear-gradient(135deg,#7c5cfc,#5cf0c8); border:none; color:white; font-family:'Syne',sans-serif; font-weight:800; font-size:15px; padding:12px; border-radius:11px; cursor:pointer; transition:all .15s; width:100%; }
+.jf-spin-btn { background:linear-gradient(135deg,#7c5cfc,#5cf0c8); border:none; color:white; font-family:'Syne',sans-serif; font-weight:800; font-size:14px; padding:11px; border-radius:10px; cursor:pointer; transition:all .15s; width:100%; }
 .jf-spin-btn:disabled { opacity:.5; cursor:not-allowed; }
 .jf-spin-btn:hover:not(:disabled) { transform:scale(1.03); }
-.jf-auto-btn { background:var(--surface2); border:1px solid var(--border); color:var(--muted); font-family:'Syne',sans-serif; font-weight:700; font-size:12px; padding:8px; border-radius:9px; cursor:pointer; width:100%; }
+.jf-auto-btn { background:var(--surface2); border:1px solid var(--border); color:var(--muted); font-family:'Syne',sans-serif; font-weight:700; font-size:11px; padding:7px; border-radius:8px; cursor:pointer; width:100%; }
 .jf-auto-btn.on { background:rgba(252,92,125,.15); border-color:var(--error); color:var(--error); }
-.jf-mini-sum-box { background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.3); border-radius:9px; padding:7px 10px; display:none; }
+.jf-mini-sum-box { background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.3); border-radius:8px; padding:6px 9px; display:none; }
 .jf-mini-sum-box.show { display:block; }
-.jf-mini-sum-box .msb-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; }
-.jf-mini-sum-box .msb-val { font-size:15px; font-weight:800; color:#fbbf24; font-family:'DM Mono',monospace; }
-.jf-win-log { display:flex; flex-direction:column; gap:3px; overflow-y:auto; max-height:300px; }
-.jf-win-log-title { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.jf-mini-sum-box .msb-lbl { font-size:8px; color:var(--muted); text-transform:uppercase; }
+.jf-mini-sum-box .msb-val { font-size:13px; font-weight:800; color:#fbbf24; font-family:'DM Mono',monospace; }
+.jf-win-log { display:flex; flex-direction:column; gap:2px; overflow-y:auto; flex:1; }
+.jf-win-log-title { font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; flex-shrink:0; }
 /* Stats */
 .jf-stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; width:100%; flex-shrink:0; }
 /* Reveal */
@@ -953,6 +960,10 @@ select.input option{background:var(--surface2);}
 .jf-reveal-item .ri-pos  { font-size:10px; color:var(--muted); }
 .jf-reveal-total  { font-size:30px; font-weight:800; color:#4ade80; }
 .jf-reveal-close  { background:var(--accent); border:none; color:white; font-family:'Syne',sans-serif; font-weight:700; font-size:14px; padding:10px 24px; border-radius:10px; cursor:pointer; }
+
+
+
+
 
 
 </style>
@@ -1945,15 +1956,12 @@ select.input option{background:var(--surface2);}
 
   <!-- Header -->
   <div class="jf-header">
-    <div style="display:flex;align-items:center;gap:8px">
-      <button class="back-btn" style="position:static;margin:0;padding:8px 12px" onclick="leaveCasinoTable()">← Wróć</button>
-      <div class="jf-title">🏆 Jackpot Frenzy</div>
-    </div>
-    <div class="jf-fs-bar" id="jf-fs-bar" style="margin:0;width:auto;flex:1;margin:0 12px;display:none">
+    <button class="back-btn" style="position:static;margin:0;padding:7px 12px" onclick="leaveCasinoTable()">← Wróć</button>
+    <div class="jf-title">🏆 Jackpot Frenzy</div>
+    <div class="jf-fs-bar" id="jf-fs-bar" style="margin:0 8px;flex:1">
       <span>🎰 Mini-gra — <strong id="jf-fs-count">0</strong> spinów</span>
       <div class="jf-fs-badges" id="jf-fs-active"></div>
     </div>
-    <div></div>
   </div>
 
   <!-- Kociołki -->
@@ -1962,7 +1970,7 @@ select.input option{background:var(--surface2);}
       <div class="jf-cld-top">
         <div class="jf-cld-icon">🍀</div>
         <div class="jf-cld-name">Mnożniki</div>
-        <div class="jf-cld-pts" id="jf-pts-green">0 / 5000</div>
+        <div class="jf-cld-pts" id="jf-pts-green">0 / 2000</div>
       </div>
       <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-green" style="width:0%"></div></div>
       <div class="jf-cld-sub" id="jf-cld-green-sub"></div>
@@ -1971,7 +1979,7 @@ select.input option{background:var(--surface2);}
       <div class="jf-cld-top">
         <div class="jf-cld-icon">💰</div>
         <div class="jf-cld-name">Jackpoty</div>
-        <div class="jf-cld-pts" id="jf-pts-red">0 / 5000</div>
+        <div class="jf-cld-pts" id="jf-pts-red">0 / 2000</div>
       </div>
       <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-red" style="width:0%"></div></div>
       <div class="jf-jp-display" id="jf-jp-display"></div>
@@ -1980,33 +1988,22 @@ select.input option{background:var(--surface2);}
       <div class="jf-cld-top">
         <div class="jf-cld-icon">💎</div>
         <div class="jf-cld-name">Dublet</div>
-        <div class="jf-cld-pts" id="jf-pts-blue">0 / 5000</div>
+        <div class="jf-cld-pts" id="jf-pts-blue">0 / 2000</div>
       </div>
       <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-blue" style="width:0%"></div></div>
       <div class="jf-cld-sub" id="jf-cld-blue-sub"></div>
     </div>
   </div>
 
-  <!-- Główny layout: grid (lewa) | prawa kolumna -->
+  <!-- Główny layout: lewa(kontrolki) | środek(grid) | prawa(log) -->
   <div class="jf-main">
 
-    <!-- Grid -->
-    <div class="jf-grid-col">
-      <div class="jf-grid-wrap" id="jf-grid-wrap">
-        <div class="jf-grid" id="jf-grid"></div>
-      </div>
-    </div>
-
-    <!-- Prawa kolumna: saldo, zakład, spin, win log -->
-    <div class="jf-right-col">
-
-      <!-- Saldo -->
+    <!-- Lewa kolumna: Saldo + Zakład + SPIN + AUTO -->
+    <div class="jf-left-col">
       <div class="jf-balance-box">
         <div class="jf-balance-lbl">Saldo</div>
         <div class="jf-balance-val" id="jf-balance">— AT$</div>
       </div>
-
-      <!-- Zakład -->
       <div class="jf-bet-box">
         <div class="jf-bet-lbl">Zakład</div>
         <div class="jf-bet-row">
@@ -2015,21 +2012,25 @@ select.input option{background:var(--surface2);}
         </div>
         <div class="jf-chip-row" id="jf-chip-btns"></div>
       </div>
-
-      <!-- SPIN + AUTO -->
       <button class="jf-spin-btn" id="jf-spin-btn" onclick="jfSpin()">🏆 SPIN</button>
       <button class="jf-auto-btn" id="jf-auto-btn" onclick="jfToggleAuto()">Auto</button>
-
-      <!-- Suma mini-gry -->
       <div class="jf-mini-sum-box" id="jf-mini-sum">
         <div class="msb-lbl">Suma mini-gry</div>
         <div class="msb-val" id="jf-mini-sum-val">0 AT$</div>
       </div>
+    </div>
 
-      <!-- Win log -->
+    <!-- Grid (środek, wycentrowany) -->
+    <div class="jf-grid-col">
+      <div class="jf-grid-wrap" id="jf-grid-wrap">
+        <div class="jf-grid" id="jf-grid"></div>
+      </div>
+    </div>
+
+    <!-- Prawa kolumna: Wygrane -->
+    <div class="jf-right-col">
       <div class="jf-win-log-title">Wygrane</div>
       <div class="jf-win-log s5-win-log" id="jf-win-log"></div>
-
     </div>
 
   </div>
@@ -2176,6 +2177,7 @@ select.input option{background:var(--surface2);}
 
 
 <script>
+
 
 
 // ── STATE ──────────────────────────────────────────────────────
@@ -6433,7 +6435,7 @@ function initJFUI(table) {
   jfSpinning=false; jfAuto=false; jfFreeSpins=0; jfMiniSumVal=0;
   jfStatSpins=0; jfStatPaid=0; jfBestWin=0; jfStatSpent=0;
   jfStickyCoins=[]; jfCols=5;
-  jfBuildGrid(5);
+  jfBuildGrid(5, false);
   jfUpdateCauldrons({green:0,red:0,blue:0},jfCauldronMax);
   var el=document.getElementById('jf-fs-bar'); if(el){el.classList.remove('show');el.style.display='none';}
   var ms=document.getElementById('jf-mini-sum'); if(ms) ms.classList.remove('show');
@@ -6443,7 +6445,7 @@ function initJFUI(table) {
   var ab=document.getElementById('jf-auto-btn'); if(ab){ab.textContent='Auto';ab.classList.remove('on');}
   // Przebuduj grid przy resize
   window._jfResizeHandler && window.removeEventListener('resize', window._jfResizeHandler);
-  window._jfResizeHandler = function() { if(jfCols) jfBuildGrid(jfCols); };
+  window._jfResizeHandler = function() { if(jfCols) jfBuildGrid(jfCols, false); };
   window.addEventListener('resize', window._jfResizeHandler);
   if(casinoDiscordId) {
     fetch('/api/casino/slot-stats/jackpot_frenzy').then(r=>r.json()).then(d=>{
@@ -6477,37 +6479,50 @@ function jfRenderChips(minBet) {
 
 function jfSetBet(v) { jfBet=v; var el=document.getElementById('jf-bet-input'); if(el) el.value=v; }
 
-function jfBuildGrid(cols) {
+function jfBuildGrid(cols, isDublet) {
   jfCols=cols;
   var g=document.getElementById('jf-grid'); if(!g) return;
-  // Oblicz rozmiar komórki na podstawie dostępnej przestrzeni
   var wrap=document.getElementById('jf-grid-wrap');
-  var rightColW=200+10; // 200px kolumna + gap
-  var screenW=window.innerWidth||1536;
-  var availW=Math.min(screenW-rightColW-24, screenW-rightColW-24); // 24px padding
-  // Wysokość: viewport - header(50) - kociołki(100) - stats(60) - padding(50)
-  var availH=Math.min(window.innerHeight||900, 900) - 50 - 100 - 60 - 50;
-  var cellByW=Math.floor((availW-cols*2-12)/cols);
-  var cellByH=Math.floor((availH-JF_ROWS*2-12)/JF_ROWS);
-  var cellSize=Math.max(40, Math.min(cellByW, cellByH, 90));
-  var fontSize=Math.max(14, Math.floor(cellSize*0.45));
-  g.style.gridTemplateColumns='repeat('+cols+','+cellSize+'px)';
+  // Oblicz dostępną przestrzeń (3 kolumny: 180px lewa + 160px prawa + 16px gap*2 + 20px padding)
+  var availW = (window.innerWidth||1536) - 180 - 160 - 36;
+  // Wysokość: viewport - header(42) - kociołki(86) - fs-bar(0/36) - stats(52) - padding(30)
+  var availH = (window.innerHeight||900) - 42 - 86 - 52 - 30;
+  var cellByW = Math.floor((availW - cols*2 - 12) / cols);
+  var cellByH = Math.floor((availH - 10*2 - 12) / 10);
+  var cellSize = Math.max(38, Math.min(cellByW, cellByH, 100));
+  var fontSize = Math.max(12, Math.floor(cellSize * 0.48));
+  var gridW = cols*cellSize + cols*2 + 12;
+  var gridH = 10*cellSize + 10*2 + 12;
+
+  g.style.gridTemplateColumns = 'repeat('+cols+','+cellSize+'px)';
+  if(wrap) {
+    if(isDublet) {
+      // Animacja rozszerzania przy Dublecie
+      wrap.style.transition = 'width .5s cubic-bezier(.25,.46,.45,.94)';
+      setTimeout(function(){ wrap.style.width = gridW+'px'; wrap.style.height = gridH+'px'; }, 50);
+    } else {
+      wrap.style.width = gridW+'px';
+      wrap.style.height = gridH+'px';
+    }
+  }
+
+  // Generuj komórki (zachowaj sticky z poprzedniego gridu)
+  var existingIds = new Set();
+  g.querySelectorAll('.jf-cell').forEach(function(el){ existingIds.add(el.id); });
+
   g.innerHTML='';
   for(var c=0;c<cols;c++) for(var r=0;r<JF_ROWS;r++) {
     var el=document.createElement('div');
-    el.className='jf-cell'; el.id='jfc'+c+'_'+r;
+    var isNew = !existingIds.has('jfc'+c+'_'+r);
+    el.className='jf-cell' + (isDublet && isNew ? ' dublet-new' : '');
+    el.id='jfc'+c+'_'+r;
     el.style.width=cellSize+'px';
     el.style.height=cellSize+'px';
     el.style.fontSize=fontSize+'px';
+    if(isDublet && isNew) el.style.animationDelay = (c*0.04)+'s';
     g.appendChild(el);
   }
-  // Aktualizuj szerokość wrappera
-  if(wrap) {
-    var gridW=cols*cellSize+cols*2+12;
-    wrap.style.minWidth=gridW+'px';
-  }
 }
-
 function jfAnimateOut(sMap) {
   for(var c=0;c<jfCols;c++) for(var r=0;r<JF_ROWS;r++) {
     if(sMap[c+','+r]) continue;
@@ -6626,7 +6641,7 @@ socket.on('casinoJFResult',function(data) {
   jfStickyCoins=stickyCoins;
   jfCauldronMax=cauldronMax;
 
-  if(cols!==jfCols) jfBuildGrid(cols);
+  if(cols!==jfCols) jfBuildGrid(cols, cols>jfCols);
 
   jfRenderGrid(grid,clusters,stickyCoins,newSticky,true);
   jfUpdateCauldrons(cauldron,cauldronMax);
@@ -6693,6 +6708,7 @@ function jfShowReveal(multSum,jackpotWins,finalPayout) {
 function jfCloseReveal() {
   var ov=document.getElementById('jf-reveal-overlay'); if(ov) ov.classList.remove('show');
 }
+
 
 
 
