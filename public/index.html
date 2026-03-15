@@ -230,8 +230,8 @@ select.input option{background:var(--surface2);}
 /* ── MISC ── */
 .back-btn{position:absolute;top:20px;left:20px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 15px;cursor:pointer;font-family:'Syne',sans-serif;font-size:14px;font-weight:600;transition:all .15s;z-index:10;}
 .back-btn:hover{color:var(--text);border-color:var(--accent);}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:13px 22px;font-weight:600;font-size:14px;z-index:1000;transition:transform .3s;max-width:380px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.4);}
-.toast.show{transform:translateX(-50%) translateY(0);}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:13px 22px;font-weight:600;font-size:14px;z-index:1000;transition:opacity .3s,bottom .3s;max-width:380px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;pointer-events:none;bottom:8px;}
+.toast.show{opacity:1;pointer-events:auto;bottom:24px;}
 .toast.success{border-color:var(--success);color:var(--success);}
 .toast.error{border-color:var(--error);color:var(--error);}
 @media(max-width:600px){.quiz-answers,.answers-grid{grid-template-columns:1fr;}.card{padding:22px;}.row{flex-direction:column;}.chat-panel{width:calc(100vw - 32px);right:16px;}}
@@ -845,6 +845,79 @@ select.input option{background:var(--surface2);}
 .s5-stat-val.profit-pos { color:#4ade80; }
 .s5-stat-val.profit-neg { color:#f87171; }
 .s5-stat-val.profit-zero { color:var(--muted); }
+
+/* ── Persystentne powiadomienia kasyna ── */
+#casino-notif-area { position:fixed; bottom:70px; left:50%; transform:translateX(-50%); z-index:999; display:flex; flex-direction:column-reverse; align-items:center; gap:6px; pointer-events:none; }
+.casino-notif { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:9px 18px; font-size:13px; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,.4); opacity:0; transition:opacity .3s; white-space:nowrap; pointer-events:auto; }
+.casino-notif.show { opacity:1; }
+.casino-notif.cn-success { border-color:var(--success); color:var(--success); }
+.casino-notif.cn-error   { border-color:var(--error);   color:var(--error);   }
+.casino-notif.cn-info    { border-color:var(--accent3); color:var(--accent3); }
+.casino-notif.cn-big     { border-color:#fbbf24; color:#fbbf24; font-size:15px; }
+
+/* ═══ JACKPOT FRENZY ══════════════════════════════════════════════ */
+.jf-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:900px; }
+.jf-cauldrons { display:flex; gap:10px; justify-content:center; width:100%; }
+.jf-cauldron { flex:1; background:var(--surface); border:2px solid var(--border); border-radius:14px; padding:10px; text-align:center; position:relative; transition:border-color .3s,box-shadow .3s; }
+.jf-cauldron.active { animation:jfCauldPulse 1s ease-in-out infinite; }
+.jf-cauldron.green  { border-color:#22c55e; }
+.jf-cauldron.red    { border-color:#ef4444; }
+.jf-cauldron.blue   { border-color:#3b82f6; }
+.jf-cauldron.green.active { box-shadow:0 0 20px rgba(34,197,94,.5); }
+.jf-cauldron.red.active   { box-shadow:0 0 20px rgba(239,68,68,.5); }
+.jf-cauldron.blue.active  { box-shadow:0 0 20px rgba(59,130,246,.5); }
+@keyframes jfCauldPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03)} }
+.jf-cld-icon  { font-size:26px; margin-bottom:4px; }
+.jf-cld-name  { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+.jf-cld-track { height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; margin-bottom:4px; }
+.jf-cld-fill  { height:100%; border-radius:4px; transition:width .4s; }
+.jf-cauldron.green .jf-cld-fill { background:#22c55e; }
+.jf-cauldron.red   .jf-cld-fill { background:#ef4444; }
+.jf-cauldron.blue  .jf-cld-fill { background:#3b82f6; }
+.jf-cld-pts   { font-size:11px; font-weight:700; font-family:'DM Mono',monospace; }
+.jf-cauldron.green .jf-cld-pts { color:#22c55e; }
+.jf-cauldron.red   .jf-cld-pts { color:#ef4444; }
+.jf-cauldron.blue  .jf-cld-pts { color:#3b82f6; }
+.jf-jp-display { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; font-size:10px; }
+.jf-jp-chip { background:var(--surface2); border:1px solid rgba(255,220,50,.3); border-radius:6px; padding:2px 7px; color:#fbbf24; font-weight:700; font-family:'DM Mono',monospace; }
+
+/* Grid */
+.jf-grid-outer { overflow-x:auto; width:100%; }
+.jf-grid { display:grid; gap:3px; padding:8px; background:var(--surface); border:1px solid var(--border); border-radius:12px; }
+.jf-cell { width:52px; height:44px; display:flex; align-items:center; justify-content:center; border-radius:7px; font-size:20px; background:var(--surface2); border:1px solid var(--border); position:relative; transition:background .12s; cursor:default; }
+.jf-cell.spinning { animation:jfSpin .15s linear infinite; }
+@keyframes jfSpin { 0%{opacity:1} 50%{opacity:.4} 100%{opacity:1} }
+.jf-cell.cluster { background:rgba(59,130,246,.2); outline:2px solid #3b82f6; }
+.jf-cell.sticky-silver { background:rgba(192,192,192,.15); outline:2px solid silver; box-shadow:0 0 8px rgba(192,192,192,.4); }
+.jf-cell.sticky-gold   { background:rgba(255,220,50,.15);  outline:2px solid #fbbf24; box-shadow:0 0 8px rgba(255,220,50,.5); }
+.jf-cell.coin-green  { background:rgba(34,197,94,.15);  outline:2px solid #22c55e; }
+.jf-cell.coin-red    { background:rgba(239,68,68,.15);   outline:2px solid #ef4444; }
+.jf-cell.coin-blue   { background:rgba(59,130,246,.15);  outline:2px solid #3b82f6; }
+.jf-cell.coin-bronze { background:rgba(180,100,40,.18);   outline:2px solid #b46428; box-shadow:0 0 6px rgba(180,100,40,.35); }
+.jf-coin-badge { position:absolute; top:-4px; right:-4px; font-size:8px; font-weight:800; background:#1a1a2e; border:1px solid; border-radius:4px; padding:1px 3px; font-family:'DM Mono',monospace; line-height:1; }
+.jf-cell.sticky-silver .jf-coin-badge { color:silver; border-color:silver; }
+.jf-cell.sticky-gold   .jf-coin-badge { color:#fbbf24; border-color:#fbbf24; }
+
+/* Controls */
+.jf-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center; }
+.jf-fs-bar { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 14px; text-align:center; font-size:13px; font-weight:700; display:none; }
+.jf-fs-bar.show { display:block; }
+.jf-mini-sum { background:var(--surface); border:1px solid rgba(255,220,50,.4); border-radius:10px; padding:8px 16px; font-size:14px; font-weight:800; color:#fbbf24; display:none; text-align:center; }
+.jf-mini-sum.show { display:block; }
+.jf-spin-btn { background:linear-gradient(135deg,#7c5cfc,#5cf0c8); border:none; color:white; font-family:'Syne',sans-serif; font-weight:800; font-size:16px; padding:14px 32px; border-radius:14px; cursor:pointer; transition:all .15s; min-width:120px; }
+.jf-spin-btn:disabled { opacity:.5; cursor:not-allowed; }
+.jf-spin-btn:hover:not(:disabled) { transform:scale(1.04); }
+.jf-reveal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1500; display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+.jf-reveal-overlay.show { display:flex; }
+.jf-reveal-title { font-size:28px; font-weight:800; color:#fbbf24; text-align:center; }
+.jf-reveal-items { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; max-width:600px; }
+.jf-reveal-item { background:var(--surface); border:2px solid #fbbf24; border-radius:14px; padding:14px 20px; text-align:center; min-width:100px; }
+.jf-reveal-item .ri-icon { font-size:32px; margin-bottom:6px; }
+.jf-reveal-item .ri-val  { font-size:18px; font-weight:800; color:#fbbf24; }
+.jf-reveal-item .ri-pos  { font-size:11px; color:var(--muted); }
+.jf-reveal-total { font-size:36px; font-weight:800; color:#4ade80; }
+.jf-reveal-close { background:var(--accent); border:none; color:white; font-family:'Syne',sans-serif; font-weight:700; font-size:15px; padding:12px 28px; border-radius:12px; cursor:pointer; }
+
 </style>
 </head>
 <body>
@@ -1384,6 +1457,12 @@ select.input option{background:var(--surface2);}
       <div class="casino-tables-grid" id="casino-path-tables"></div>
     </div>
 
+    <!-- Jackpot Frenzy -->
+    <div class="casino-lb-section">
+      <h3>🏆 Jackpot Frenzy</h3>
+      <div class="casino-tables-grid" id="casino-jf-tables"></div>
+    </div>
+
     <!-- Ruletka -->
     <div class="casino-lb-section">
       <h3>🎡 Ruletka Europejska</h3>
@@ -1823,6 +1902,77 @@ select.input option{background:var(--surface2);}
 </div>
 
 <!-- ══ KASYNO — PATH OF GAMBLING ═════════════════════════════════ -->
+<!-- ══ JACKPOT FRENZY ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-casino-jf">
+  <button class="back-btn" onclick="leaveCasinoTable()">← Wróć</button>
+  <div class="jf-wrap">
+
+    <!-- Kociołki -->
+    <div class="jf-cauldrons">
+      <div class="jf-cauldron green" id="jf-cld-green">
+        <div class="jf-cld-icon">🍀</div>
+        <div class="jf-cld-name">Mnożniki</div>
+        <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-green" style="width:0%"></div></div>
+        <div class="jf-cld-pts" id="jf-pts-green">0 / 500</div>
+      </div>
+      <div class="jf-cauldron red" id="jf-cld-red">
+        <div class="jf-cld-icon">💰</div>
+        <div class="jf-cld-name">Jackpoty</div>
+        <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-red" style="width:0%"></div></div>
+        <div class="jf-cld-pts" id="jf-pts-red">0 / 500</div>
+        <div class="jf-jp-display" id="jf-jp-display"></div>
+      </div>
+      <div class="jf-cauldron blue" id="jf-cld-blue">
+        <div class="jf-cld-icon">💎</div>
+        <div class="jf-cld-name">Dublet</div>
+        <div class="jf-cld-track"><div class="jf-cld-fill" id="jf-fill-blue" style="width:0%"></div></div>
+        <div class="jf-cld-pts" id="jf-pts-blue">0 / 500</div>
+      </div>
+    </div>
+
+    <!-- Statsy -->
+    <div class="s5-stats" style="grid-template-columns:repeat(5,1fr);width:100%">
+      <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="jf-stat-spins">0</div></div>
+      <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="jf-stat-paid">0 AT$</div></div>
+      <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="jf-stat-best">—</div></div>
+      <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="jf-stat-spent">0 AT$</div></div>
+      <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="jf-stat-profit">—</div></div>
+    </div>
+    <div class="s5-recent-wins"><div class="s5-recent-title">Ostatnie wygrane</div><div class="s5-recent-list" id="jf-recent-list"><span class="s5-recent-item none">—</span></div></div>
+
+    <!-- Grid -->
+    <div class="jf-grid-outer">
+      <div class="jf-grid" id="jf-grid" style="grid-template-columns:repeat(5,52px)"></div>
+    </div>
+
+    <!-- Free spin bar -->
+    <div class="jf-fs-bar" id="jf-fs-bar">🎰 Mini-gra — <span id="jf-fs-count">0</span> spinów</div>
+    <div class="jf-mini-sum" id="jf-mini-sum">Suma wygranych: <span id="jf-mini-sum-val">0</span> AT$</div>
+
+    <!-- Kontrolki -->
+    <div class="jf-controls">
+      <div class="s5-bet-wrap" style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;color:var(--muted)">Zakład:</span>
+        <input class="input" type="number" id="jf-bet-input" style="width:90px;padding:8px;font-size:13px" value="10" min="10">
+        <span style="font-size:12px;color:var(--muted)">AT$</span>
+      </div>
+      <button class="jf-spin-btn" id="jf-spin-btn" onclick="jfSpin()">🏆 SPIN</button>
+    </div>
+
+    <!-- Log wygranych -->
+    <div class="s5-win-log" id="jf-win-log"></div>
+
+  </div>
+</div>
+
+<!-- Overlay ujawnienia (po mini-grze) -->
+<div class="jf-reveal-overlay" id="jf-reveal-overlay">
+  <div class="jf-reveal-title" id="jf-reveal-title">🏆 Mini-gra zakończona!</div>
+  <div class="jf-reveal-items" id="jf-reveal-items"></div>
+  <div class="jf-reveal-total" id="jf-reveal-total"></div>
+  <button class="jf-reveal-close" onclick="jfCloseReveal()">Odbierz wygraną</button>
+</div>
+
 <div class="screen" id="screen-casino-path">
   <div style="position:absolute;top:16px;left:16px;z-index:10">
     <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
@@ -1940,6 +2090,7 @@ select.input option{background:var(--surface2);}
   <span class="op-label">Online</span>
 </div>
 <div class="toast" id="toast"></div>
+<div id="casino-notif-area"></div>
 
 
 
@@ -3980,6 +4131,20 @@ function showToast(msg,type=''){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
 }
 
+// Persystentne powiadomienie kasyna — zostaje do ręcznego zamknięcia lub nowego powiadomienia
+function showCasinoNotif(msg, type='cn-info', autoDismiss=0) {
+  const area = document.getElementById('casino-notif-area');
+  if (!area) return;
+  const el = document.createElement('div');
+  el.className = 'casino-notif ' + type;
+  el.innerHTML = msg + ' <span style="cursor:pointer;opacity:.5;margin-left:8px" onclick="this.parentElement.remove()">✕</span>';
+  area.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  // Usuń stare jeśli >5
+  while (area.children.length > 5) area.removeChild(area.firstChild);
+  if (autoDismiss > 0) setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, autoDismiss);
+}
+
 // ══════════════════════════════════════════════════════════════
 //  KASYNO AT$ — JAVASCRIPT
 // ══════════════════════════════════════════════════════════════
@@ -4118,6 +4283,8 @@ function renderCasinoTables(tables) {
   if (el('casino-crash-tables'))    el('casino-crash-tables').innerHTML    = crash.map(t=>renderTableCard(t)).join('');
   if (el('casino-coinflip-tables')) el('casino-coinflip-tables').innerHTML = coinflip.map(t=>renderTableCard(t)).join('');
   if (el('casino-path-tables'))     el('casino-path-tables').innerHTML     = path.map(t=>renderTableCard(t)).join('');
+  const jf = tables.filter(t=>t.game==='jackpot_frenzy');
+  if (el('casino-jf-tables'))       el('casino-jf-tables').innerHTML       = jf.map(t=>renderTableCard(t)).join('');
 
   // Pokaż przyciski tworzenia stołów jeśli zalogowany
   const hasDiscord = !!casinoWallet;
@@ -4129,7 +4296,7 @@ function renderCasinoTables(tables) {
 
 function renderTableCard(t) {
   const statusLabels = { open:'Otwarty', betting:'Zakłady', playing:'Gra', results:'Wyniki', showdown:'Showdown', spinning:'Obrót' };
-  const gameIcons = { poker:'🃏', blackjack:'🃏', slots:'🎰', roulette:'🎡', pachinko:'🎯', crash:'🚀', coinflip:'🪙', path_of_gambling:'⚗️' };
+  const gameIcons = { poker:'🃏', blackjack:'🃏', slots:'🎰', roulette:'🎡', pachinko:'🎯', crash:'🚀', coinflip:'🪙', path_of_gambling:'⚗️', jackpot_frenzy:'🏆' };
   const gameColors = { poker:'', blackjack:'bj', slots:'slots', roulette:'roulette', pachinko:'pachinko', crash:'crash', coinflip:'coinflip', path_of_gambling:'slots' };
 
   const seats = t.maxPlayers < 50 ? Array(Math.min(t.maxPlayers,8)).fill(0).map((_, i) => {
@@ -4234,18 +4401,34 @@ socket.on('casinoTablesUpdated', () => {
 });
 
 // ── OTWÓRZ STÓŁ ───────────────────────────────────────────────
-const GAME_SCREENS = { poker:'casino-poker', blackjack:'casino-blackjack', slots:'casino-slots', roulette:'casino-roulette', pachinko:'casino-pachinko', crash:'casino-crash', coinflip:'casino-coinflip', path_of_gambling:'casino-path' };
+const GAME_SCREENS = { poker:'casino-poker', blackjack:'casino-blackjack', slots:'casino-slots', roulette:'casino-roulette', pachinko:'casino-pachinko', crash:'casino-crash', coinflip:'casino-coinflip', path_of_gambling:'casino-path', jackpot_frenzy:'casino-jf' };
 
 async function openCasinoTable(tableId) {
   let table;
   try { table = await (await fetch(`/api/casino/tables/${tableId}`)).json(); }
   catch(e) { return showToast('Błąd połączenia z stołem', 'error'); }
 
-  // Sprawdź logowanie - casinoDiscordId może być null jeśli lobby nie było otwarte
+  // Sprawdź logowanie
   if (!casinoDiscordId && discordUser) casinoDiscordId = discordUser.id;
   if (!casinoDiscordId) {
     showToast('Zaloguj się przez Discord, żeby grać!', 'error');
     return;
+  }
+
+  // Załaduj portfel jeśli jeszcze nie załadowany
+  if (!casinoWallet) {
+    try {
+      const wr = await fetch('/api/casino/wallet');
+      if (wr.ok) { const wd = await wr.json(); casinoWallet = wd.wallet; casinoDiscordId = wd.discordId || casinoDiscordId; }
+    } catch(e) {}
+  }
+
+  // Pobierz socketToken jeśli brak
+  if (!casinoSocketToken) {
+    try {
+      const tr = await fetch('/auth/socket-token');
+      if (tr.ok) { const td = await tr.json(); casinoSocketToken = td.token; }
+    } catch(e) {}
   }
 
   casinoTableId    = tableId;
@@ -4270,7 +4453,7 @@ async function openCasinoTable(tableId) {
 
   // Blackjack: dołącz od razu (zakład w grze)
   if (game === 'blackjack' && casinoWallet) {
-    socket.emit('casinoJoinTable', { tableId, buyIn: table.config.minBet * 20 , discordId: casinoDiscordId, socketToken: casinoSocketToken });
+    socket.emit('casinoJoinTable', { tableId, buyIn: casinoWallet ? casinoWallet.balance : table.config.minBet * 20 , discordId: casinoDiscordId, socketToken: casinoSocketToken });
   }
 
   // Ruletka: specjalny join
@@ -4282,6 +4465,7 @@ async function openCasinoTable(tableId) {
   // Slots / Pachinko: solo gry, nie potrzeba join
   if (game === 'slots') initSlotsUI(table);
   if (game === 'path_of_gambling') initPathUI(table);
+  if (game === 'jackpot_frenzy')  initJFUI(table);
   if (game === 'pachinko') initPachinkoUI(table);
   if (game === 'crash') initCrashUI(table);
   if (game === 'coinflip') initCoinflipUI(table);
@@ -5821,13 +6005,13 @@ socket.on('wavelengthReveal', ({ targetZone, teamGuess, pts, dist }) => {
 
 // ── SOCKET EVENTS KASYNA ──────────────────────────────────────
 socket.on('casinoJoined', ({ tableId, sessionChips, walletBalance }) => {
-  showToast(`✅ Dołączyłeś! Żetony: ${sessionChips.toLocaleString('pl-PL')} AT$`, 'success');
+  showCasinoNotif(`✅ Dołączyłeś! Żetony: ${sessionChips.toLocaleString('pl-PL')} AT$`, 'cn-success');
   if (casinoWallet) casinoWallet.balance = walletBalance;
   casinoIsObserver = false;
 });
 
 socket.on('casinoError', ({ message }) => {
-  showToast(message, 'error');
+  showCasinoNotif(message, 'cn-error');
 });
 
 // Countdown
@@ -5874,7 +6058,7 @@ socket.on('casinoMyHand', ({ tableId, cards }) => {
 
 // Tygodniowe doładowanie
 socket.on('weeklyTopup', ({ message }) => {
-  showToast('🎉 ' + message, 'success');
+  showCasinoNotif('🎉 ' + message, 'cn-big');
   if (casinoWallet) loadCasinoLobby(); // odśwież saldo
 });
 
@@ -6134,6 +6318,268 @@ document.getElementById('join-code').addEventListener('input',function(){this.va
 document.getElementById('join-code').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
 document.getElementById('create-name').addEventListener('keydown',e=>{if(e.key==='Enter')createRoom();});
 init();
+
+
+// ═══════════════════════════════════════════════════════════
+//  JACKPOT FRENZY — JavaScript
+// ═══════════════════════════════════════════════════════════
+
+let jfSpinning = false;
+let jfSyms     = [];
+let jfCols     = 5;
+const JF_ROWS  = 10;
+let jfStatSpins=0, jfStatPaid=0, jfBestWin=0, jfStatSpent=0;
+let jfFreeSpins=0, jfMiniSum=0;
+let jfBet      = 10;
+let jfStickyCoins = [];
+
+function initJFUI(table) {
+  jfBet = table.config.minBet || 10;
+  document.getElementById('jf-bet-input').value = jfBet;
+  jfSpinning = false; jfFreeSpins = 0; jfMiniSum = 0;
+  jfStatSpins = 0; jfStatPaid = 0; jfBestWin = 0; jfStatSpent = 0;
+  jfStickyCoins = [];
+  jfCols = 5;
+  jfBuildGrid(5);
+  jfUpdateCauldrons({green:0,red:0,blue:0}, 500);
+  jfUpdateFSBar(0, false);
+  document.getElementById('jf-mini-sum').classList.remove('show');
+  if (casinoDiscordId) loadSlotStats('jackpot_frenzy', 'jf');
+}
+
+function jfBuildGrid(cols) {
+  jfCols = cols;
+  const g = document.getElementById('jf-grid');
+  if (!g) return;
+  g.style.gridTemplateColumns = `repeat(${cols},52px)`;
+  g.innerHTML = '';
+  for (let c=0; c<cols; c++) for (let r=0; r<JF_ROWS; r++) {
+    const el = document.createElement('div');
+    el.className = 'jf-cell';
+    el.id = `jfc${c}_${r}`;
+    g.appendChild(el);
+  }
+}
+
+function jfRenderGrid(grid, clusters, stickyCoins, newSticky) {
+  const clusterCells = new Set();
+  (clusters||[]).forEach(cl => cl.cells.forEach(([c,r]) => clusterCells.add(`${c},${r}`)));
+  const stickyMap = {};
+  (stickyCoins||[]).forEach(s => { stickyMap[`${s.col},${s.row}`] = s; });
+
+  for (let c=0; c<jfCols; c++) for (let r=0; r<JF_ROWS; r++) {
+    const el = document.getElementById(`jfc${c}_${r}`);
+    if (!el) continue;
+    const si = grid[c]?.[r];
+    if (si === undefined) continue;
+    const s = jfSyms[si] || {};
+    const key = `${c},${r}`;
+    const sticky = stickyMap[key];
+    const isNew = (newSticky||[]).find(n=>n.col===c&&n.row===r);
+
+    el.className = 'jf-cell';
+    if (sticky) {
+      el.className += sticky.type==='silver' ? ' sticky-silver' : ' sticky-gold';
+    } else if (s.coin) {
+      el.className += s.id === 'coin_br' ? ' coin-bronze' : ' coin-' + s.coin;
+    } else if (clusterCells.has(key)) {
+      el.className += ' cluster';
+    }
+
+    let content = s.e || '?';
+    let badge = '';
+    if (sticky?.type === 'silver' && sticky.mult) {
+      content = '🥈';
+      badge = `<span class="jf-coin-badge">x${sticky.mult}</span>`;
+    } else if (sticky?.type === 'gold' && sticky.jp) {
+      content = '🥇';
+      const jpLabels = {mini:'Mini',minor:'Minor',major:'Major',mega:'Mega',grand:'GRAND'};
+      badge = `<span class="jf-coin-badge">${jpLabels[sticky.jp]||sticky.jp}</span>`;
+    }
+
+    // Brązowy coin — pokaż W (wild)
+    if (s.id === 'coin_br') badge = '<span class="s5-badge s5-wild-b">W</span>';
+    el.innerHTML = content + badge;
+    if (isNew) el.style.animation = 'jfCauldPulse .4s ease-out';
+  }
+}
+
+function jfUpdateCauldrons(cauldron, max) {
+  for (const color of ['green','red','blue']) {
+    const pts = cauldron[color] || 0;
+    const pct = Math.min(100, (pts/max)*100);
+    const fill = document.getElementById('jf-fill-'+color);
+    const label = document.getElementById('jf-pts-'+color);
+    const cld = document.getElementById('jf-cld-'+color);
+    if (fill)  fill.style.width = pct + '%';
+    if (label) label.textContent = pts + ' / ' + max;
+    if (cld)   cld.classList.toggle('active', pts >= max * 0.8);
+  }
+}
+
+function jfUpdateJPDisplay(progressiveJP) {
+  const el = document.getElementById('jf-jp-display');
+  if (!el || !progressiveJP) return;
+  const labels = {mini:'Mini',minor:'Minor',major:'Major',mega:'Mega',grand:'GRAND'};
+  el.innerHTML = Object.entries(progressiveJP).map(([k,v]) =>
+    `<span class="jf-jp-chip">${labels[k]}: ${Math.round(v).toLocaleString('pl-PL')}</span>`
+  ).join('');
+}
+
+function jfUpdateFSBar(count, active) {
+  const bar = document.getElementById('jf-fs-bar');
+  const cnt = document.getElementById('jf-fs-count');
+  if (!bar) return;
+  bar.classList.toggle('show', active && count > 0);
+  if (cnt) cnt.textContent = count;
+}
+
+function jfUpdateMiniSum(sum, show) {
+  const el = document.getElementById('jf-mini-sum');
+  const val = document.getElementById('jf-mini-sum-val');
+  if (!el) return;
+  el.classList.toggle('show', show);
+  if (val) val.textContent = sum.toLocaleString('pl-PL');
+}
+
+function jfUpdateStats() {
+  const s = id => document.getElementById(id);
+  if (s('jf-stat-spins'))  s('jf-stat-spins').textContent  = jfStatSpins.toLocaleString('pl-PL');
+  if (s('jf-stat-paid'))   s('jf-stat-paid').textContent   = jfStatPaid.toLocaleString('pl-PL') + ' AT$';
+  if (s('jf-stat-best'))   s('jf-stat-best').textContent   = jfBestWin>0 ? jfBestWin.toLocaleString('pl-PL')+' AT$' : '—';
+  if (s('jf-stat-spent'))  s('jf-stat-spent').textContent  = jfStatSpent.toLocaleString('pl-PL') + ' AT$';
+  updateProfitDisplay('jf-stat-profit', jfStatSpent, jfStatPaid);
+}
+
+function jfAddLog(payout, tier) {
+  if (payout <= 0) return;
+  const lg = document.getElementById('jf-win-log');
+  if (!lg) return;
+  const el = document.createElement('div');
+  el.className = 's5-log-tag ' + (tier||'win');
+  el.textContent = '+' + payout.toLocaleString('pl-PL') + ' AT$';
+  lg.insertBefore(el, lg.firstChild);
+  while (lg.children.length > 6) lg.removeChild(lg.lastChild);
+}
+
+function jfSpin() {
+  if (jfSpinning) return;
+  const betEl = document.getElementById('jf-bet-input');
+  jfBet = parseInt(betEl?.value) || jfBet;
+  if (!casinoTableId || !casinoSocketToken) return showToast('Nie połączono ze stołem', 'error');
+  jfSpinning = true;
+  const btn = document.getElementById('jf-spin-btn');
+  if (btn) { btn.disabled=true; btn.textContent='⏳'; }
+
+  // Animacja spinning
+  for (let c=0; c<jfCols; c++) for (let r=0; r<JF_ROWS; r++) {
+    const sc = jfStickyCoins.find(s=>s.col===c&&s.row===r);
+    if (sc) continue; // sticky zostaje
+    const el = document.getElementById(`jfc${c}_${r}`);
+    if (el) el.classList.add('spinning');
+  }
+
+  socket.emit('casinoJFSpin', { tableId:casinoTableId, bet:jfBet, socketToken:casinoSocketToken, discordId:casinoDiscordId });
+}
+
+socket.on('casinoJFResult', function(data) {
+  const { grid, clusters, payout, balance, totBet, isFree, miniSpins, miniWinSum,
+          miniGames, cauldron, cauldronMax, coinEvents, triggeredCauldrons,
+          chainTriggered, stickyCoins, newSticky, miniEnded, multSum, jackpotWins,
+          finalPayout, dublet, cols, syms, progressiveJP, tier } = data;
+
+  if (syms?.length) jfSyms = syms;
+  jfStickyCoins = stickyCoins || [];
+
+  // Rozszerz/zwęź grid jeśli zmienił się cols
+  if (cols !== jfCols) jfBuildGrid(cols);
+
+  // Stop spinning
+  for (let c=0; c<jfCols; c++) for (let r=0; r<JF_ROWS; r++) {
+    const el = document.getElementById(`jfc${c}_${r}`); if(el) el.classList.remove('spinning');
+  }
+
+  // Render
+  jfRenderGrid(grid, clusters, stickyCoins, newSticky);
+  jfUpdateCauldrons(cauldron, cauldronMax);
+  jfUpdateJPDisplay(progressiveJP);
+  jfUpdateFSBar(miniSpins, miniSpins > 0);
+  jfUpdateMiniSum(miniWinSum || 0, miniSpins > 0);
+
+  // Kociołek trigger — flash
+  (triggeredCauldrons||[]).forEach(color => {
+    const cld = document.getElementById('jf-cld-'+color);
+    if (cld) { cld.style.transition='none'; cld.style.transform='scale(1.15)'; setTimeout(()=>{ cld.style.transform=''; cld.style.transition=''; },400); }
+  });
+
+  // Stats
+  jfStatSpins++;
+  jfStatPaid += payout;
+  if (payout > jfBestWin) jfBestWin = payout;
+  jfStatSpent += isFree ? 0 : totBet;
+  if (casinoWallet) casinoWallet.balance = balance;
+  jfUpdateStats();
+  if (payout > 0) {
+    jfAddLog(payout, tier);
+    addRecentWin('jf-recent-list', payout, tier);
+  }
+
+  // Mini-gra zakończona — reveal overlay
+  if (miniEnded) {
+    setTimeout(() => jfShowReveal(multSum, jackpotWins, finalPayout), 500);
+  }
+
+  jfSpinning = false;
+  const btn = document.getElementById('jf-spin-btn');
+  if (btn) { btn.disabled=false; btn.textContent='🏆 SPIN'; }
+});
+
+function jfShowReveal(multSum, jackpotWins, finalPayout) {
+  const ov = document.getElementById('jf-reveal-overlay');
+  const items = document.getElementById('jf-reveal-items');
+  const total = document.getElementById('jf-reveal-total');
+  if (!ov) return;
+
+  items.innerHTML = '';
+
+  // Srebrne monety
+  if (multSum > 0) {
+    const el = document.createElement('div'); el.className='jf-reveal-item';
+    el.innerHTML = `<div class="ri-icon">🥈</div><div class="ri-val">x${multSum}</div><div class="ri-pos">Mnożnik wygranej</div>`;
+    items.appendChild(el);
+  }
+
+  // Jackpoty
+  const jpLabels = {mini:'Mini',minor:'Minor',major:'Major',mega:'Mega',grand:'GRAND'};
+  const jpColors = {mini:'#94a3b8',minor:'#22c55e',major:'#3b82f6',mega:'#a855f7',grand:'#f59e0b'};
+  (jackpotWins||[]).forEach(jw => {
+    const el = document.createElement('div'); el.className='jf-reveal-item';
+    el.style.borderColor = jpColors[jw.jp]||'#fbbf24';
+    el.innerHTML = `<div class="ri-icon">🥇</div><div class="ri-val" style="color:${jpColors[jw.jp]||'#fbbf24'}">${jpLabels[jw.jp]||jw.jp}</div><div class="ri-pos">${jw.amount.toLocaleString('pl-PL')} AT$</div>`;
+    items.appendChild(el);
+  });
+
+  if (total) total.textContent = '🎉 +' + finalPayout.toLocaleString('pl-PL') + ' AT$';
+  ov.classList.add('show');
+  s5Fireworks(finalPayout > 50000 ? 'giga' : finalPayout > 5000 ? 'mega' : 'big');
+}
+
+function jfCloseReveal() {
+  const ov = document.getElementById('jf-reveal-overlay');
+  if (ov) ov.classList.remove('show');
+}
+
+// Ładuj statsy przy init
+function loadSlotStatsJF() {
+  if (!casinoDiscordId) return;
+  fetch('/api/casino/slot-stats/jackpot_frenzy').then(r=>r.json()).then(d=>{
+    if (!d) return;
+    jfStatSpins=d.spins||0; jfStatPaid=d.won||0; jfBestWin=d.bestWin||0; jfStatSpent=d.spent||0;
+    jfUpdateStats();
+  }).catch(()=>{});
+}
+
+
 </script>
 </body>
 </html>

@@ -182,8 +182,8 @@ function placeBet(table, socketId, amount, io) {
   if (!p) return;
 
   const cfg = table.config;
-  const maxAllowed = cfg.maxBet || 100000;
-  const bet = Math.max(cfg.minBet || 1, Math.min(maxAllowed, Number(amount) || cfg.minBet));
+  // Bet bez górnego limitu — max to całe saldo gracza przy stole
+  const bet = Math.max(cfg.minBet || 1, Math.min(p.sessionChips, Number(amount) || cfg.minBet));
   if (p.sessionChips < bet) return;
 
   // FIX #9: Jeśli gracz dołączył PO startBettingWindow, ustaw jego sessionChipsStart teraz

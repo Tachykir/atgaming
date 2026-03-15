@@ -911,6 +911,7 @@ io.on('connection', (socket) => {
 
   // Akcje Slotów, Ruletki, Pachinko
   casinoSlots.registerHandlers(socket, io, casino);
+  casinoJF.registerHandlers(socket, io, casino);
   casinoRoulette.registerHandlers(socket, io, casino);
   casinoPachinko.registerHandlers(socket, io, casino);
   casinoCrash.registerHandlers(socket, io, casino);
