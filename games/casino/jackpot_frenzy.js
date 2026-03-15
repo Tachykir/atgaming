@@ -133,10 +133,15 @@ function findClusters(grid, cols) {
     if (visited[c][r]) continue;
     const symIdx = grid[c][r];
     const sym = SYMS[symIdx];
-    // Brązowy coin jest wildem — nie pomijaj go w klastrach
-    if ((sym.coin && !sym.wild) || sym.sticky) { visited[c][r]=true; continue; } // kolorowe coiny (nie-wild) nie tworzą klastrów
+    // Pomiń: kolorowe coiny (nie-wild), sticky monety, ORAZ wildy (coin_br).
+    // Wildy NIE startują własnego BFS — tylko dołączają do klastrów innych symboli.
+    // Gdyby wild startował BFS, ustawiałby visited=true na swoich polach zanim
+    // normalny symbol zdąży je "wchłonąć" — tracilibyśmy wild z klastra.
+    if ((sym.coin && !sym.wild) || sym.sticky || sym.wild) {
+      visited[c][r] = true; continue;
+    }
 
-    // BFS
+    // BFS od normalnego symbolu
     const queue = [[c,r]];
     const cells = [];
     visited[c][r] = true;
@@ -146,9 +151,9 @@ function findClusters(grid, cols) {
       for (const [nc,nr] of getNeighbors(cc,rr,cols)) {
         if (visited[nc][nr]) continue;
         const ni = grid[nc][nr];
-        // Wild (sticky silver/gold) pasuje do wszystkiego
+        // Ten sam symbol LUB wild (coin_br, silver, gold) dołącza do klastra
         if (ni === symIdx || SYMS[ni].wild) {
-          visited[nc][nr]=true; queue.push([nc,nr]);
+          visited[nc][nr] = true; queue.push([nc,nr]);
         }
       }
     }
