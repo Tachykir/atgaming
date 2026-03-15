@@ -1613,7 +1613,7 @@ select.input option{background:var(--surface2);}
 
       <!-- Pit meter -->
       <div class="s5-pit-wrap">
-        <div class="s5-pit-lbl"><span>Pit meter — <span id="s5-pit-lvl">poziom 1</span></span><span id="s5-pit-pts">0 / 100</span></div>
+        <div class="s5-pit-lbl"><span>Pit meter — <span id="s5-pit-lvl">poziom 1</span></span><span id="s5-pit-pts">0 / 300</span></div>
         <div class="s5-pit-track"><div class="s5-pit-fill" id="s5-pit-fill" style="width:0%"></div></div>
         <div class="s5-pit-ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100 — mini gra</span></div>
       </div>
@@ -1873,10 +1873,10 @@ select.input option{background:var(--surface2);}
       <div class="s5-pit-wrap">
         <div class="s5-pit-lbl">
           <span>Pit meter</span>
-          <span id="pg-pit-pts">0 / 100</span>
+          <span id="pg-pit-pts">0 / 300</span>
         </div>
         <div class="s5-pit-track"><div class="s5-pit-fill" id="pg-pit-fill" style="width:0%"></div></div>
-        <div class="s5-pit-ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100 — Pit!</span></div>
+        <div class="s5-pit-ticks"><span>0</span><span>75</span><span>150</span><span>225</span><span>300 — Pit!</span></div>
       </div>
 
       <!-- Komunikat -->
@@ -4493,7 +4493,7 @@ function s5UpdateFSBar() {
 
 function s5AddPit(n) {
   s5PitPts = Math.min(100, s5PitPts + n);
-  document.getElementById('s5-pit-fill').style.width = (s5PitPts / 100 * 100) + '%';
+  document.getElementById('s5-pit-fill').style.width = (s5PitPts / 300 * 100) + '%';
   document.getElementById('s5-pit-lvl').textContent  = s5PitPts < 34 ? 'poziom 1' : s5PitPts < 67 ? 'poziom 2' : 'poziom 3!';
   document.getElementById('s5-pit-pts').textContent  = s5PitPts + ' / 100';
   if (s5PitPts >= 100) { s5PitPts = 0; document.getElementById('s5-pit-fill').style.width = '0%'; document.getElementById('s5-pit-lvl').textContent = 'poziom 1'; setTimeout(s5TriggerMG, 300); }
@@ -5419,11 +5419,11 @@ function pgUpdateFSBar() {
 }
 
 function pgUpdatePit(meter) {
-  pgPitMeter = Math.min(100, meter || 0);
+  pgPitMeter = Math.min(300, meter || 0);
   const fill = document.getElementById('pg-pit-fill');
-  if (fill) fill.style.width = (pgPitMeter / 100 * 100) + '%';
+  if (fill) fill.style.width = (pgPitMeter / 300 * 100) + '%';
   const pts = document.getElementById('pg-pit-pts');
-  if (pts) pts.textContent = pgPitMeter + ' / 100';
+  if (pts) pts.textContent = pgPitMeter + ' / 300';
 }
 
 function pgAddWinLog(payout, mult, tier) {
@@ -5592,8 +5592,10 @@ socket.on('casinoPathResult', function(data) {
             pgStatSpins++; pgStatPaid += payout; if (payout > pgBestWin) pgBestWin = payout;
             if (payout > 0) addRecentWin('pg-recent-list', payout, tier);
             pgStatSpent += (pgFreeSpins > 0 ? 0 : pgBet * pgLines);
+            // Synchronizuj pgFreeSpins z backendem (source of truth)
+            pgFreeSpins = data.freeSpinsRemaining || 0;
             if (freeSpinsAwarded > 0) {
-              pgFreeSpins += freeSpinsAwarded;
+              // pgFreeSpins już zsynchronizowane z backendem (freeSpinsRemaining uwzględnia bonus)
               pgFreeMode = freeMode || pgFreeMode;
               pgUpdateFSBar();
               var fsIcon = (freeMode === 'sacred') ? '\u2728' : '\uD83C\uDF81';

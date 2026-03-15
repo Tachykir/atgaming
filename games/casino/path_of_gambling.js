@@ -14,7 +14,7 @@
  */
 'use strict';
 
-const PIT_THRESHOLD  = 100;
+const PIT_THRESHOLD  = 300;
 const PIT_FREE_SPINS = 8;
 
 const SYMS = [
@@ -31,7 +31,7 @@ const SYMS = [
   // SCATTER — Reflecting Mist (3+/25 ≈ 2%)
   { id:'mist',         n:'Reflecting Mist',        img:'/images/slots/mist.png',          w:1,  p:[0,0,0,0,0,0],         color:'#aa44ff', rarity:'scatter',     scatter:true     },
   // SACRED — Sacred Orb (3+/25 ≈ 1.86%, w normalnych spinach)
-  { id:'sacred',       n:'Sacred Orb',             img:'/images/slots/Sacred.png',        w:1,  p:[0,0,0,0,0,0],         color:'#ffdd44', rarity:'sacred',      sacred:true      },
+  { id:'sacred',       n:'Sacred Orb',             img:'/images/slots/Sacred.png',        w:0.611, p:[0,0,0,0,0,0],      color:'#ffdd44', rarity:'sacred',      sacred:true      },
   // STICKY WILD — Hinekora's Lock (tylko w pit, w=0 normalnie)
   { id:'lock',         n:"Hinekora's Lock",        img:'/images/slots/lock.png',          w:0,  p:[0,0,25,75,250,1000],  color:'#cc44aa', rarity:'sticky_wild', wild:true, sticky:true },
   // VALDO — Valdo's Box (tylko w pit jako osobny roll, nie w bębnie)
@@ -291,9 +291,8 @@ function registerHandlers(socket, io, casino) {
       state.stickyLocks = [];
     }
 
-    // Sacred Orb Scatter — 3→8, 4→10, 5→12 free spinów
-    // W normalnym spinie: startuje nowy tryb Sacred
-    // Podczas free spinów: dodaje extra spiny
+    // Sacred Orb Scatter — naturalny trigger przez wagę symbolu
+    // p=1.40% per cell → P(≥3/25)=0.50%, P(≥4/25)=0.038%, P(≥5/25)=0.0023%
     if (!freeSpinsAwarded && sacredCount >= 3) {
       const sacredBonus = sacredCount === 3 ? 8 : sacredCount === 4 ? 10 : 12;
       if (!isFree) {
@@ -305,7 +304,6 @@ function registerHandlers(socket, io, casino) {
         state.stickyLocks  = [];
         state.stickyValdos = [];
       } else {
-        // Podczas free spinów — dodaj spiny bez resetowania stanu
         state.freeSpins += sacredBonus;
         freeSpinsAwarded = sacredBonus;
       }
@@ -338,19 +336,17 @@ function registerHandlers(socket, io, casino) {
       const newValdos = [];
       for (let c = 0; c < 5; c++) for (let r = 0; r < 5; r++) {
         if (grid[c][r] === IDX_VALDO) {
-          // Sprawdź czy to nowy Valdo (nie sticky z poprzedniego spinu)
           const existing = state.stickyValdos.find(v => v.col === c && v.row === r);
           if (!existing) {
             const m = rollValdoMult();
             state.stickyValdos.push({ col: c, row: r, mult: m });
             newValdos.push({ col: c, row: r, mult: m });
-            if (m > valdoMult) valdoMult = m; // bierz najwyższy mnożnik z nowych
           }
         }
       }
-      // Sticky Valdo już na planszy też mnoży (bierz najwyższy)
-      for (const v of state.stickyValdos) {
-        if (v.mult > valdoMult) valdoMult = v.mult;
+      // Sumuj mnożniki WSZYSTKICH sticky Valdo na planszy
+      if (state.stickyValdos.length > 0) {
+        valdoMult = state.stickyValdos.reduce((sum, v) => sum + v.mult, 0);
       }
     }
 
@@ -395,7 +391,6 @@ function registerHandlers(socket, io, casino) {
     }
 
     // ── Odliczanie free spinów ────────────────────────────────────────────────
-    let freeSpinsRemaining = 0;
     if (isFree) {
       state.freeSpins--;
       if (state.freeSpins <= 0) {
@@ -404,8 +399,9 @@ function registerHandlers(socket, io, casino) {
         state.stickyLocks  = [];
         state.stickyValdos = [];
       }
-      freeSpinsRemaining = state.freeSpins;
     }
+    // Zawsze wysyłaj aktualny stan (uwzględnia też Sacred bonus dodany w tym spinie)
+    const freeSpinsRemaining = state.freeSpins;
 
     // ── Emit ──────────────────────────────────────────────────────────────────
     const newBalance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
