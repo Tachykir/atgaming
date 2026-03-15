@@ -30,23 +30,23 @@ const COLS_DUBLET = 10;
 // ─── SYMBOLE ──────────────────────────────────────────────────────────────────
 // Standardowe symbole kasynowe
 const SYMS = [
-  { id:'seven',   n:'7',       e:'7️⃣',  w:2,  p:[0,0,0,0,0,10,20,40,100,200,500] },
-  { id:'bar3',    n:'BAR BAR BAR', e:'🎰', w:3,  p:[0,0,0,0,0,6,12,25,60,120,300] },
-  { id:'bar2',    n:'BAR BAR',     e:'🎲', w:5,  p:[0,0,0,0,0,4,8,15,35,70,150]  },
-  { id:'bar',     n:'BAR',         e:'📊', w:7,  p:[0,0,0,0,0,3,5,10,20,40,80]   },
-  { id:'bell',    n:'Dzwonek',     e:'🔔', w:9,  p:[0,0,0,0,0,2,4,7,15,28,55]   },
-  { id:'grape',   n:'Winogrona',   e:'🍇', w:11, p:[0,0,0,0,0,2,3,5,10,20,40]   },
-  { id:'orange',  n:'Pomarańcza',  e:'🍊', w:13, p:[0,0,0,0,0,1,2,4,8,15,28]    },
-  { id:'cherry',  n:'Wiśnia',      e:'🍒', w:16, p:[0,0,0,0,0,1,2,3,6,10,18]    },
+  { id:'seven',   n:'7',       e:'', img:'/images/jf/seven.png',  w:2,  p:[0,0,0,0,0,10,20,40,100,200,500] },
+  { id:'bar3',    n:'BAR BAR BAR', e:'', img:'/images/jf/bar3.png', w:3,  p:[0,0,0,0,0,6,12,25,60,120,300] },
+  { id:'bar2',    n:'BAR BAR',     e:'', img:'/images/jf/bar2.png', w:5,  p:[0,0,0,0,0,4,8,15,35,70,150]  },
+  { id:'bar',     n:'BAR',         e:'', img:'/images/jf/bar.png', w:7,  p:[0,0,0,0,0,3,5,10,20,40,80]   },
+  { id:'bell',    n:'Dzwonek',     e:'', img:'/images/jf/bell.png', w:9,  p:[0,0,0,0,0,2,4,7,15,28,55]   },
+  { id:'grape',   n:'Winogrona',   e:'', img:'/images/jf/grape.png', w:11, p:[0,0,0,0,0,2,3,5,10,20,40]   },
+  { id:'orange',  n:'Pomarańcza',  e:'', img:'/images/jf/orange.png', w:13, p:[0,0,0,0,0,1,2,4,8,15,28]    },
+  { id:'cherry',  n:'Wiśnia',      e:'', img:'/images/jf/cherry.png', w:16, p:[0,0,0,0,0,1,2,3,6,10,18]    },
   // COINY — pojawiają się w normalnych spinach
-  { id:'coin_g',  n:'Zielony Coin',  e:'🟢', w:4,  coin:'green',  coinVal:[2,3,4,5] },
-  { id:'coin_r',  n:'Czerwony Coin', e:'🔴', w:4,  coin:'red',    coinVal:[2,3,4,5] },
-  { id:'coin_b',  n:'Niebieski Coin',e:'🔵', w:4,  coin:'blue',   coinVal:[2,3,4,5] },
+  { id:'coin_g',  n:'Zielony Coin',  e:'', img:'/images/jf/coin_g.png', w:4,  coin:'green',  coinVal:[2,3,4,5] },
+  { id:'coin_r',  n:'Czerwony Coin', e:'', img:'/images/jf/coin_r.png', w:4,  coin:'red',    coinVal:[2,3,4,5] },
+  { id:'coin_b',  n:'Niebieski Coin',e:'', img:'/images/jf/coin_b.png', w:4,  coin:'blue',   coinVal:[2,3,4,5] },
   // BRĄZOWY COIN — wild podczas Dubletu (normalny spin)
-  { id:'coin_br', n:'Brązowy Coin',   e:'🟤', w:4,  coin:'bronze', coinVal:[2,3,4,5], wild:true },
+  { id:'coin_br', n:'Brązowy Coin',   e:'', img:'/images/jf/coin_br.png', w:4,  coin:'bronze', coinVal:[2,3,4,5], wild:true },
   // STICKY MONETY — pojawiają się podczas mini-gier
-  { id:'silver',  n:'Srebrna Moneta', e:'🥈', w:0, sticky:true, wild:true, silver:true },
-  { id:'gold',    n:'Złota Moneta',   e:'🥇', w:0, sticky:true, wild:true, gold:true   },
+  { id:'silver',  n:'Srebrna Moneta', e:'', img:'/images/jf/silver.png', w:0, sticky:true, wild:true, silver:true },
+  { id:'gold',    n:'Złota Moneta',   e:'', img:'/images/jf/gold.png', w:0, sticky:true, wild:true, gold:true   },
 ];
 
 const IDX = Object.fromEntries(SYMS.map((s,i) => [s.id, i]));
@@ -407,7 +407,7 @@ function registerHandlers(socket, io, casino) {
       finalPayout,
       dublet:      state.dublet,
       cols,
-      syms:        SYMS.map(s=>({id:s.id,n:s.n,e:s.e,coin:s.coin||null,sticky:!!s.sticky,wild:!!s.wild,silver:!!s.silver,gold:!!s.gold,bronze:s.id==='coin_br'})),
+      syms:        SYMS.map(s=>({id:s.id,n:s.n,e:s.e,img:s.img||null,coin:s.coin||null,sticky:!!s.sticky,wild:!!s.wild,silver:!!s.silver,gold:!!s.gold,bronze:s.id==='coin_br'})),
       progressiveJP: progressiveJP[tableLevel],
       tier,
     });
