@@ -1,6 +1,6 @@
 /**
  * ARCANE ACADEMY — AT Gaming Casino
- * Siatka 5×5, Cluster Pays (min 5 sąsiadów), Cascading Reels + Multiplier Trail
+ * Siatka 10×10, Cluster Pays (min 5 sąsiadów), Cascading Reels + Multiplier Trail
  *
  * Mechanika:
  *  - Wygrane symbole znikają → nowe "spadają" z góry (gravity cascade)
@@ -13,10 +13,10 @@
 'use strict';
 
 const ACCESS_PASSWORD = '12345';
-const COLS = 5;
-const ROWS = 5;
+const COLS = 10;
+const ROWS = 10;
 const CLUSTER_MIN = 5;
-const MAX_MULT = 15;
+const MAX_MULT = 20;
 
 const SYMS = [
   { id: 'arcane',  e: '🔮', n: 'Kryształ Arcane', w: 2,  p: [0,0,0,0,0,8,16,30,60,120,250]  },

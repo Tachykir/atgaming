@@ -2,7 +2,7 @@
 'use strict';
 
 const AA_ACCESS = '12345';
-const AA_COLS=5, AA_ROWS=5;
+const AA_COLS=10, AA_ROWS=10;
 const AA_BET_STEPS=[10,20,50,100,200,500,1000,2000,5000,10000,50000,100000,500000,1000000];
 
 let aaTable=null, aaBetIdx=0, aaSpinning=false, aaAuto=false, aaAutoT=null;
@@ -47,12 +47,12 @@ function aaUpdateBetUI(){const bet=aaGetBet();const bv=document.getElementById('
 
 function aaBuildGrid(){
   const grid=document.getElementById('aa-reels-grid'); if(!grid)return;
-  grid.innerHTML=''; grid.style.cssText='display:grid;grid-template-columns:repeat(5,1fr);gap:4px;';
+  grid.innerHTML=''; grid.style.cssText='display:grid;grid-template-columns:repeat(10,1fr);gap:3px;';
   for(let c=0;c<AA_COLS;c++){
-    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;gap:4px;';
+    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;gap:3px;';
     for(let r=0;r<AA_ROWS;r++){
       const cell=document.createElement('div'); cell.className='s5-cell'; cell.id=`aac${c}_${r}`;
-      cell.style.cssText='height:50px;font-size:20px;display:flex;align-items:center;justify-content:center;border-radius:8px;'; cell.textContent='🔮'; col.appendChild(cell);
+      cell.style.cssText='height:38px;font-size:16px;display:flex;align-items:center;justify-content:center;border-radius:6px;'; cell.textContent='🔮'; col.appendChild(cell);
     }
     grid.appendChild(col);
   }
@@ -66,7 +66,7 @@ function aaRenderGrid(grid,syms,clusterCells,animate){
     const s=aaSyms[grid[c][r]]; if(!s)continue;
     const inCluster=highlight.has(`${c},${r}`);
     el.className='s5-cell'+(s.wild?' wild':s.scatter?' scatter':inCluster?' win':'');
-    el.innerHTML=s.e||'?'; el.style.height='50px'; el.style.fontSize='20px';
+    el.innerHTML=s.e||'?'; el.style.height='38px'; el.style.fontSize='16px';
     el.style.boxShadow=inCluster?'0 0 12px rgba(168,85,247,.8)':'';
     if(animate&&!inCluster){el.style.animation='';void el.offsetWidth;el.classList.add('aa-cascade-pop');}
     else if(animate&&inCluster){/* highlight stays */}
@@ -83,26 +83,68 @@ function aaAnimateDisappear(cells, callback){
 }
 
 // Animacja spadających symboli
+// Nowe symbole opadają po kaskadzie — grawitacja per kolumna i wiersz
 function aaAnimateFall(newGrid, syms){
   if(syms&&syms.length)aaSyms=syms;
   for(let c=0;c<AA_COLS;c++) for(let r=0;r<AA_ROWS;r++){
     const el=document.getElementById(`aac${c}_${r}`); if(!el)continue;
     const s=aaSyms[newGrid[c][r]]; if(!s)continue;
     el.className='s5-cell'+(s.wild?' wild':s.scatter?' scatter':'');
-    el.innerHTML=s.e||'?'; el.style.height='50px'; el.style.fontSize='20px';
-    el.style.boxShadow=''; el.style.animation=''; void el.offsetWidth;
-    el.style.animation=`s5land ${0.15+r*0.04}s ease-out both`;
+    el.innerHTML=s.e||'?'; el.style.height='38px'; el.style.fontSize='16px';
+    el.style.boxShadow='';
+    // Opóźnienie: kolumna * 40ms + wiersz * 30ms — spada z góry kolumna po kolumnie
+    const delay = c * 40 + r * 30;
+    el.style.opacity='0'; el.style.transform='translateY(-24px)'; el.style.transition='none';
+    setTimeout(()=>{
+      el.style.transition='transform 0.2s cubic-bezier(.25,.46,.45,.94), opacity 0.15s ease';
+      el.style.opacity='1'; el.style.transform='translateY(0)';
+      setTimeout(()=>{ el.style.transition=''; el.style.transform=''; el.style.opacity=''; }, 220);
+    }, delay);
   }
 }
 
-function aaAnimateSpin(){
-  const emojis=['🔮','💫','📚','⭐','🪄','⚗️','🍃','💡'];
-  for(let c=0;c<AA_COLS;c++) for(let r=0;r<AA_ROWS;r++){
-    const el=document.getElementById(`aac${c}_${r}`); if(!el)continue;
-    el.className='s5-cell spinning'; el.style.boxShadow=''; el.style.animation='';
-    el._int=setInterval(()=>{el.textContent=emojis[Math.floor(Math.random()*emojis.length)];},80);
+// ── ANIMACJA OPADANIA (zamiast spinning) ─────────────────────────
+// Symbole wpadają z góry kolumna po kolumnie, każdy wiersz z opóźnieniem
+const AA_DROP_SYMS = ['🔮','💫','📚','⭐','🪄','⚗️','🍃','💡'];
+
+function aaAnimateDrop(onDone) {
+  const totalCols = AA_COLS;
+  let finished = 0;
+
+  for (let c = 0; c < totalCols; c++) {
+    const colDelay = c * 55; // każda kolumna startuje 55ms później
+    for (let r = 0; r < AA_ROWS; r++) {
+      const el = document.getElementById(`aac${c}_${r}`);
+      if (!el) continue;
+      const rowDelay = colDelay + r * 40; // każdy wiersz w kolumnie 40ms później
+      el.className = 's5-cell';
+      el.style.boxShadow = '';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-32px)';
+      el.style.transition = 'none';
+      el.textContent = AA_DROP_SYMS[Math.floor(Math.random() * AA_DROP_SYMS.length)];
+
+      setTimeout(() => {
+        el.style.transition = 'transform 0.22s cubic-bezier(.25,.46,.45,.94), opacity 0.18s ease';
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+
+        // Po ostatnim symbolu całej siatki — wywołaj callback
+        if (c === totalCols - 1 && r === AA_ROWS - 1) {
+          setTimeout(() => {
+            // Reset transitiona żeby nie przeszkadzał dalej
+            for (let cc = 0; cc < AA_COLS; cc++) for (let rr = 0; rr < AA_ROWS; rr++) {
+              const e = document.getElementById(`aac${cc}_${rr}`);
+              if (e) { e.style.transition = ''; e.style.transform = ''; e.style.opacity = ''; }
+            }
+            if (onDone) onDone();
+          }, 250);
+        }
+      }, rowDelay);
+    }
   }
 }
+
 function aaStopAnim(){
   for(let c=0;c<AA_COLS;c++) for(let r=0;r<AA_ROWS;r++){
     const el=document.getElementById(`aac${c}_${r}`); if(el&&el._int){clearInterval(el._int);el._int=null;}
@@ -152,8 +194,10 @@ function aaSpin(){
   if(aaFreeSpins===0&&casinoWallet&&casinoWallet.balance<bet){aaSetMsg('Za mało AT$!');return;}
   aaSpinning=true; aaSetCascadeInfo('','');
   const btn=document.getElementById('aa-spin-btn'); if(btn){btn.disabled=true;btn.textContent='⏳';}
-  aaAnimateSpin();
-  setTimeout(()=>{socket.emit('casinoAASpin',{tableId:casinoTableId,bet,socketToken:casinoSocketToken,discordId:casinoDiscordId,password:AA_ACCESS});},280);
+  // Animacja opadania — emit dopiero po jej zakończeniu
+  aaAnimateDrop(() => {
+    socket.emit('casinoAASpin',{tableId:casinoTableId,bet,socketToken:casinoSocketToken,discordId:casinoDiscordId,password:AA_ACCESS});
+  });
 }
 function aaToggleAuto(){
   aaAuto=!aaAuto; const b=document.getElementById('aa-auto-btn');
@@ -162,61 +206,81 @@ function aaToggleAuto(){
 }
 
 socket.on('casinoAAResult',function(data){
-  aaStopAnim();
+  // Nie ma już interwałów do zatrzymania — animateDrop nie używa setInterval
   const{finalGrid,cascadeLog,totalPayout,cascadeCount,finalMultiplier,balance,totBet,isFree,
     freeSpinsAwarded,freeSpinsRemaining,tier,label,syms,mult}=data;
   if(syms)aaSyms=syms;
   aaFreeSpins=freeSpinsRemaining||0;
 
-  // Animuj kaskady sekwencyjnie
-  let delay=0;
-  const steps=[{grid:cascadeLog&&cascadeLog.length?cascadeLog[0].grid:finalGrid,cells:[],mult:1}];
-  // Budujemy sekwencję krok po kroku
+  // ── Sekwencja animacji kaskad ──────────────────────────────────
+  // Każdy krok: pokaż klastry (highlight) → znikanie → opadanie nowej siatki
   let stepDelay=0;
-  if(cascadeLog&&cascadeLog.length>0){
-    // Pokaż pierwszą siatkę
+  const CASCADE_STEP = 950; // ms na jedną kaskadę
+
+  if(cascadeLog && cascadeLog.length > 0){
+    // Krok 0: pokaż pierwszą siatkę (już opadała w aaSpin → aaAnimateDrop)
+    // Tylko renderuj bez dodatkowej animacji
     setTimeout(()=>{
-      aaRenderGrid(cascadeLog[0].grid,syms,[],true);
-    },0);
-    cascadeLog.forEach((step,i)=>{
-      const allCells=step.clusters.reduce((acc,cl)=>acc.concat(cl.cells),[]);
-      // Pokaż klastry
+      aaRenderGrid(cascadeLog[0].grid, syms, [], false);
+    }, 0);
+
+    cascadeLog.forEach((step, i) => {
+      const allCells = step.clusters.reduce((acc,cl)=>acc.concat(cl.cells),[]);
+
+      // 1. Pokaż podświetlenie klastrów
       setTimeout(()=>{
-        aaRenderGrid(step.grid,syms,allCells,false);
-        aaSetCascadeInfo(step.mult,`Kaskada ${i+1} — +${step.afterMult.toLocaleString('pl-PL')} AT$`);
-        aaSetMsg(`Kaskada ${i+1} ×${step.mult} — +${step.afterMult.toLocaleString('pl-PL')} AT$`);
-        aaAddWinLog(step.afterMult,'win',`×${step.mult}`);
-      },stepDelay+300);
-      // Animuj znikanie
-      setTimeout(()=>{ aaAnimateDisappear(allCells,()=>{}); },stepDelay+600);
-      // Pokaż następną siatkę
-      const nextGrid=i+1<cascadeLog.length?cascadeLog[i+1].grid:finalGrid;
-      setTimeout(()=>{ aaAnimateFall(nextGrid,syms); },stepDelay+850);
-      stepDelay+=900;
+        aaRenderGrid(step.grid, syms, allCells, false);
+        aaSetCascadeInfo(step.mult, `Kaskada ${i+1} — +${step.afterMult.toLocaleString('pl-PL')} AT$`);
+        aaSetMsg(`Kaskada ${i+1}  ×${step.mult} — +${step.afterMult.toLocaleString('pl-PL')} AT$`);
+        aaAddWinLog(step.afterMult, 'win', `×${step.mult}`);
+      }, stepDelay + 200);
+
+      // 2. Animacja znikania klastrów
+      setTimeout(()=>{
+        aaAnimateDisappear(allCells, ()=>{});
+      }, stepDelay + 550);
+
+      // 3. Nowe symbole opadają — używamy aaAnimateFall (grawitacja per kolumna)
+      const nextGrid = (i+1 < cascadeLog.length) ? cascadeLog[i+1].grid : finalGrid;
+      setTimeout(()=>{
+        aaAnimateFall(nextGrid, syms);
+      }, stepDelay + 780);
+
+      stepDelay += CASCADE_STEP;
     });
   } else {
-    aaAnimateFall(finalGrid,syms);
+    // Brak kaskad — finalGrid już pokazany przez aaAnimateDrop, tylko wyrenderuj
+    setTimeout(()=>{ aaRenderGrid(finalGrid, syms, [], false); }, 0);
   }
 
-  const finDelay=stepDelay+300;
+  // ── Finał po wszystkich kaskadach ─────────────────────────────
+  const finDelay = stepDelay + 300;
   setTimeout(()=>{
-    aaRenderGrid(finalGrid,syms,[],false);
+    aaRenderGrid(finalGrid, syms, [], false);
     aaRenderFSBar(); aaSetCascadeInfo('','');
-    if(totalPayout>0){
-      aaSetMsg(`🎉 ${label||'Win'} — Łącznie: +${totalPayout.toLocaleString('pl-PL')} AT$`,'big');
-      if(cascadeCount>1) aaAddWinLog(totalPayout,tier,`(${cascadeCount} kaskad ×${finalMultiplier})`);
-      if(tier==='mega'||tier==='huge'||tier==='giga'||tier==='frito') aaShowWin(totalPayout,mult||0,label||'Win',tier);
-      s5Fireworks(tier); addRecentWin('aa-recent-list',totalPayout,tier);
+
+    if(totalPayout > 0){
+      const cascadeInfo = cascadeCount>1 ? ` (${cascadeCount} kaskad ×${finalMultiplier})` : '';
+      aaSetMsg(`🎉 ${label||'Win'}${cascadeInfo} — +${totalPayout.toLocaleString('pl-PL')} AT$`, 'big');
+      if(cascadeCount>1) aaAddWinLog(totalPayout, tier, `(${cascadeCount}× kaskad)`);
+      if(tier==='mega'||tier==='huge'||tier==='giga'||tier==='frito')
+        aaShowWin(totalPayout, mult||0, label||'Win', tier);
+      s5Fireworks(tier);
+      addRecentWin('aa-recent-list', totalPayout, tier);
     } else {
-      aaSetMsg(isFree?`Free Spin — zostało: ${aaFreeSpins}`:'Postaw zakład i zakręć!');
+      aaSetMsg(isFree ? `Free Spin — zostało: ${aaFreeSpins}` : 'Postaw zakład i zakręć!');
     }
-    if(freeSpinsAwarded>0) aaSetMsg(`📚 ${freeSpinsAwarded} Free Spins!`,'big');
-    aaStatSpins++; aaStatPaid+=totalPayout; if(totalPayout>aaBestWin)aaBestWin=totalPayout;
-    aaStatSpent+=isFree?0:totBet;
-    if(casinoWallet)casinoWallet.balance=balance;
+    if(freeSpinsAwarded > 0) aaSetMsg(`📚 ${freeSpinsAwarded} Free Spins!`, 'big');
+
+    aaStatSpins++; aaStatPaid+=totalPayout;
+    if(totalPayout > aaBestWin) aaBestWin=totalPayout;
+    aaStatSpent += isFree ? 0 : totBet;
+    if(casinoWallet) casinoWallet.balance=balance;
     aaUpdateBalance(); aaUpdateStats();
+
     aaSpinning=false;
-    const btn=document.getElementById('aa-spin-btn'); if(btn){btn.disabled=false;btn.textContent='🔮 SPIN';}
-    if(aaAuto&&aaUnlocked)aaAutoT=setTimeout(aaSpin,1300);
-  },finDelay);
+    const btn=document.getElementById('aa-spin-btn');
+    if(btn){btn.disabled=false; btn.textContent='🔮 SPIN';}
+    if(aaAuto && aaUnlocked) aaAutoT=setTimeout(aaSpin, 1300);
+  }, finDelay);
 });
