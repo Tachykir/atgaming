@@ -531,19 +531,47 @@ select.input option{background:var(--surface2);}
 /* Respin bar DH */
 .dh-respin-bar{display:none;align-items:center;gap:12px;background:rgba(255,200,0,.1);border:1px solid rgba(255,200,0,.3);border-radius:12px;padding:8px 16px;margin:6px 0;}
 /* Cascade mult AA */
-.aa-mult-badge{font-size:22px;font-weight:800;color:#a855f7;text-align:center;min-height:28px;margin:4px 0;}
+.aa-mult-badge{font-size:22px;font-weight:800;color:#a855f7;text-align:center;min-height:28px;margin:4px 0;transition:all .3s;}
 /* Sync flash DB */
-.db-sync-flash{position:absolute;inset:0;border-radius:18px;pointer-events:none;opacity:0;transition:opacity .2s;}
-.db-sync-flash.active{opacity:1;box-shadow:0 0 40px rgba(99,102,241,.8);background:rgba(99,102,241,.08);}
+.db-sync-flash{position:absolute;inset:0;border-radius:18px;pointer-events:none;opacity:0;}
+.db-sync-flash.active{animation:dbSyncPulse .6s ease-out;}
+@keyframes dbSyncPulse{0%{opacity:0}30%{opacity:1;box-shadow:0 0 60px rgba(99,102,241,.9);background:rgba(99,102,241,.12)}100%{opacity:0}}
 /* Dual grid layout */
-.db-grids-wrap{display:flex;gap:20px;align-items:flex-start;justify-content:center;flex-wrap:wrap;}
-.db-grid-half{flex:1;min-width:160px;max-width:220px;}
+.db-grids-wrap{display:flex;gap:16px;align-items:flex-start;justify-content:center;flex-wrap:wrap;}
+.db-grid-half{flex:1;min-width:130px;max-width:200px;}
 .db-grid-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:center;margin-bottom:6px;}
 /* Sync meter */
 .db-sync-wrap{margin:6px 0;}
 .db-sync-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;}
 .db-sync-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
 .db-sync-fill{height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#6366f1,#a855f7);transition:width .4s;}
+/* Haslo overlay */
+.game-pw-overlay{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(10,10,20,.88);border-radius:16px;backdrop-filter:blur(4px);}
+.game-pw-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 32px;text-align:center;max-width:300px;width:90%;}
+.game-pw-box h3{margin:0 0 6px;font-size:18px;}
+.game-pw-box p{color:var(--muted);font-size:13px;margin:0 0 18px;}
+.game-pw-input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-family:'DM Mono',monospace;letter-spacing:.3em;text-align:center;outline:none;margin-bottom:12px;box-sizing:border-box;}
+.game-pw-input:focus{border-color:var(--accent);}
+.game-pw-input.error{border-color:var(--error);animation:pwShake .3s ease;}
+@keyframes pwShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+/* DH gem glow */
+@keyframes dhGemPulse{0%,100%{box-shadow:0 0 6px rgba(255,200,0,.5)}50%{box-shadow:0 0 18px rgba(255,200,0,.9)}}
+.dh-gem-locked{animation:dhGemPulse 1s ease-in-out infinite;border-radius:8px;}
+/* AA cascade */
+@keyframes aaCascadePop{0%{transform:scale(1.2);opacity:.6}100%{transform:scale(1);opacity:1}}
+.aa-cascade-pop{animation:aaCascadePop .2s ease-out both;}
+@keyframes aaDisappear{0%{transform:scale(1);opacity:1}100%{transform:scale(.3);opacity:0}}
+.aa-disappearing{animation:aaDisappear .18s ease-in both;}
+/* NR turbo glow */
+.nr-turbo-active .s5-reels-outer{border-color:#22c55e!important;box-shadow:0 0 24px rgba(34,197,94,.4);}
+@keyframes nrSpeedJump{0%{transform:scaleY(1)}50%{transform:scaleY(1.5)}100%{transform:scaleY(1)}}
+/* DB shadow blade column flash */
+@keyframes dbColFlash{0%{background:rgba(99,102,241,.3)}100%{background:transparent}}
+.db-shadow-flash{animation:dbColFlash .5s ease-out both;}
+/* Win log items */
+.s5-win-log-item{font-size:12px;font-weight:700;padding:2px 6px;border-radius:6px;color:var(--muted);}
+.s5-win-log-item.win{color:#86efac;}.s5-win-log-item.big{color:#fbbf24;}.s5-win-log-item.mega{color:#f87171;}
+.s5-win-log-item.huge{color:#c084fc;}.s5-win-log-item.giga{color:#e879f9;}.s5-win-log-item.frito{color:#fbbf24;font-size:14px;}
 
 /* ── ANIMACJE KART ─────────────────────────────────────────── */
 @keyframes cardDeal {
@@ -2227,23 +2255,36 @@ select.input option{background:var(--surface2);}
       <div><div style="font-size:20px;font-weight:800" id="dh-name">Dragon Hoard</div></div>
       <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="dh-balance">—</div></div></div>
     </div>
-    <div class="s5-wrap">
-      <div class="s5-reels-outer">
+    <div class="s5-wrap" style="position:relative">
+      <!-- Overlay hasła -->
+      <div class="game-pw-overlay" id="dh-pw-overlay">
+        <div class="game-pw-box">
+          <div style="font-size:40px;margin-bottom:8px">🐉</div>
+          <h3>Dragon Hoard</h3>
+          <p>Podaj hasło dostępu do gry</p>
+          <input class="game-pw-input" id="dh-pw-input" type="password" maxlength="10" placeholder="•••••" onkeydown="if(event.key==='Enter')dhCheckPw()">
+          <button class="btn btn-primary" style="width:100%" onclick="dhCheckPw()">Wejdź 🐉</button>
+        </div>
+      </div>
+      <div class="s5-reels-outer" id="dh-reels-outer">
         <div id="dh-reels-grid" style="padding:8px"></div>
-        <div class="s5-win-ov" id="dh-win-ov" onclick="this.classList.remove('show')">
+        <div class="s5-win-ov" id="dh-win-ov" onclick="dhDismissWin()">
           <div class="s5-win-title" id="dh-win-title">Win</div>
           <div class="s5-win-amt" id="dh-win-amt">+0 AT$</div>
+          <div class="s5-win-mult" id="dh-win-mult">0×</div>
           <div class="s5-win-tap">kliknij aby kontynuować</div>
         </div>
       </div>
       <div class="dh-respin-bar" id="dh-respin-bar">
-        <div style="font-size:20px;font-weight:700;color:#ffd200" id="dh-respin-count">3</div>
+        <div style="font-size:24px;font-weight:800;color:#ffd200;font-family:'DM Mono',monospace" id="dh-respin-count">3</div>
         <div><div style="font-size:13px;font-weight:700;color:#ffd200">🔒 Respin Mode</div><div style="font-size:11px;color:var(--muted)">Gemy zablokowane — zbieraj jackpoty!</div></div>
       </div>
       <div class="s5-fs-bar" id="dh-fs-bar" style="display:none">
         <div style="font-size:20px;font-weight:700;color:#60a5fa" id="dh-fs-count">0</div>
-        <div><div style="font-size:13px;font-weight:700;color:#60a5fa">Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:#60a5fa">🐲 Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div></div>
       </div>
+      <!-- Jackpot display -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:4px 0" id="dh-jp-display"></div>
       <div class="s5-win-log" id="dh-win-log"></div>
       <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
         <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="dh-stat-spins">0</div></div>
@@ -2256,8 +2297,26 @@ select.input option{background:var(--surface2);}
       <div class="s5-msg" id="dh-msg">Ustaw zakład i naciśnij Spin</div>
       <div class="s5-controls">
         <div class="s5-ctrl">
-          <div class="s5-ctrl-lbl">Zakład</div>
-          <div class="s5-ctrl-val"><input class="jf-bet-input" type="number" id="dh-bet-input" value="10" min="10" style="width:100px"></div>
+          <div class="s5-ctrl-lbl">Zakład (łączny)</div>
+          <div class="s5-ctrl-val" id="dh-bet-val">—</div>
+          <div class="s5-ctrl-btns">
+            <button onclick="dhChBet(-1)">−</button>
+            <button onclick="dhChBet(1)">+</button>
+            <button onclick="dhChBet(0,'max')">Max</button>
+          </div>
+        </div>
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Linie</div>
+          <div class="s5-ctrl-val" id="dh-lines-val">20</div>
+          <div class="s5-ctrl-btns">
+            <button onclick="dhChLines(-5)">−5</button>
+            <button onclick="dhChLines(5)">+5</button>
+            <button onclick="dhChLines(0,'max')">Max</button>
+          </div>
+        </div>
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Łączny zakład</div>
+          <div class="s5-ctrl-val" id="dh-tot-val">—</div>
         </div>
       </div>
       <div class="s5-spin-row">
@@ -2278,19 +2337,34 @@ select.input option{background:var(--surface2);}
       <div><div style="font-size:20px;font-weight:800" id="aa-name">Arcane Academy</div></div>
       <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="aa-balance">—</div></div></div>
     </div>
-    <div class="s5-wrap">
-      <div class="s5-reels-outer">
+    <div class="s5-wrap" style="position:relative">
+      <!-- Overlay hasła -->
+      <div class="game-pw-overlay" id="aa-pw-overlay">
+        <div class="game-pw-box">
+          <div style="font-size:40px;margin-bottom:8px">🔮</div>
+          <h3>Arcane Academy</h3>
+          <p>Podaj hasło dostępu do gry</p>
+          <input class="game-pw-input" id="aa-pw-input" type="password" maxlength="10" placeholder="•••••" onkeydown="if(event.key==='Enter')aaCheckPw()">
+          <button class="btn btn-primary" style="width:100%" onclick="aaCheckPw()">Wejdź 🔮</button>
+        </div>
+      </div>
+      <div class="s5-reels-outer" id="aa-reels-outer">
         <div id="aa-reels-grid" style="padding:8px"></div>
-        <div class="s5-win-ov" id="aa-win-ov" onclick="this.classList.remove('show')">
+        <div class="s5-win-ov" id="aa-win-ov" onclick="aaDismissWin()">
           <div class="s5-win-title" id="aa-win-title">Win</div>
           <div class="s5-win-amt" id="aa-win-amt">+0 AT$</div>
+          <div class="s5-win-mult" id="aa-win-mult">0×</div>
           <div class="s5-win-tap">kliknij aby kontynuować</div>
         </div>
       </div>
-      <div class="aa-mult-badge" id="aa-cascade-mult"></div>
+      <!-- Cascade multiplier badge -->
+      <div style="text-align:center;min-height:32px;margin:4px 0;display:flex;align-items:center;justify-content:center;gap:12px">
+        <div class="aa-mult-badge" id="aa-cascade-mult"></div>
+        <div id="aa-cascade-info" style="font-size:11px;color:var(--muted)"></div>
+      </div>
       <div class="s5-fs-bar" id="aa-fs-bar" style="display:none">
         <div style="font-size:20px;font-weight:700;color:#a855f7" id="aa-fs-count">0</div>
-        <div><div style="font-size:13px;font-weight:700;color:#a855f7">Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Kaskady z mnożnikiem!</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:#a855f7">✨ Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Kaskady z mnożnikiem!</div></div>
       </div>
       <div class="s5-win-log" id="aa-win-log"></div>
       <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
@@ -2305,7 +2379,12 @@ select.input option{background:var(--surface2);}
       <div class="s5-controls">
         <div class="s5-ctrl">
           <div class="s5-ctrl-lbl">Zakład</div>
-          <div class="s5-ctrl-val"><input class="jf-bet-input" type="number" id="aa-bet-input" value="10" min="10" style="width:100px"></div>
+          <div class="s5-ctrl-val" id="aa-bet-val">—</div>
+          <div class="s5-ctrl-btns">
+            <button onclick="aaChBet(-1)">−</button>
+            <button onclick="aaChBet(1)">+</button>
+            <button onclick="aaChBet(0,'max')">Max</button>
+          </div>
         </div>
       </div>
       <div class="s5-spin-row">
@@ -2327,19 +2406,29 @@ select.input option{background:var(--surface2);}
       <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="db-balance">—</div></div></div>
     </div>
     <div class="s5-wrap" style="position:relative">
+      <!-- Overlay hasła -->
+      <div class="game-pw-overlay" id="db-pw-overlay">
+        <div class="game-pw-box">
+          <div style="font-size:40px;margin-bottom:8px">⚔️</div>
+          <h3>Dual Blades</h3>
+          <p>Podaj hasło dostępu do gry</p>
+          <input class="game-pw-input" id="db-pw-input" type="password" maxlength="10" placeholder="•••••" onkeydown="if(event.key==='Enter')dbCheckPw()">
+          <button class="btn btn-primary" style="width:100%" onclick="dbCheckPw()">Wejdź ⚔️</button>
+        </div>
+      </div>
       <div class="db-sync-flash" id="db-sync-flash"></div>
       <div class="db-grids-wrap">
         <div class="db-grid-half">
           <div class="db-grid-label">⚔️ Lewa Siatka</div>
-          <div id="db-left-grid" style="padding:6px"></div>
+          <div class="s5-reels-outer" style="padding:6px"><div id="db-left-grid"></div></div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 8px">
-          <div style="font-size:28px">⚡</div>
-          <div style="font-size:11px;color:var(--muted);text-align:center">SYNC<br>BONUS</div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 4px">
+          <div style="font-size:24px" id="db-sync-icon">⚡</div>
+          <div style="font-size:10px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.05em">SYNC<br>BONUS</div>
         </div>
         <div class="db-grid-half">
           <div class="db-grid-label">🗡️ Prawa Siatka</div>
-          <div id="db-right-grid" style="padding:6px"></div>
+          <div class="s5-reels-outer" style="padding:6px"><div id="db-right-grid"></div></div>
         </div>
       </div>
       <div class="db-sync-wrap">
@@ -2348,7 +2437,7 @@ select.input option{background:var(--surface2);}
       </div>
       <div class="s5-fs-bar" id="db-fs-bar" style="display:none">
         <div style="font-size:20px;font-weight:700;color:#6366f1" id="db-fs-count">0</div>
-        <div><div style="font-size:13px;font-weight:700;color:#6366f1">Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:#6366f1">⚡ Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div></div>
       </div>
       <div class="s5-win-log" id="db-win-log"></div>
       <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
@@ -2363,7 +2452,12 @@ select.input option{background:var(--surface2);}
       <div class="s5-controls">
         <div class="s5-ctrl">
           <div class="s5-ctrl-lbl">Zakład</div>
-          <div class="s5-ctrl-val"><input class="jf-bet-input" type="number" id="db-bet-input" value="10" min="10" style="width:100px"></div>
+          <div class="s5-ctrl-val" id="db-bet-val">—</div>
+          <div class="s5-ctrl-btns">
+            <button onclick="dbChBet(-1)">−</button>
+            <button onclick="dbChBet(1)">+</button>
+            <button onclick="dbChBet(0,'max')">Max</button>
+          </div>
         </div>
       </div>
       <div class="s5-spin-row">
@@ -2379,17 +2473,28 @@ select.input option{background:var(--surface2);}
   <div style="position:absolute;top:16px;left:16px;z-index:10">
     <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
   </div>
-  <div class="casino-game-screen" style="align-items:center">
+  <div class="casino-game-screen" style="align-items:center" id="nr-game-screen">
     <div class="casino-game-header">
       <div><div style="font-size:20px;font-weight:800" id="nr-name">Neon Racer</div></div>
       <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="nr-balance">—</div></div></div>
     </div>
-    <div class="s5-wrap">
-      <div class="s5-reels-outer">
+    <div class="s5-wrap" style="position:relative">
+      <!-- Overlay hasła -->
+      <div class="game-pw-overlay" id="nr-pw-overlay">
+        <div class="game-pw-box">
+          <div style="font-size:40px;margin-bottom:8px">🏎️</div>
+          <h3>Neon Racer</h3>
+          <p>Podaj hasło dostępu do gry</p>
+          <input class="game-pw-input" id="nr-pw-input" type="password" maxlength="10" placeholder="•••••" onkeydown="if(event.key==='Enter')nrCheckPw()">
+          <button class="btn btn-primary" style="width:100%" onclick="nrCheckPw()">Wejdź 🏎️</button>
+        </div>
+      </div>
+      <div class="s5-reels-outer" id="nr-reels-outer">
         <div id="nr-reels-grid" style="padding:8px"></div>
-        <div class="s5-win-ov" id="nr-win-ov" onclick="this.classList.remove('show')">
+        <div class="s5-win-ov" id="nr-win-ov" onclick="nrDismissWin()">
           <div class="s5-win-title" id="nr-win-title">Win</div>
           <div class="s5-win-amt" id="nr-win-amt">+0 AT$</div>
+          <div class="s5-win-mult" id="nr-win-mult">0×</div>
           <div class="s5-win-tap">kliknij aby kontynuować</div>
         </div>
       </div>
@@ -2398,12 +2503,12 @@ select.input option{background:var(--surface2);}
         <div class="nr-speed-track"><div class="nr-speed-fill" id="nr-speed-fill"></div></div>
       </div>
       <div class="nr-turbo-bar" id="nr-turbo-bar">
-        <div style="font-size:20px;font-weight:700;color:#22c55e" id="nr-turbo-count">5</div>
-        <div><div style="font-size:13px;font-weight:700;color:#22c55e">🏁 TURBO ROUND! x3</div><div style="font-size:11px;color:var(--muted)">Mnożnik x3 na każdą wygraną!</div></div>
+        <div style="font-size:24px;font-weight:800;color:#22c55e;font-family:'DM Mono',monospace" id="nr-turbo-count">5</div>
+        <div><div style="font-size:13px;font-weight:700;color:#22c55e">🏁 TURBO ROUND! ×3</div><div style="font-size:11px;color:var(--muted)">Mnożnik ×3 na każdą wygraną!</div></div>
       </div>
       <div class="s5-fs-bar" id="nr-fs-bar" style="display:none">
         <div style="font-size:20px;font-weight:700;color:#22c55e" id="nr-fs-count">0</div>
-        <div><div style="font-size:13px;font-weight:700;color:#22c55e">Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:#22c55e">💨 Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div></div>
       </div>
       <div class="s5-win-log" id="nr-win-log"></div>
       <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
@@ -2417,17 +2522,26 @@ select.input option{background:var(--surface2);}
       <div class="s5-msg" id="nr-msg">Ustaw zakład i naciśnij Spin</div>
       <div class="s5-controls">
         <div class="s5-ctrl">
-          <div class="s5-ctrl-lbl">Zakład</div>
-          <div class="s5-ctrl-val"><input class="jf-bet-input" type="number" id="nr-bet-input" value="10" min="10" style="width:100px"></div>
+          <div class="s5-ctrl-lbl">Zakład (łączny)</div>
+          <div class="s5-ctrl-val" id="nr-bet-val">—</div>
+          <div class="s5-ctrl-btns">
+            <button onclick="nrChBet(-1)">−</button>
+            <button onclick="nrChBet(1)">+</button>
+            <button onclick="nrChBet(0,'max')">Max</button>
+          </div>
         </div>
         <div class="s5-ctrl">
           <div class="s5-ctrl-lbl">Linie</div>
           <div class="s5-ctrl-val" id="nr-lines-val">20</div>
           <div class="s5-ctrl-btns">
-            <button onclick="nrLines=Math.max(1,nrLines-5);document.getElementById('nr-lines-val').textContent=nrLines">−5</button>
-            <button onclick="nrLines=Math.min(21,nrLines+5);document.getElementById('nr-lines-val').textContent=nrLines">+5</button>
-            <button onclick="nrLines=21;document.getElementById('nr-lines-val').textContent=21">Max</button>
+            <button onclick="nrChLines(-5)">−5</button>
+            <button onclick="nrChLines(5)">+5</button>
+            <button onclick="nrChLines(0,'max')">Max</button>
           </div>
+        </div>
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Łączny zakład</div>
+          <div class="s5-ctrl-val" id="nr-tot-val">—</div>
         </div>
       </div>
       <div class="s5-spin-row">
@@ -2437,7 +2551,6 @@ select.input option{background:var(--surface2);}
     </div>
   </div>
 </div>
-
 <div class="at-version" id="at-version">AT Gaming</div>
 
 <!-- ══ PANEL GRACZE ONLINE ════════════════════════════════════ -->
