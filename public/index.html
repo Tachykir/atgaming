@@ -4642,6 +4642,11 @@ function renderCasinoTables(tables) {
   const crash     = tables.filter(t => t.game === 'crash');
   const coinflip  = tables.filter(t => t.game === 'coinflip');
   const path      = tables.filter(t => t.game === 'path_of_gambling');
+  const jf        = tables.filter(t => t.game === 'jackpot_frenzy');
+  const dh        = tables.filter(t => t.game === 'dragon_hoard');
+  const aa        = tables.filter(t => t.game === 'arcane_academy');
+  const db        = tables.filter(t => t.game === 'dual_blades');
+  const nr        = tables.filter(t => t.game === 'neon_racer');
 
   const el = id => document.getElementById(id);
   el('casino-poker-tables').innerHTML    = poker.length    ? poker.map(t=>renderTableCard(t)).join('') : '<div style="color:var(--muted);padding:8px">Brak stołów — utwórz pierwszy!</div>';
@@ -4652,8 +4657,11 @@ function renderCasinoTables(tables) {
   if (el('casino-crash-tables'))    el('casino-crash-tables').innerHTML    = crash.map(t=>renderTableCard(t)).join('');
   if (el('casino-coinflip-tables')) el('casino-coinflip-tables').innerHTML = coinflip.map(t=>renderTableCard(t)).join('');
   if (el('casino-path-tables'))     el('casino-path-tables').innerHTML     = path.map(t=>renderTableCard(t)).join('');
-  const jf = tables.filter(t=>t.game==='jackpot_frenzy');
   if (el('casino-jf-tables'))       el('casino-jf-tables').innerHTML       = jf.map(t=>renderTableCard(t)).join('');
+  if (el('casino-dh-tables'))       el('casino-dh-tables').innerHTML       = dh.map(t=>renderTableCard(t)).join('');
+  if (el('casino-aa-tables'))       el('casino-aa-tables').innerHTML       = aa.map(t=>renderTableCard(t)).join('');
+  if (el('casino-db-tables'))       el('casino-db-tables').innerHTML       = db.map(t=>renderTableCard(t)).join('');
+  if (el('casino-nr-tables'))       el('casino-nr-tables').innerHTML       = nr.map(t=>renderTableCard(t)).join('');
 
   // Pokaż przyciski tworzenia stołów jeśli zalogowany
   const hasDiscord = !!casinoWallet;
@@ -4665,8 +4673,8 @@ function renderCasinoTables(tables) {
 
 function renderTableCard(t) {
   const statusLabels = { open:'Otwarty', betting:'Zakłady', playing:'Gra', results:'Wyniki', showdown:'Showdown', spinning:'Obrót' };
-  const gameIcons = { poker:'🃏', blackjack:'🃏', slots:'🎰', roulette:'🎡', pachinko:'🎯', crash:'🚀', coinflip:'🪙', path_of_gambling:'⚗️', jackpot_frenzy:'🏆' };
-  const gameColors = { poker:'', blackjack:'bj', slots:'slots', roulette:'roulette', pachinko:'pachinko', crash:'crash', coinflip:'coinflip', path_of_gambling:'slots' };
+  const gameIcons = { poker:'🃏', blackjack:'🃏', slots:'🎰', roulette:'🎡', pachinko:'🎯', crash:'🚀', coinflip:'🪙', path_of_gambling:'⚗️', jackpot_frenzy:'🏆', dragon_hoard:'🐉', arcane_academy:'🔮', dual_blades:'⚔️', neon_racer:'🏎️' };
+  const gameColors = { poker:'', blackjack:'bj', slots:'slots', roulette:'roulette', pachinko:'pachinko', crash:'crash', coinflip:'coinflip', path_of_gambling:'path', jackpot_frenzy:'slots', dragon_hoard:'dh', arcane_academy:'aa', dual_blades:'db', neon_racer:'nr' };
 
   const seats = t.maxPlayers < 50 ? Array(Math.min(t.maxPlayers,8)).fill(0).map((_, i) => {
     const p = t.players[i];
@@ -4770,7 +4778,7 @@ socket.on('casinoTablesUpdated', () => {
 });
 
 // ── OTWÓRZ STÓŁ ───────────────────────────────────────────────
-const GAME_SCREENS = { poker:'casino-poker', blackjack:'casino-blackjack', slots:'casino-slots', roulette:'casino-roulette', pachinko:'casino-pachinko', crash:'casino-crash', coinflip:'casino-coinflip', path_of_gambling:'casino-path', jackpot_frenzy:'casino-jf' };
+const GAME_SCREENS = { poker:'casino-poker', blackjack:'casino-blackjack', slots:'casino-slots', roulette:'casino-roulette', pachinko:'casino-pachinko', crash:'casino-crash', coinflip:'casino-coinflip', path_of_gambling:'casino-path', jackpot_frenzy:'casino-jf', dragon_hoard:'casino-dh', arcane_academy:'casino-aa', dual_blades:'casino-db', neon_racer:'casino-nr' };
 
 async function openCasinoTable(tableId) {
   let table;
@@ -4838,6 +4846,11 @@ async function openCasinoTable(tableId) {
   if (game === 'pachinko') initPachinkoUI(table);
   if (game === 'crash') initCrashUI(table);
   if (game === 'coinflip') initCoinflipUI(table);
+  // Nowe automaty — z hasłem 12345 wymaganym w spin
+  if (game === 'dragon_hoard')   initDHUI(table);
+  if (game === 'arcane_academy') initAAUI(table);
+  if (game === 'dual_blades')    initDBUI(table);
+  if (game === 'neon_racer')     initNRUI(table);
 
   socket.emit('casinoObserveTable', { tableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
   showScreen(GAME_SCREENS[game] || 'casino-lobby');
