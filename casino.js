@@ -333,6 +333,26 @@ function initTables() {
   createTable({ game:'path_of_gambling', name:'Path of Gambling — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
   createTable({ game:'path_of_gambling', name:'Path of Gambling — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
   createTable({ game:'path_of_gambling', name:'Path of Gambling — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
+
+  // 🐉 Dragon Hoard
+  createTable({ game:'dragon_hoard', name:'Dragon Hoard — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99, level:'low'    }});
+  createTable({ game:'dragon_hoard', name:'Dragon Hoard — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99, level:'medium' }});
+  createTable({ game:'dragon_hoard', name:'Dragon Hoard — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99, level:'high'   }});
+
+  // ⚗️ Arcane Academy
+  createTable({ game:'arcane_academy', name:'Arcane Academy — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
+  createTable({ game:'arcane_academy', name:'Arcane Academy — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
+  createTable({ game:'arcane_academy', name:'Arcane Academy — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
+
+  // ⚔️ Dual Blades
+  createTable({ game:'dual_blades', name:'Dual Blades — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
+  createTable({ game:'dual_blades', name:'Dual Blades — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
+  createTable({ game:'dual_blades', name:'Dual Blades — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
+
+  // 🏎️ Neon Racer
+  createTable({ game:'neon_racer', name:'Neon Racer — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
+  createTable({ game:'neon_racer', name:'Neon Racer — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
+  createTable({ game:'neon_racer', name:'Neon Racer — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
   console.log(`🃏 Zainicjowano ${Object.keys(casinoTables).length} stołów kasyna`);
 }
 
@@ -351,7 +371,7 @@ function getTablePublic(table) {
 async function getSlotStats(discordId, gameId) {
   if (pg) {
     const r = await pg.query(
-      'SELECT spins,spent,won,best_win FROM casino_slot_stats WHERE discord_id=$1 AND game_id=$2',
+      'SELECT spins,spent,won,best_win,pit_meter FROM casino_slot_stats WHERE discord_id=$1 AND game_id=$2',
       [discordId, gameId]
     );
     if (r.rows[0]) {

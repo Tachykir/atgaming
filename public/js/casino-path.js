@@ -181,6 +181,7 @@ function pgPreviewLines() {
 function pgSpin() {
   const winOv = document.getElementById('pg-win-ov');
   if (pgSpinning || !casinoTableId || (winOv && winOv.classList.contains('show'))) return;
+  if (!casinoDiscordId) { showToast('Zaloguj się przez Discord!', 'error'); return; }
   const totBet = pgBet * pgLines;
   const cost   = pgFreeSpins > 0 ? 0 : totBet;
   if (casinoWallet && casinoWallet.balance < cost && pgFreeSpins === 0) { pgSetMsg('Za ma\u0142o AT$!'); return; }

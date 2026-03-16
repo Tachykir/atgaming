@@ -14,7 +14,7 @@ function initJFUI(table) {
   jfBet=table.config.minBet||10;
   jfMinBet=table.config.minBet||10;
   jfMaxBet=table.config.maxBet||10000;
-  jfCauldronMax=5000;
+  jfCauldronMax=2000;
   document.getElementById('jf-bet-input').value=jfBet;
   jfSpinning=false; jfAuto=false; jfFreeSpins=0; jfMiniSumVal=0;
   jfStatSpins=0; jfStatPaid=0; jfBestWin=0; jfStatSpent=0;
@@ -162,6 +162,7 @@ function jfUpdateStats() {
 
 function jfSpin() {
   if(jfSpinning) return;
+  if(!casinoDiscordId) { showToast('Zaloguj się przez Discord!','error'); return; }
   var betEl=document.getElementById('jf-bet-input'); jfBet=parseInt(betEl&&betEl.value)||jfBet;
   if(!casinoTableId||!casinoSocketToken) return showToast('Nie połączono','error');
   jfSpinning=true;

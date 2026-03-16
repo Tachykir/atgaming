@@ -508,9 +508,42 @@ select.input option{background:var(--surface2);}
 .casino-table-card.slots::before{background:linear-gradient(135deg,rgba(100,20,150,.2),transparent);}
 .casino-table-card.roulette::before{background:linear-gradient(135deg,rgba(0,100,20,.2),transparent);}
 .casino-table-card.pachinko::before{background:linear-gradient(135deg,rgba(0,50,100,.2),transparent);}
+.casino-table-card.path::before{background:linear-gradient(135deg,rgba(180,100,20,.2),transparent);}
+.casino-table-card.dh::before{background:linear-gradient(135deg,rgba(200,80,0,.2),transparent);}
+.casino-table-card.aa::before{background:linear-gradient(135deg,rgba(120,0,200,.2),transparent);}
+.casino-table-card.db::before{background:linear-gradient(135deg,rgba(50,50,200,.2),transparent);}
+.casino-table-card.nr::before{background:linear-gradient(135deg,rgba(0,200,100,.2),transparent);}
 .casino-table-card.slots:hover{border-color:#9b59b6;}
 .casino-table-card.roulette:hover{border-color:#27ae60;}
 .casino-table-card.pachinko:hover{border-color:#3498db;}
+.casino-table-card.path:hover{border-color:#e67e22;}
+.casino-table-card.dh:hover{border-color:#e25822;}
+.casino-table-card.aa:hover{border-color:#a855f7;}
+.casino-table-card.db:hover{border-color:#6366f1;}
+.casino-table-card.nr:hover{border-color:#22c55e;}
+/* Speed meter Neon Racer */
+.nr-speed-wrap{margin:6px 0;}
+.nr-speed-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;}
+.nr-speed-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.nr-speed-fill{height:100%;width:0%;border-radius:4px;background:#22c55e;transition:width .5s ease,background .3s;}
+/* Turbo bar */
+.nr-turbo-bar{display:none;align-items:center;gap:12px;background:rgba(0,255,100,.1);border:1px solid rgba(0,255,100,.3);border-radius:12px;padding:8px 16px;margin:6px 0;}
+/* Respin bar DH */
+.dh-respin-bar{display:none;align-items:center;gap:12px;background:rgba(255,200,0,.1);border:1px solid rgba(255,200,0,.3);border-radius:12px;padding:8px 16px;margin:6px 0;}
+/* Cascade mult AA */
+.aa-mult-badge{font-size:22px;font-weight:800;color:#a855f7;text-align:center;min-height:28px;margin:4px 0;}
+/* Sync flash DB */
+.db-sync-flash{position:absolute;inset:0;border-radius:18px;pointer-events:none;opacity:0;transition:opacity .2s;}
+.db-sync-flash.active{opacity:1;box-shadow:0 0 40px rgba(99,102,241,.8);background:rgba(99,102,241,.08);}
+/* Dual grid layout */
+.db-grids-wrap{display:flex;gap:20px;align-items:flex-start;justify-content:center;flex-wrap:wrap;}
+.db-grid-half{flex:1;min-width:160px;max-width:220px;}
+.db-grid-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:center;margin-bottom:6px;}
+/* Sync meter */
+.db-sync-wrap{margin:6px 0;}
+.db-sync-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;}
+.db-sync-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.db-sync-fill{height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#6366f1,#a855f7);transition:width .4s;}
 
 /* ── ANIMACJE KART ─────────────────────────────────────────── */
 @keyframes cardDeal {
@@ -1516,6 +1549,30 @@ select.input option{background:var(--surface2);}
       <div class="casino-tables-grid" id="casino-jf-tables"></div>
     </div>
 
+    <!-- Dragon Hoard -->
+    <div class="casino-lb-section">
+      <h3>🐉 Dragon Hoard <span style="font-size:11px;background:rgba(255,200,0,.15);color:#ffd200;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:8px">NOWE</span></h3>
+      <div class="casino-tables-grid" id="casino-dh-tables"></div>
+    </div>
+
+    <!-- Arcane Academy -->
+    <div class="casino-lb-section">
+      <h3>🔮 Arcane Academy <span style="font-size:11px;background:rgba(255,200,0,.15);color:#ffd200;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:8px">NOWE</span></h3>
+      <div class="casino-tables-grid" id="casino-aa-tables"></div>
+    </div>
+
+    <!-- Dual Blades -->
+    <div class="casino-lb-section">
+      <h3>⚔️ Dual Blades <span style="font-size:11px;background:rgba(255,200,0,.15);color:#ffd200;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:8px">NOWE</span></h3>
+      <div class="casino-tables-grid" id="casino-db-tables"></div>
+    </div>
+
+    <!-- Neon Racer -->
+    <div class="casino-lb-section">
+      <h3>🏎️ Neon Racer <span style="font-size:11px;background:rgba(255,200,0,.15);color:#ffd200;padding:2px 8px;border-radius:99px;font-weight:700;margin-left:8px">NOWE</span></h3>
+      <div class="casino-tables-grid" id="casino-nr-tables"></div>
+    </div>
+
     <!-- Ruletka -->
     <div class="casino-lb-section">
       <h3>🎡 Ruletka Europejska</h3>
@@ -2048,6 +2105,7 @@ select.input option{background:var(--surface2);}
     <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="jf-stat-spent">0 AT$</div></div>
     <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="jf-stat-profit">—</div></div>
   </div>
+  <div class="s5-recent-wins"><div class="s5-recent-title">Ostatnie wygrane</div><div class="s5-recent-list" id="jf-recent-list"><span class="s5-recent-item none">—</span></div></div>
 
 </div>
 </div>
@@ -2154,6 +2212,227 @@ select.input option{background:var(--surface2);}
         <button class="s5-btn-spin" id="pg-spin-btn" onclick="pgSpin()" style="display:flex;align-items:center;justify-content:center;gap:8px"><img src="/images/slots/poelogo.png" style="height:28px;width:auto;object-fit:contain"> SPIN</button>
         <button class="s5-btn-sm"   id="pg-auto-btn" onclick="pgToggleAuto()">Auto</button>
         <button class="s5-btn-sm"   onclick="pgPreviewLines()">Linie</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ KASYNO — DRAGON HOARD ════════════════════════════════════ -->
+<div class="screen" id="screen-casino-dh">
+  <div style="position:absolute;top:16px;left:16px;z-index:10">
+    <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
+  </div>
+  <div class="casino-game-screen" style="align-items:center">
+    <div class="casino-game-header">
+      <div><div style="font-size:20px;font-weight:800" id="dh-name">Dragon Hoard</div></div>
+      <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="dh-balance">—</div></div></div>
+    </div>
+    <div class="s5-wrap">
+      <div class="s5-reels-outer">
+        <div id="dh-reels-grid" style="padding:8px"></div>
+        <div class="s5-win-ov" id="dh-win-ov" onclick="this.classList.remove('show')">
+          <div class="s5-win-title" id="dh-win-title">Win</div>
+          <div class="s5-win-amt" id="dh-win-amt">+0 AT$</div>
+          <div class="s5-win-tap">kliknij aby kontynuować</div>
+        </div>
+      </div>
+      <div class="dh-respin-bar" id="dh-respin-bar">
+        <div style="font-size:20px;font-weight:700;color:#ffd200" id="dh-respin-count">3</div>
+        <div><div style="font-size:13px;font-weight:700;color:#ffd200">🔒 Respin Mode</div><div style="font-size:11px;color:var(--muted)">Gemy zablokowane — zbieraj jackpoty!</div></div>
+      </div>
+      <div class="s5-fs-bar" id="dh-fs-bar" style="display:none">
+        <div style="font-size:20px;font-weight:700;color:#60a5fa" id="dh-fs-count">0</div>
+        <div><div style="font-size:13px;font-weight:700;color:#60a5fa">Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div></div>
+      </div>
+      <div class="s5-win-log" id="dh-win-log"></div>
+      <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
+        <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="dh-stat-spins">0</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="dh-stat-paid">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="dh-stat-best">—</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="dh-stat-spent">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="dh-stat-profit">—</div></div>
+      </div>
+      <div class="s5-recent-wins"><div class="s5-recent-title">Ostatnie wygrane</div><div class="s5-recent-list" id="dh-recent-list"><span class="s5-recent-item none">—</span></div></div>
+      <div class="s5-msg" id="dh-msg">Ustaw zakład i naciśnij Spin</div>
+      <div class="s5-controls">
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Zakład</div>
+          <div class="s5-ctrl-val"><input class="jf-bet-input" type="number" id="dh-bet-input" value="10" min="10" style="width:100px"></div>
+        </div>
+      </div>
+      <div class="s5-spin-row">
+        <button class="s5-btn-spin" id="dh-spin-btn" onclick="dhSpin()">🐉 SPIN</button>
+        <button class="s5-btn-sm" id="dh-auto-btn" onclick="dhToggleAuto()">Auto</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ KASYNO — ARCANE ACADEMY ══════════════════════════════════ -->
+<div class="screen" id="screen-casino-aa">
+  <div style="position:absolute;top:16px;left:16px;z-index:10">
+    <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
+  </div>
+  <div class="casino-game-screen" style="align-items:center">
+    <div class="casino-game-header">
+      <div><div style="font-size:20px;font-weight:800" id="aa-name">Arcane Academy</div></div>
+      <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="aa-balance">—</div></div></div>
+    </div>
+    <div class="s5-wrap">
+      <div class="s5-reels-outer">
+        <div id="aa-reels-grid" style="padding:8px"></div>
+        <div class="s5-win-ov" id="aa-win-ov" onclick="this.classList.remove('show')">
+          <div class="s5-win-title" id="aa-win-title">Win</div>
+          <div class="s5-win-amt" id="aa-win-amt">+0 AT$</div>
+          <div class="s5-win-tap">kliknij aby kontynuować</div>
+        </div>
+      </div>
+      <div class="aa-mult-badge" id="aa-cascade-mult"></div>
+      <div class="s5-fs-bar" id="aa-fs-bar" style="display:none">
+        <div style="font-size:20px;font-weight:700;color:#a855f7" id="aa-fs-count">0</div>
+        <div><div style="font-size:13px;font-weight:700;color:#a855f7">Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Kaskady z mnożnikiem!</div></div>
+      </div>
+      <div class="s5-win-log" id="aa-win-log"></div>
+      <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
+        <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="aa-stat-spins">0</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="aa-stat-paid">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="aa-stat-best">—</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="aa-stat-spent">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="aa-stat-profit">—</div></div>
+      </div>
+      <div class="s5-recent-wins"><div class="s5-recent-title">Ostatnie wygrane</div><div class="s5-recent-list" id="aa-recent-list"><span class="s5-recent-item none">—</span></div></div>
+      <div class="s5-msg" id="aa-msg">Ustaw zakład i naciśnij Spin</div>
+      <div class="s5-controls">
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Zakład</div>
+          <div class="s5-ctrl-val"><input class="jf-bet-input" type="number" id="aa-bet-input" value="10" min="10" style="width:100px"></div>
+        </div>
+      </div>
+      <div class="s5-spin-row">
+        <button class="s5-btn-spin" id="aa-spin-btn" onclick="aaSpin()">🔮 SPIN</button>
+        <button class="s5-btn-sm" id="aa-auto-btn" onclick="aaToggleAuto()">Auto</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ KASYNO — DUAL BLADES ══════════════════════════════════════ -->
+<div class="screen" id="screen-casino-db">
+  <div style="position:absolute;top:16px;left:16px;z-index:10">
+    <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
+  </div>
+  <div class="casino-game-screen" style="align-items:center">
+    <div class="casino-game-header">
+      <div><div style="font-size:20px;font-weight:800" id="db-name">Dual Blades</div></div>
+      <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="db-balance">—</div></div></div>
+    </div>
+    <div class="s5-wrap" style="position:relative">
+      <div class="db-sync-flash" id="db-sync-flash"></div>
+      <div class="db-grids-wrap">
+        <div class="db-grid-half">
+          <div class="db-grid-label">⚔️ Lewa Siatka</div>
+          <div id="db-left-grid" style="padding:6px"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 8px">
+          <div style="font-size:28px">⚡</div>
+          <div style="font-size:11px;color:var(--muted);text-align:center">SYNC<br>BONUS</div>
+        </div>
+        <div class="db-grid-half">
+          <div class="db-grid-label">🗡️ Prawa Siatka</div>
+          <div id="db-right-grid" style="padding:6px"></div>
+        </div>
+      </div>
+      <div class="db-sync-wrap">
+        <div class="db-sync-lbl"><span>⚡ Sync Meter</span><span id="db-sync-pts">0 / 5</span></div>
+        <div class="db-sync-track"><div class="db-sync-fill" id="db-sync-fill"></div></div>
+      </div>
+      <div class="s5-fs-bar" id="db-fs-bar" style="display:none">
+        <div style="font-size:20px;font-weight:700;color:#6366f1" id="db-fs-count">0</div>
+        <div><div style="font-size:13px;font-weight:700;color:#6366f1">Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div></div>
+      </div>
+      <div class="s5-win-log" id="db-win-log"></div>
+      <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
+        <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="db-stat-spins">0</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="db-stat-paid">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="db-stat-best">—</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="db-stat-spent">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="db-stat-profit">—</div></div>
+      </div>
+      <div class="s5-recent-wins"><div class="s5-recent-title">Ostatnie wygrane</div><div class="s5-recent-list" id="db-recent-list"><span class="s5-recent-item none">—</span></div></div>
+      <div class="s5-msg" id="db-msg">Ustaw zakład i naciśnij Spin</div>
+      <div class="s5-controls">
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Zakład</div>
+          <div class="s5-ctrl-val"><input class="jf-bet-input" type="number" id="db-bet-input" value="10" min="10" style="width:100px"></div>
+        </div>
+      </div>
+      <div class="s5-spin-row">
+        <button class="s5-btn-spin" id="db-spin-btn" onclick="dbSpin()">⚔️ SPIN</button>
+        <button class="s5-btn-sm" id="db-auto-btn" onclick="dbToggleAuto()">Auto</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ KASYNO — NEON RACER ══════════════════════════════════════ -->
+<div class="screen" id="screen-casino-nr">
+  <div style="position:absolute;top:16px;left:16px;z-index:10">
+    <button class="back-btn" style="position:static" onclick="leaveCasinoTable()">← Wyjdź</button>
+  </div>
+  <div class="casino-game-screen" style="align-items:center">
+    <div class="casino-game-header">
+      <div><div style="font-size:20px;font-weight:800" id="nr-name">Neon Racer</div></div>
+      <div class="casino-my-chips"><div><div class="chips-label">Portfel</div><div class="chips-val" id="nr-balance">—</div></div></div>
+    </div>
+    <div class="s5-wrap">
+      <div class="s5-reels-outer">
+        <div id="nr-reels-grid" style="padding:8px"></div>
+        <div class="s5-win-ov" id="nr-win-ov" onclick="this.classList.remove('show')">
+          <div class="s5-win-title" id="nr-win-title">Win</div>
+          <div class="s5-win-amt" id="nr-win-amt">+0 AT$</div>
+          <div class="s5-win-tap">kliknij aby kontynuować</div>
+        </div>
+      </div>
+      <div class="nr-speed-wrap">
+        <div class="nr-speed-lbl"><span>🏁 Speed Meter</span><span id="nr-speed-pts">0%</span></div>
+        <div class="nr-speed-track"><div class="nr-speed-fill" id="nr-speed-fill"></div></div>
+      </div>
+      <div class="nr-turbo-bar" id="nr-turbo-bar">
+        <div style="font-size:20px;font-weight:700;color:#22c55e" id="nr-turbo-count">5</div>
+        <div><div style="font-size:13px;font-weight:700;color:#22c55e">🏁 TURBO ROUND! x3</div><div style="font-size:11px;color:var(--muted)">Mnożnik x3 na każdą wygraną!</div></div>
+      </div>
+      <div class="s5-fs-bar" id="nr-fs-bar" style="display:none">
+        <div style="font-size:20px;font-weight:700;color:#22c55e" id="nr-fs-count">0</div>
+        <div><div style="font-size:13px;font-weight:700;color:#22c55e">Free Spins aktywne</div><div style="font-size:11px;color:var(--muted)">Wygrane nie kosztują AT$</div></div>
+      </div>
+      <div class="s5-win-log" id="nr-win-log"></div>
+      <div class="s5-stats" style="grid-template-columns:repeat(5,1fr)">
+        <div class="s5-stat"><div class="s5-stat-lbl">Spiny</div><div class="s5-stat-val" id="nr-stat-spins">0</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łączna wygrana</div><div class="s5-stat-val" id="nr-stat-paid">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Rekord</div><div class="s5-stat-val" id="nr-stat-best">—</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Łącznie wydano</div><div class="s5-stat-val" id="nr-stat-spent">0 AT$</div></div>
+        <div class="s5-stat"><div class="s5-stat-lbl">Profit / loss</div><div class="s5-stat-val profit-zero" id="nr-stat-profit">—</div></div>
+      </div>
+      <div class="s5-recent-wins"><div class="s5-recent-title">Ostatnie wygrane</div><div class="s5-recent-list" id="nr-recent-list"><span class="s5-recent-item none">—</span></div></div>
+      <div class="s5-msg" id="nr-msg">Ustaw zakład i naciśnij Spin</div>
+      <div class="s5-controls">
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Zakład</div>
+          <div class="s5-ctrl-val"><input class="jf-bet-input" type="number" id="nr-bet-input" value="10" min="10" style="width:100px"></div>
+        </div>
+        <div class="s5-ctrl">
+          <div class="s5-ctrl-lbl">Linie</div>
+          <div class="s5-ctrl-val" id="nr-lines-val">20</div>
+          <div class="s5-ctrl-btns">
+            <button onclick="nrLines=Math.max(1,nrLines-5);document.getElementById('nr-lines-val').textContent=nrLines">−5</button>
+            <button onclick="nrLines=Math.min(21,nrLines+5);document.getElementById('nr-lines-val').textContent=nrLines">+5</button>
+            <button onclick="nrLines=21;document.getElementById('nr-lines-val').textContent=21">Max</button>
+          </div>
+        </div>
+      </div>
+      <div class="s5-spin-row">
+        <button class="s5-btn-spin" id="nr-spin-btn" onclick="nrSpin()">🏎️ SPIN</button>
+        <button class="s5-btn-sm" id="nr-auto-btn" onclick="nrToggleAuto()">Auto</button>
       </div>
     </div>
   </div>
@@ -6765,5 +7044,9 @@ function jfCloseReveal() {
 
 
 </script>
+<script src="/js/casino-dh.js"></script>
+<script src="/js/casino-aa.js"></script>
+<script src="/js/casino-db.js"></script>
+<script src="/js/casino-nr.js"></script>
 </body>
 </html>

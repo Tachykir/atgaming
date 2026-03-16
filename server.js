@@ -12,8 +12,12 @@ const casinoRoulette = require('./games/casino/roulette');
 const casinoPachinko = require('./games/casino/pachinko');
 const casinoCrash    = require('./games/casino/crash');
 const casinoCoinflip = require('./games/casino/coinflip');
-const casinoPath     = require('./games/casino/path_of_gambling');
-const casinoJF       = require('./games/casino/jackpot_frenzy');
+const casinoPath       = require('./games/casino/path_of_gambling');
+const casinoJF         = require('./games/casino/jackpot_frenzy');
+const casinoDH         = require('./games/casino/dragon_hoard');
+const casinoAA         = require('./games/casino/arcane_academy');
+const casinoDualBlades = require('./games/casino/dual_blades');
+const casinoNR         = require('./games/casino/neon_racer');
 
 // Ładuj .env jeśli istnieje
 try {
@@ -588,13 +592,7 @@ io.on('connection', (socket) => {
     return socket.request.session?.discordUser || socket.discordUser || null;
   };
 
-  // Rejestruj kasyno-stół w online map
-  socket.on('casinoObserveTable', (data) => {
-    if (onlineDiscord.has(socket.id) && data?.tableId) {
-      const tbl = casino.casinoTables[data.tableId];
-      if (tbl) onlineDiscord.get(socket.id).casino = tbl.name;
-    }
-  });
+  // casinoObserveTable: rejestracja online-map obsługiwana w głównym handlerze poniżej
 
   socket.on('createRoom', ({ gameType, playerName, isGameMaster, config }) => {
     if (!GAMES[gameType]) return socket.emit('error', { message: `Nieznana gra: ${gameType}` });
@@ -807,10 +805,16 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Obserwuj stół
-  socket.on('casinoObserveTable', ({ tableId }) => {
+  // Obserwuj stół (jedyny handler)
+  socket.on('casinoObserveTable', (data) => {
+    const tableId = data?.tableId || data;
+    // Aktualizuj online-map
+    if (onlineDiscord.has(socket.id) && tableId) {
+      const tbl = casino.casinoTables[tableId];
+      if (tbl) onlineDiscord.get(socket.id).casino = tbl.name;
+    }
     const table = casino.casinoTables[tableId];
-    if (!table) return socket.emit('casinoError', { message: 'Stół nie istnieje' });
+    if (!table) return;
     socket.join('casino:' + tableId);
     table.observers = table.observers || [];
     if (!table.observers.includes(socket.id)) table.observers.push(socket.id);
@@ -918,6 +922,10 @@ io.on('connection', (socket) => {
   casinoCrash.registerHandlers(socket, io, casino);
   casinoCoinflip.registerHandlers(socket, io, casino);
   casinoPath.registerHandlers(socket, io, casino);
+  casinoDH.registerHandlers(socket, io, casino);
+  casinoAA.registerHandlers(socket, io, casino);
+  casinoDualBlades.registerHandlers(socket, io, casino);
+  casinoNR.registerHandlers(socket, io, casino);
 
   // ── Pomocnik opuszczania stołu ──
   function handleCasinoLeave(socket, tableId) {
