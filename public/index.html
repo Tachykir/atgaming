@@ -355,6 +355,99 @@ select.input option{background:var(--surface2);}
 .ttt-cell.winner{background:rgba(92,240,200,.12);border-color:var(--accent3)!important;animation:pulse .5s ease-in-out 3;}
 @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
 
+
+/* ── PIN CRACKER ── */
+.pc-digit-box {
+  width: 52px; height: 62px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 800;
+  color: var(--text);
+  transition: border-color .2s, background .2s;
+  user-select: none;
+}
+.pc-digit-box.active { border-color: var(--accent); }
+.pc-digit-box.correct { background: #2ecc7133; border-color: #2ecc71; color: #2ecc71; }
+.pc-digit-box.wrong   { background: var(--card); border-color: var(--border); color: var(--muted); }
+.pc-numpad-btn {
+  width: 100%; padding: 12px 0; border-radius: 10px;
+  background: var(--card2, #1e2a3a); border: 1.5px solid var(--border);
+  color: var(--text); font-size: 20px; font-weight: 700; cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.pc-numpad-btn:hover { background: var(--accent); color: #fff; }
+.pc-numpad-btn:active { transform: scale(.93); }
+.pc-numpad-btn:disabled { opacity: .4; cursor: default; }
+.pc-attempt-row {
+  display: flex; gap: 5px; align-items: center;
+}
+.pc-attempt-digit {
+  width: 32px; height: 36px;
+  border-radius: 7px; border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
+  background: var(--card);
+}
+.pc-attempt-digit.correct { background: #2ecc7133; border-color: #2ecc71; color: #2ecc71; }
+.pc-attempt-digit.wrong   { background: #e74c3c22; border-color: #e74c3c55; color: var(--muted); }
+
+
+/* ── TURNIEJ ── */
+.tm-match-card {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.tm-match-card.playing { border-left: 3px solid var(--accent); }
+.tm-match-card.done    { opacity: .7; }
+.tm-match-card.bye     { opacity: .5; font-style: italic; }
+.tm-player-pill {
+  flex: 1;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  background: var(--bg);
+}
+.tm-player-pill.winner { background: #2ecc7133; color: #2ecc71; }
+.tm-player-pill.loser  { background: #e74c3c22; color: var(--muted); text-decoration: line-through; }
+.tm-player-pill.active { background: var(--accent-muted, #1a3a5c); color: var(--accent); }
+.tm-vs { color: var(--muted); font-size: 11px; font-weight: 700; }
+.tm-game-pick-btn {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.tm-game-pick-btn:hover { border-color: var(--accent); background: var(--accent-muted, #1a3a5c); }
+.tm-standings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.tm-standings-row:nth-child(odd) { background: var(--card); }
+.tm-adv-badge {
+  font-size: 10px;
+  background: #2ecc7133;
+  color: #2ecc71;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 700;
+}
+
 /* ── SZACHY ── */
 .chess-container{max-width:560px;width:100%;}
 .chess-board{display:grid;grid-template-columns:repeat(8,1fr);border:2px solid var(--border);border-radius:8px;overflow:hidden;width:min(80vw,440px);}
@@ -1062,6 +1155,7 @@ select.input option{background:var(--surface2);}
       <button class="btn btn-primary" onclick="showScreen('create')">➕ Stwórz pokój</button>
       <button class="btn btn-secondary" onclick="showScreen('join')">🔗 Dołącz do pokoju</button>
       <button class="btn btn-secondary" onclick="showScreen('active-rooms')">👁️ Aktywne gry</button>
+      <button class="btn btn-secondary" onclick="tmOpenList()">🏆 Turnieje</button>
       <button class="btn casino-btn" onclick="showScreen('casino-lobby')">🎰 Kasyno AT$</button>
     </div>
     <div class="hero-links">
@@ -1389,6 +1483,260 @@ select.input option{background:var(--surface2);}
     <div id="ttt-result" style="text-align:center;margin-top:16px;font-size:18px;font-weight:700;min-height:28px"></div>
   </div>
 </div>
+
+<!-- ══ TURNIEJ: LISTA ════════════════════════════════════════ -->
+<div class="screen" id="screen-tournament-list">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:600px;margin:0 auto;padding:16px">
+    <h2 style="text-align:center;margin-bottom:4px">🏆 Turnieje</h2>
+    <p style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px">Faza grupowa + eliminacje</p>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:16px" onclick="tmCreate()">➕ Stwórz turniej</button>
+    <div id="tm-list-items" style="display:flex;flex-direction:column;gap:10px">
+      <div style="text-align:center;color:var(--muted);font-size:14px">Ładowanie…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TURNIEJ: LOBBY ════════════════════════════════════════ -->
+<div class="screen" id="screen-tournament-lobby">
+  <button class="back-btn" onclick="tmLeave()">← Wróć</button>
+  <div style="max-width:600px;margin:0 auto;padding:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <h2 style="margin:0">🏆 Lobby turnieju</h2>
+      <span id="tm-id-badge" style="font-size:12px;background:var(--card);padding:2px 8px;border-radius:6px;color:var(--muted)"></span>
+    </div>
+    <p id="tm-lobby-subtitle" style="color:var(--muted);font-size:13px;margin-bottom:16px"></p>
+
+    <!-- Ustawienia (tylko host) -->
+    <div id="tm-host-settings" style="display:none;background:var(--card);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">⚙️ Ustawienia turnieju</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="font-size:13px;color:var(--muted)">Awansuje do playoff:</label>
+        <div style="display:flex;gap:6px" id="tm-adv-buttons"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px" id="tm-adv-hint"></div>
+    </div>
+
+    <!-- Gracze -->
+    <div style="background:var(--card);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">👥 Gracze (<span id="tm-player-count">0</span>)</div>
+      <div id="tm-lobby-players" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <!-- Kod dołączenia -->
+    <div style="background:var(--card);border-radius:12px;padding:12px;margin-bottom:14px;text-align:center">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">KOD TURNIEJU</div>
+      <div id="tm-join-code" style="font-size:28px;font-weight:900;letter-spacing:6px;color:var(--accent)"></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Podaj ten kod znajomym aby dołączyli</div>
+    </div>
+
+    <button id="tm-start-btn" class="btn btn-primary" style="width:100%;display:none" onclick="tmStart()">
+      🚀 Rozpocznij turniej
+    </button>
+    <div id="tm-waiting-msg" style="text-align:center;color:var(--muted);font-size:14px"></div>
+  </div>
+</div>
+
+<!-- ══ TURNIEJ: WYBÓR GRY (HOST) ════════════════════════════ -->
+<div class="screen" id="screen-tournament-pick">
+  <div style="max-width:560px;margin:0 auto;padding:20px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:40px;margin-bottom:6px">🎮</div>
+      <h2 style="margin:0 0 4px">Wybierz grę dla meczu</h2>
+      <p id="tm-pick-match-info" style="color:var(--muted);font-size:14px;margin:0"></p>
+    </div>
+    <div id="tm-pick-games" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px"></div>
+  </div>
+</div>
+
+<!-- ══ TURNIEJ: POCZEKALNIA MECZU (NIE-HOST) ════════════════ -->
+<div class="screen" id="screen-tournament-wait">
+  <div style="max-width:500px;margin:60px auto;padding:20px;text-align:center">
+    <div style="font-size:60px;margin-bottom:16px">⏳</div>
+    <h2 id="tm-wait-title">Czekaj na swój mecz…</h2>
+    <p id="tm-wait-sub" style="color:var(--muted);font-size:14px"></p>
+    <div id="tm-wait-bracket" style="margin-top:20px"></div>
+  </div>
+</div>
+
+<!-- ══ TURNIEJ: DRABINKA / WYNIKI ════════════════════════════ -->
+<div class="screen" id="screen-tournament-bracket">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:700px;margin:0 auto;padding:16px">
+    <h2 style="text-align:center;margin-bottom:4px" id="tm-bracket-title">🏆 Turniej</h2>
+    <div id="tm-bracket-phase" style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px"></div>
+
+    <!-- Tabela grupowa (faza grupowa) -->
+    <div id="tm-standings-section" style="display:none;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px">📊 Tabela fazy grupowej</div>
+      <div id="tm-standings-table"></div>
+    </div>
+
+    <!-- Mecze grupowe -->
+    <div id="tm-group-matches-section" style="display:none;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px">📋 Mecze grupowe</div>
+      <div id="tm-group-matches-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <!-- Playoff drabinka -->
+    <div id="tm-playoff-section" style="display:none;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px">⚡ Faza eliminacji</div>
+      <div id="tm-playoff-bracket"></div>
+    </div>
+
+    <!-- Mistrz -->
+    <div id="tm-champion-section" style="display:none;text-align:center;padding:24px;background:linear-gradient(135deg,#f7971e22,#ffd20022);border-radius:16px;border:2px solid #ffd200">
+      <div style="font-size:50px;margin-bottom:8px">🏆</div>
+      <div style="font-size:24px;font-weight:900;color:#ffd200" id="tm-champion-name"></div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Mistrz turnieju!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HIGH LOW ═══════════════════════════════════════════════ -->
+<div class="screen" id="screen-highlow">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:520px;margin:0 auto;padding:16px">
+    <div class="live-scores" id="hl-scores" style="margin-bottom:16px"></div>
+    <div id="hl-round-info" style="text-align:center;color:var(--muted);font-size:14px;margin-bottom:12px"></div>
+    <div id="hl-turn" class="turn-indicator wait" style="margin-bottom:16px"></div>
+
+    <!-- Faza wyboru liczby -->
+    <div id="hl-choose-panel" style="display:none;text-align:center">
+      <div style="font-size:18px;font-weight:700;margin-bottom:12px">🔐 Wybierz swoją tajną liczbę (1–100)</div>
+      <div style="display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap">
+        <input id="hl-secret-input" type="number" min="1" max="100" class="input" placeholder="1–100"
+          style="max-width:120px;text-align:center;font-size:24px;font-weight:700"
+          onkeydown="if(event.key==='Enter')hlChoose()">
+        <button class="btn btn-primary" onclick="hlChoose()">✅ Zatwierdź</button>
+      </div>
+      <div id="hl-waiting-msg" style="margin-top:12px;color:var(--muted);font-size:14px"></div>
+    </div>
+
+    <!-- Faza zgadywania -->
+    <div id="hl-guess-panel" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <!-- Moje próby -->
+        <div style="background:var(--card);border-radius:12px;padding:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+            🎯 Moje próby → liczba <span id="hl-opp-name"></span>
+          </div>
+          <div id="hl-my-guesses" style="display:flex;flex-wrap:wrap;gap:5px;min-height:32px"></div>
+        </div>
+        <!-- Próby przeciwnika -->
+        <div style="background:var(--card);border-radius:12px;padding:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+            🔍 Próby <span id="hl-opp-name2"></span> → moja = <span id="hl-my-secret-display" style="color:var(--accent);font-size:15px;font-weight:800"></span>
+          </div>
+          <div id="hl-opp-guesses" style="display:flex;flex-wrap:wrap;gap:5px;min-height:32px"></div>
+        </div>
+      </div>
+
+      <!-- Input do zgadywania -->
+      <div id="hl-guess-input-area" style="display:none;text-align:center;margin-top:8px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:8px">Twoja tura — zgaduj liczbę przeciwnika:</div>
+        <div style="display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap">
+          <input id="hl-guess-input" type="number" min="1" max="100" class="input" placeholder="1–100"
+            style="max-width:120px;text-align:center;font-size:24px;font-weight:700"
+            onkeydown="if(event.key==='Enter')hlGuess()">
+          <button class="btn btn-primary" onclick="hlGuess()">🎯 Zgaduj!</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hl-result" style="text-align:center;margin-top:16px;font-size:20px;font-weight:800;min-height:32px"></div>
+  </div>
+</div>
+
+
+<!-- ══ PIN CRACKER ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-pincracker">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:560px;margin:0 auto;padding:16px">
+    <div class="live-scores" id="pc-scores" style="margin-bottom:14px"></div>
+    <div id="pc-round-info" style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:10px"></div>
+    <div id="pc-turn" class="turn-indicator wait" style="margin-bottom:14px"></div>
+
+    <!-- Faza wyboru PINu -->
+    <div id="pc-choose-panel" style="display:none;text-align:center">
+      <div style="font-size:17px;font-weight:700;margin-bottom:14px">🔐 Ustaw swój tajny PIN (4 cyfry)</div>
+      <div id="pc-pin-dots" style="display:flex;gap:10px;justify-content:center;margin-bottom:16px">
+        <div class="pc-digit-box" id="pc-d0">_</div>
+        <div class="pc-digit-box" id="pc-d1">_</div>
+        <div class="pc-digit-box" id="pc-d2">_</div>
+        <div class="pc-digit-box" id="pc-d3">_</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto 14px">
+        <button class="pc-numpad-btn" onclick="pcNumpad(1)">1</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(2)">2</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(3)">3</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(4)">4</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(5)">5</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(6)">6</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(7)">7</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(8)">8</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(9)">9</button>
+        <button class="pc-numpad-btn pc-del" onclick="pcDel()" style="background:var(--card);color:var(--muted)">⌫</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(0)">0</button>
+        <button class="pc-numpad-btn pc-ok" id="pc-confirm-btn" onclick="pcConfirm()" style="background:#2ecc71;color:#000;font-weight:800" disabled>OK</button>
+      </div>
+      <div id="pc-choose-wait" style="color:var(--muted);font-size:13px;min-height:20px"></div>
+    </div>
+
+    <!-- Faza zgadywania -->
+    <div id="pc-guess-panel" style="display:none">
+      <!-- Dwie kolumny: mój atak vs. obrona -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+
+        <!-- Moje próby odgadnięcia PINu przeciwnika -->
+        <div style="background:var(--card);border-radius:12px;padding:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+            🎯 Moje próby → PIN <span class="pc-opp-name"></span>
+          </div>
+          <div id="pc-my-attempts" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto"></div>
+        </div>
+
+        <!-- Próby przeciwnika na mój PIN -->
+        <div style="background:var(--card);border-radius:12px;padding:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+            🛡️ Mój PIN — próby <span class="pc-opp-name"></span>
+          </div>
+          <!-- Mój PIN z odkrytymi cyframi -->
+          <div id="pc-my-pin-revealed" style="display:flex;gap:6px;justify-content:center;margin-bottom:8px;padding:8px 0;border-bottom:1px solid var(--border)"></div>
+          <div id="pc-opp-attempts" style="display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <!-- Klawiatura do zgadywania (tylko w mojej turze) -->
+      <div id="pc-guess-input-area" style="display:none;text-align:center">
+        <div style="font-size:14px;font-weight:700;margin-bottom:10px">Wpisz swój typ PIN-u:</div>
+        <div id="pc-guess-dots" style="display:flex;gap:10px;justify-content:center;margin-bottom:12px">
+          <div class="pc-digit-box pc-guess-d" id="pc-g0">_</div>
+          <div class="pc-digit-box pc-guess-d" id="pc-g1">_</div>
+          <div class="pc-digit-box pc-guess-d" id="pc-g2">_</div>
+          <div class="pc-digit-box pc-guess-d" id="pc-g3">_</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto 10px">
+          <button class="pc-numpad-btn" onclick="pcGuessNum(1)">1</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(2)">2</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(3)">3</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(4)">4</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(5)">5</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(6)">6</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(7)">7</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(8)">8</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(9)">9</button>
+          <button class="pc-numpad-btn" onclick="pcGuessDel()" style="background:var(--card);color:var(--muted)">⌫</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(0)">0</button>
+          <button class="pc-numpad-btn" id="pc-guess-ok" onclick="pcGuessSubmit()" style="background:#e67e22;color:#fff;font-weight:800" disabled>🎯</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pc-result" style="text-align:center;margin-top:10px;font-size:18px;font-weight:800;min-height:28px"></div>
+  </div>
+</div>
+
 
 <!-- ══ SZACHY ═════════════════════════════════════════════════ -->
 <div class="screen" id="screen-chess">

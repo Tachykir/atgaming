@@ -2,6 +2,7 @@ const express  = require('express');
 const http     = require('http');
 const { Server } = require('socket.io');
 const path     = require('path');
+const tm       = require('./tournament');
 const fs       = require('fs');
 const discordAuth  = require('./discord-auth');
 const casino        = require('./casino');
@@ -617,6 +618,17 @@ io.on('connection', (socket) => {
   socket.on('joinRoom', ({ roomId, playerName }) => {
     const room = rooms[roomId];
     if (!room) return socket.emit('error', { message: 'Pokój nie istnieje!' });
+
+    // Tournament match: player may already be pre-added to room.players
+    const alreadyIn = room.players.find(p => p.id === socket.id);
+    if (alreadyIn) {
+      socket.join(roomId);
+      socket.emit('roomJoined', { roomId, room });
+      io.to(roomId).emit('playerJoined', { room });
+      if (onlineDiscord.has(socket.id)) onlineDiscord.get(socket.id).room = roomId;
+      return;
+    }
+
     if (room.status !== 'waiting') return socket.emit('error', { message: 'Gra już trwa!' });
     // Use configured maxPlayers if set, otherwise fall back to game meta
     const max = Number(room.config?.maxPlayers) || GAMES[room.gameType]?.meta?.maxPlayers || 8;
@@ -648,6 +660,8 @@ io.on('connection', (socket) => {
     'kalamburyDraw','kalamburyGuess','kalamburyClearCanvas',
     // New games
     'tttMove',
+    'highlowChoose','highlowGuess',
+    'pincrackerChoose','pincrackerGuess',
     'chessMove',
     'pokerFold','pokerCall','pokerRaise','pokerCheck','pokerBet',
     'bjBet','bjHit','bjStand','bjDouble',
@@ -1030,6 +1044,124 @@ io.on('connection', (socket) => {
     }
   }
 
+
+  // ════════════════════════════════════════════════════════════
+  //  TURNIEJ — socket handlers
+  // ════════════════════════════════════════════════════════════
+
+  socket.on('tournamentGetList', () => {
+    socket.emit('tournamentList', tm.list());
+  });
+
+  socket.on('tournamentCreate', ({ playerName }) => {
+    const t = tm.create({ hostId: socket.id, hostName: playerName });
+    socket.join('t:' + t.id);
+    socket.emit('tournamentCreated', { tournament: t });
+    io.emit('tournamentList', tm.list());
+  });
+
+  socket.on('tournamentJoin', ({ tournamentId, playerName }) => {
+    const res = tm.join(tournamentId, socket.id, playerName);
+    if (res.error) return socket.emit('tournamentError', { message: res.error });
+    socket.join('t:' + tournamentId);
+    socket.emit('tournamentJoined', { tournament: res.tournament });
+    io.to('t:' + tournamentId).emit('tournamentUpdate', { tournament: res.tournament });
+    io.emit('tournamentList', tm.list());
+  });
+
+  socket.on('tournamentLeave', ({ tournamentId }) => {
+    const t = tm.tournaments[tournamentId];
+    const wasHost = t && t.hostId === socket.id;
+    const upd = tm.leave(tournamentId, socket.id);
+    socket.leave('t:' + tournamentId);
+    if (upd) {
+      io.to('t:' + tournamentId).emit('tournamentUpdate', { tournament: upd });
+      if (wasHost && upd.players.length > 0) {
+        // Notify new host
+        io.to('t:' + tournamentId).emit('tournamentHostChanged', { newHostId: upd.hostId });
+      }
+      io.emit('tournamentList', tm.list());
+    }
+  });
+
+  socket.on('tournamentSetAdvancers', ({ tournamentId, count }) => {
+    const t = tm.tournaments[tournamentId];
+    if (!t || t.hostId !== socket.id) return;
+    const upd = tm.setAdvancers(tournamentId, count);
+    if (upd) {
+      io.to('t:' + tournamentId).emit('tournamentUpdate', { tournament: upd });
+      io.emit('tournamentList', tm.list());
+    }
+  });
+
+  socket.on('tournamentStart', ({ tournamentId }) => {
+    const t = tm.tournaments[tournamentId];
+    if (!t || t.hostId !== socket.id) return socket.emit('tournamentError', { message: 'Tylko host może startować' });
+    const res = tm.startGroup(tournamentId);
+    if (res.error) return socket.emit('tournamentError', { message: res.error });
+    io.to('t:' + tournamentId).emit('tournamentUpdate', { tournament: res.tournament });
+    // Poinformuj graczy o wyborze gry przez hosta
+    io.to('t:' + tournamentId).emit('tournamentPickGame', {
+      tournament: res.tournament,
+      match: res.tournament.matches[0],
+    });
+  });
+
+  socket.on('tournamentPickGame', ({ tournamentId, gameType }) => {
+    const t = tm.tournaments[tournamentId];
+    if (!t || t.hostId !== socket.id) return socket.emit('tournamentError', { message: 'Tylko host wybiera grę' });
+    if (!GAMES[gameType]) return socket.emit('tournamentError', { message: 'Nieznana gra' });
+    const res = tm.pickGame(tournamentId, gameType);
+    if (res.error) return socket.emit('tournamentError', { message: res.error });
+
+    const match = res.match;
+    const tt = tm.tournaments[tournamentId];
+
+    // Utwórz pokój dla tego meczu
+    let roomId;
+    do { roomId = Math.random().toString(36).substring(2,7).toUpperCase(); } while (rooms[roomId]);
+
+    const cfg = { rounds: 1, _tournamentId: tournamentId, _matchId: match.id };
+    rooms[roomId] = createRoom(roomId, gameType, match.p1.id, match.p1.name, false, cfg);
+    // Dodaj p2 jako gracza
+    rooms[roomId].players.push({ id: match.p2.id, name: match.p2.name, score: 0 });
+    rooms[roomId].status = 'waiting';
+    rooms[roomId]._tournamentMatchId = match.id;
+    rooms[roomId]._tournamentId = tournamentId;
+
+    tm.attachRoom(tournamentId, match.id, roomId);
+
+    // Powiadom graczy turnieju
+    io.to('t:' + tournamentId).emit('tournamentUpdate', { tournament: res.tournament });
+    io.to('t:' + tournamentId).emit('tournamentMatchReady', {
+      tournament: res.tournament,
+      match,
+      roomId,
+    });
+
+    // Auto-start the tournament match room after both players join (max 5s wait)
+    let startAttempts = 0;
+    const tryAutoStart = setInterval(() => {
+      const r = rooms[roomId];
+      startAttempts++;
+      if (!r) { clearInterval(tryAutoStart); return; }
+      if (r.players.length >= 2 || startAttempts >= 10) {
+        clearInterval(tryAutoStart);
+        if (r && r.players.length >= 2 && r.status === 'waiting') {
+          r.status = 'playing';
+          r._content = CONTENT[r.gameType] || {};
+          const mod = GAMES[r.gameType];
+          if (mod?.onStart) mod.onStart({ room: r, content: r._content, io, helpers: makeHelpers(roomId) });
+        }
+      }
+    }, 500);
+  });
+
+  socket.on('tournamentGet', ({ tournamentId }) => {
+    const t = tm.get(tournamentId);
+    if (t) socket.emit('tournamentUpdate', { tournament: t });
+  });
+
   socket.on('disconnect', () => {
     onlineDiscord.delete(socket.id);
     // ── KASYNO: zwróć żetony i opuść stół ──
@@ -1185,6 +1317,62 @@ io.on('connection', (socket) => {
     }
   });
 });
+
+
+// ── TURNIEJ: przechwytuj gameOver z meczów turniejowych ────────
+// Przechwytuje gameOver z meczów turniejowych
+function checkTournamentGameOver(roomId, sorted) {
+  const room = rooms[roomId];
+  if (!room || !room._tournamentId || !room._tournamentMatchId) return;
+  const tournamentId = room._tournamentId;
+  const matchId      = room._tournamentMatchId;
+  const winnerId     = sorted?.[0]?.id;
+  if (!winnerId) return;
+
+  const res = tm.recordResult(tournamentId, matchId, winnerId);
+  if (!res || res.error) return;
+
+  io.to('t:' + tournamentId).emit('tournamentUpdate', { tournament: res.tournament });
+
+  if (res.tournamentDone) {
+    io.to('t:' + tournamentId).emit('tournamentFinished', { tournament: res.tournament });
+    return;
+  }
+  if (res.phaseChange === 'playoff') {
+    io.to('t:' + tournamentId).emit('tournamentPhaseChange', {
+      phase: 'playoff',
+      advancers: res.advancers,
+      tournament: res.tournament,
+    });
+  }
+  // Następny mecz — host musi wybrać grę
+  if (res.tournament.currentMatchId) {
+    const nextMatch = res.tournament.matches.find(m => m.id === res.tournament.currentMatchId);
+    io.to('t:' + tournamentId).emit('tournamentPickGame', {
+      tournament: res.tournament,
+      match: nextMatch,
+    });
+  }
+}
+
+
+// ── Patch io: intercept gameOver for tournament tracking ───────
+(function patchIoForTournament() {
+  const _origTo = io.to.bind(io);
+  io.to = function(roomId) {
+    const socket = _origTo(roomId);
+    const _origEmit = socket.emit.bind(socket);
+    socket.emit = function(event, ...args) {
+      if (event === 'gameOver') {
+        const sorted = args[0]?.sorted;
+        // Use setImmediate so the original emit fires first
+        setImmediate(() => checkTournamentGameOver(roomId, sorted));
+      }
+      return _origEmit(event, ...args);
+    };
+    return socket;
+  };
+})();
 
 // FIX #3: Patch hangman — zapis wynikow do leaderboardu po zakonczeniu gry
 // Usunieto martwy kod (origEmit, patchedIo, origTo) — nigdy nie byl uzywany
