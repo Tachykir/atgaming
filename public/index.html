@@ -355,6 +355,99 @@ select.input option{background:var(--surface2);}
 .ttt-cell.winner{background:rgba(92,240,200,.12);border-color:var(--accent3)!important;animation:pulse .5s ease-in-out 3;}
 @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
 
+
+/* ── PIN CRACKER ── */
+.pc-digit-box {
+  width: 52px; height: 62px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 800;
+  color: var(--text);
+  transition: border-color .2s, background .2s;
+  user-select: none;
+}
+.pc-digit-box.active { border-color: var(--accent); }
+.pc-digit-box.correct { background: #2ecc7133; border-color: #2ecc71; color: #2ecc71; }
+.pc-digit-box.wrong   { background: var(--card); border-color: var(--border); color: var(--muted); }
+.pc-numpad-btn {
+  width: 100%; padding: 12px 0; border-radius: 10px;
+  background: var(--card2, #1e2a3a); border: 1.5px solid var(--border);
+  color: var(--text); font-size: 20px; font-weight: 700; cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.pc-numpad-btn:hover { background: var(--accent); color: #fff; }
+.pc-numpad-btn:active { transform: scale(.93); }
+.pc-numpad-btn:disabled { opacity: .4; cursor: default; }
+.pc-attempt-row {
+  display: flex; gap: 5px; align-items: center;
+}
+.pc-attempt-digit {
+  width: 32px; height: 36px;
+  border-radius: 7px; border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
+  background: var(--card);
+}
+.pc-attempt-digit.correct { background: #2ecc7133; border-color: #2ecc71; color: #2ecc71; }
+.pc-attempt-digit.wrong   { background: #e74c3c22; border-color: #e74c3c55; color: var(--muted); }
+
+
+/* ── TURNIEJ ── */
+.tm-match-card {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.tm-match-card.playing { border-left: 3px solid var(--accent); }
+.tm-match-card.done    { opacity: .7; }
+.tm-match-card.bye     { opacity: .5; font-style: italic; }
+.tm-player-pill {
+  flex: 1;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  background: var(--bg);
+}
+.tm-player-pill.winner { background: #2ecc7133; color: #2ecc71; }
+.tm-player-pill.loser  { background: #e74c3c22; color: var(--muted); text-decoration: line-through; }
+.tm-player-pill.active { background: var(--accent-muted, #1a3a5c); color: var(--accent); }
+.tm-vs { color: var(--muted); font-size: 11px; font-weight: 700; }
+.tm-game-pick-btn {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.tm-game-pick-btn:hover { border-color: var(--accent); background: var(--accent-muted, #1a3a5c); }
+.tm-standings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.tm-standings-row:nth-child(odd) { background: var(--card); }
+.tm-adv-badge {
+  font-size: 10px;
+  background: #2ecc7133;
+  color: #2ecc71;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 700;
+}
+
 /* ── SZACHY ── */
 .chess-container{max-width:560px;width:100%;}
 .chess-board{display:grid;grid-template-columns:repeat(8,1fr);border:2px solid var(--border);border-radius:8px;overflow:hidden;width:min(80vw,440px);}
@@ -1062,6 +1155,7 @@ select.input option{background:var(--surface2);}
       <button class="btn btn-primary" onclick="showScreen('create')">➕ Stwórz pokój</button>
       <button class="btn btn-secondary" onclick="showScreen('join')">🔗 Dołącz do pokoju</button>
       <button class="btn btn-secondary" onclick="showScreen('active-rooms')">👁️ Aktywne gry</button>
+      <button class="btn btn-secondary" onclick="tmOpenList()">🏆 Turnieje</button>
       <button class="btn casino-btn" onclick="showScreen('casino-lobby')">🎰 Kasyno AT$</button>
     </div>
     <div class="hero-links">
@@ -1389,6 +1483,260 @@ select.input option{background:var(--surface2);}
     <div id="ttt-result" style="text-align:center;margin-top:16px;font-size:18px;font-weight:700;min-height:28px"></div>
   </div>
 </div>
+
+<!-- ══ TURNIEJ: LISTA ════════════════════════════════════════ -->
+<div class="screen" id="screen-tournament-list">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:600px;margin:0 auto;padding:16px">
+    <h2 style="text-align:center;margin-bottom:4px">🏆 Turnieje</h2>
+    <p style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px">Faza grupowa + eliminacje</p>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:16px" onclick="tmCreate()">➕ Stwórz turniej</button>
+    <div id="tm-list-items" style="display:flex;flex-direction:column;gap:10px">
+      <div style="text-align:center;color:var(--muted);font-size:14px">Ładowanie…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TURNIEJ: LOBBY ════════════════════════════════════════ -->
+<div class="screen" id="screen-tournament-lobby">
+  <button class="back-btn" onclick="tmLeave()">← Wróć</button>
+  <div style="max-width:600px;margin:0 auto;padding:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <h2 style="margin:0">🏆 Lobby turnieju</h2>
+      <span id="tm-id-badge" style="font-size:12px;background:var(--card);padding:2px 8px;border-radius:6px;color:var(--muted)"></span>
+    </div>
+    <p id="tm-lobby-subtitle" style="color:var(--muted);font-size:13px;margin-bottom:16px"></p>
+
+    <!-- Ustawienia (tylko host) -->
+    <div id="tm-host-settings" style="display:none;background:var(--card);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">⚙️ Ustawienia turnieju</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="font-size:13px;color:var(--muted)">Awansuje do playoff:</label>
+        <div style="display:flex;gap:6px" id="tm-adv-buttons"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px" id="tm-adv-hint"></div>
+    </div>
+
+    <!-- Gracze -->
+    <div style="background:var(--card);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">👥 Gracze (<span id="tm-player-count">0</span>)</div>
+      <div id="tm-lobby-players" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <!-- Kod dołączenia -->
+    <div style="background:var(--card);border-radius:12px;padding:12px;margin-bottom:14px;text-align:center">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">KOD TURNIEJU</div>
+      <div id="tm-join-code" style="font-size:28px;font-weight:900;letter-spacing:6px;color:var(--accent)"></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Podaj ten kod znajomym aby dołączyli</div>
+    </div>
+
+    <button id="tm-start-btn" class="btn btn-primary" style="width:100%;display:none" onclick="tmStart()">
+      🚀 Rozpocznij turniej
+    </button>
+    <div id="tm-waiting-msg" style="text-align:center;color:var(--muted);font-size:14px"></div>
+  </div>
+</div>
+
+<!-- ══ TURNIEJ: WYBÓR GRY (HOST) ════════════════════════════ -->
+<div class="screen" id="screen-tournament-pick">
+  <div style="max-width:560px;margin:0 auto;padding:20px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:40px;margin-bottom:6px">🎮</div>
+      <h2 style="margin:0 0 4px">Wybierz grę dla meczu</h2>
+      <p id="tm-pick-match-info" style="color:var(--muted);font-size:14px;margin:0"></p>
+    </div>
+    <div id="tm-pick-games" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px"></div>
+  </div>
+</div>
+
+<!-- ══ TURNIEJ: POCZEKALNIA MECZU (NIE-HOST) ════════════════ -->
+<div class="screen" id="screen-tournament-wait">
+  <div style="max-width:500px;margin:60px auto;padding:20px;text-align:center">
+    <div style="font-size:60px;margin-bottom:16px">⏳</div>
+    <h2 id="tm-wait-title">Czekaj na swój mecz…</h2>
+    <p id="tm-wait-sub" style="color:var(--muted);font-size:14px"></p>
+    <div id="tm-wait-bracket" style="margin-top:20px"></div>
+  </div>
+</div>
+
+<!-- ══ TURNIEJ: DRABINKA / WYNIKI ════════════════════════════ -->
+<div class="screen" id="screen-tournament-bracket">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:700px;margin:0 auto;padding:16px">
+    <h2 style="text-align:center;margin-bottom:4px" id="tm-bracket-title">🏆 Turniej</h2>
+    <div id="tm-bracket-phase" style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:16px"></div>
+
+    <!-- Tabela grupowa (faza grupowa) -->
+    <div id="tm-standings-section" style="display:none;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px">📊 Tabela fazy grupowej</div>
+      <div id="tm-standings-table"></div>
+    </div>
+
+    <!-- Mecze grupowe -->
+    <div id="tm-group-matches-section" style="display:none;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px">📋 Mecze grupowe</div>
+      <div id="tm-group-matches-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <!-- Playoff drabinka -->
+    <div id="tm-playoff-section" style="display:none;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px">⚡ Faza eliminacji</div>
+      <div id="tm-playoff-bracket"></div>
+    </div>
+
+    <!-- Mistrz -->
+    <div id="tm-champion-section" style="display:none;text-align:center;padding:24px;background:linear-gradient(135deg,#f7971e22,#ffd20022);border-radius:16px;border:2px solid #ffd200">
+      <div style="font-size:50px;margin-bottom:8px">🏆</div>
+      <div style="font-size:24px;font-weight:900;color:#ffd200" id="tm-champion-name"></div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Mistrz turnieju!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HIGH LOW ═══════════════════════════════════════════════ -->
+<div class="screen" id="screen-highlow">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:520px;margin:0 auto;padding:16px">
+    <div class="live-scores" id="hl-scores" style="margin-bottom:16px"></div>
+    <div id="hl-round-info" style="text-align:center;color:var(--muted);font-size:14px;margin-bottom:12px"></div>
+    <div id="hl-turn" class="turn-indicator wait" style="margin-bottom:16px"></div>
+
+    <!-- Faza wyboru liczby -->
+    <div id="hl-choose-panel" style="display:none;text-align:center">
+      <div style="font-size:18px;font-weight:700;margin-bottom:12px">🔐 Wybierz swoją tajną liczbę (1–100)</div>
+      <div style="display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap">
+        <input id="hl-secret-input" type="number" min="1" max="100" class="input" placeholder="1–100"
+          style="max-width:120px;text-align:center;font-size:24px;font-weight:700"
+          onkeydown="if(event.key==='Enter')hlChoose()">
+        <button class="btn btn-primary" onclick="hlChoose()">✅ Zatwierdź</button>
+      </div>
+      <div id="hl-waiting-msg" style="margin-top:12px;color:var(--muted);font-size:14px"></div>
+    </div>
+
+    <!-- Faza zgadywania -->
+    <div id="hl-guess-panel" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <!-- Moje próby -->
+        <div style="background:var(--card);border-radius:12px;padding:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+            🎯 Moje próby → liczba <span id="hl-opp-name"></span>
+          </div>
+          <div id="hl-my-guesses" style="display:flex;flex-wrap:wrap;gap:5px;min-height:32px"></div>
+        </div>
+        <!-- Próby przeciwnika -->
+        <div style="background:var(--card);border-radius:12px;padding:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+            🔍 Próby <span id="hl-opp-name2"></span> → moja = <span id="hl-my-secret-display" style="color:var(--accent);font-size:15px;font-weight:800"></span>
+          </div>
+          <div id="hl-opp-guesses" style="display:flex;flex-wrap:wrap;gap:5px;min-height:32px"></div>
+        </div>
+      </div>
+
+      <!-- Input do zgadywania -->
+      <div id="hl-guess-input-area" style="display:none;text-align:center;margin-top:8px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:8px">Twoja tura — zgaduj liczbę przeciwnika:</div>
+        <div style="display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap">
+          <input id="hl-guess-input" type="number" min="1" max="100" class="input" placeholder="1–100"
+            style="max-width:120px;text-align:center;font-size:24px;font-weight:700"
+            onkeydown="if(event.key==='Enter')hlGuess()">
+          <button class="btn btn-primary" onclick="hlGuess()">🎯 Zgaduj!</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hl-result" style="text-align:center;margin-top:16px;font-size:20px;font-weight:800;min-height:32px"></div>
+  </div>
+</div>
+
+
+<!-- ══ PIN CRACKER ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-pincracker">
+  <button class="back-btn" onclick="goHome()">← Wróć</button>
+  <div style="max-width:560px;margin:0 auto;padding:16px">
+    <div class="live-scores" id="pc-scores" style="margin-bottom:14px"></div>
+    <div id="pc-round-info" style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:10px"></div>
+    <div id="pc-turn" class="turn-indicator wait" style="margin-bottom:14px"></div>
+
+    <!-- Faza wyboru PINu -->
+    <div id="pc-choose-panel" style="display:none;text-align:center">
+      <div style="font-size:17px;font-weight:700;margin-bottom:14px">🔐 Ustaw swój tajny PIN (4 cyfry)</div>
+      <div id="pc-pin-dots" style="display:flex;gap:10px;justify-content:center;margin-bottom:16px">
+        <div class="pc-digit-box" id="pc-d0">_</div>
+        <div class="pc-digit-box" id="pc-d1">_</div>
+        <div class="pc-digit-box" id="pc-d2">_</div>
+        <div class="pc-digit-box" id="pc-d3">_</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto 14px">
+        <button class="pc-numpad-btn" onclick="pcNumpad(1)">1</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(2)">2</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(3)">3</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(4)">4</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(5)">5</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(6)">6</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(7)">7</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(8)">8</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(9)">9</button>
+        <button class="pc-numpad-btn pc-del" onclick="pcDel()" style="background:var(--card);color:var(--muted)">⌫</button>
+        <button class="pc-numpad-btn" onclick="pcNumpad(0)">0</button>
+        <button class="pc-numpad-btn pc-ok" id="pc-confirm-btn" onclick="pcConfirm()" style="background:#2ecc71;color:#000;font-weight:800" disabled>OK</button>
+      </div>
+      <div id="pc-choose-wait" style="color:var(--muted);font-size:13px;min-height:20px"></div>
+    </div>
+
+    <!-- Faza zgadywania -->
+    <div id="pc-guess-panel" style="display:none">
+      <!-- Dwie kolumny: mój atak vs. obrona -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+
+        <!-- Moje próby odgadnięcia PINu przeciwnika -->
+        <div style="background:var(--card);border-radius:12px;padding:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+            🎯 Moje próby → PIN <span class="pc-opp-name"></span>
+          </div>
+          <div id="pc-my-attempts" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto"></div>
+        </div>
+
+        <!-- Próby przeciwnika na mój PIN -->
+        <div style="background:var(--card);border-radius:12px;padding:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+            🛡️ Mój PIN — próby <span class="pc-opp-name"></span>
+          </div>
+          <!-- Mój PIN z odkrytymi cyframi -->
+          <div id="pc-my-pin-revealed" style="display:flex;gap:6px;justify-content:center;margin-bottom:8px;padding:8px 0;border-bottom:1px solid var(--border)"></div>
+          <div id="pc-opp-attempts" style="display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <!-- Klawiatura do zgadywania (tylko w mojej turze) -->
+      <div id="pc-guess-input-area" style="display:none;text-align:center">
+        <div style="font-size:14px;font-weight:700;margin-bottom:10px">Wpisz swój typ PIN-u:</div>
+        <div id="pc-guess-dots" style="display:flex;gap:10px;justify-content:center;margin-bottom:12px">
+          <div class="pc-digit-box pc-guess-d" id="pc-g0">_</div>
+          <div class="pc-digit-box pc-guess-d" id="pc-g1">_</div>
+          <div class="pc-digit-box pc-guess-d" id="pc-g2">_</div>
+          <div class="pc-digit-box pc-guess-d" id="pc-g3">_</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto 10px">
+          <button class="pc-numpad-btn" onclick="pcGuessNum(1)">1</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(2)">2</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(3)">3</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(4)">4</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(5)">5</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(6)">6</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(7)">7</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(8)">8</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(9)">9</button>
+          <button class="pc-numpad-btn" onclick="pcGuessDel()" style="background:var(--card);color:var(--muted)">⌫</button>
+          <button class="pc-numpad-btn" onclick="pcGuessNum(0)">0</button>
+          <button class="pc-numpad-btn" id="pc-guess-ok" onclick="pcGuessSubmit()" style="background:#e67e22;color:#fff;font-weight:800" disabled>🎯</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pc-result" style="text-align:center;margin-top:10px;font-size:18px;font-weight:800;min-height:28px"></div>
+  </div>
+</div>
+
 
 <!-- ══ SZACHY ═════════════════════════════════════════════════ -->
 <div class="screen" id="screen-chess">
@@ -7172,6 +7520,884 @@ function jfCloseReveal() {
 
 
 
+
+
+
+// ══ HIGH LOW ══════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// HIGH LOW
+// ══════════════════════════════════════════════════════════════
+let hlGs = null;
+let hlMySecretChosen = false;
+
+function hlRenderScores(gs, room) {
+  if (!room || !room.players) return;
+  const scores = room.players.map(p => {
+    const w = gs.wins[p.id] || 0;
+    const isMe = p.id === S.playerId;
+    return `<div class="score-item${isMe?' me':''}">
+      <span class="score-name">${p.name}</span>
+      <span class="score-val">${w}</span>
+    </div>`;
+  });
+  document.getElementById('hl-scores').innerHTML = scores.join('');
+}
+
+function hlRenderGuessChip(g) {
+  let color, icon;
+  if (g.hint === 'correct') { color = '#2ecc71'; icon = '✅'; }
+  else if (g.hint === 'higher') { color = '#e67e22'; icon = '⬆️'; }
+  else { color = '#3498db'; icon = '⬇️'; }
+  return `<span style="background:${color}22;border:1.5px solid ${color};border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;color:${color}">
+    ${g.guess} ${icon}
+  </span>`;
+}
+
+function hlRender(gs, room) {
+  if (!gs || !room) return;
+  hlGs = gs;
+  showScreen('highlow');
+
+  hlRenderScores(gs, room);
+  document.getElementById('hl-round-info').textContent = `Runda ${gs.roundCurrent} / ${gs.roundsTotal}`;
+  document.getElementById('hl-result').textContent = '';
+
+  const me = room.players.find(p => p.id === S.playerId);
+  const opp = room.players.find(p => p.id !== S.playerId);
+  const myId = me?.id;
+  const oppId = opp?.id;
+
+  // Nazwy w polach historii
+  const oppNameEl = document.getElementById('hl-opp-name');
+  const oppNameEl2 = document.getElementById('hl-opp-name2');
+  if (oppNameEl) oppNameEl.textContent = opp?.name || '?';
+  if (oppNameEl2) oppNameEl2.textContent = opp?.name || '?';
+
+  // Moja tajna liczba (widoczna tylko mnie)
+  const mySecretDisplay = document.getElementById('hl-my-secret-display');
+  if (mySecretDisplay) {
+    mySecretDisplay.textContent = hlMySecretChosen ? `🔒` : '?';
+  }
+
+  if (gs.phase === 'choosing') {
+    document.getElementById('hl-choose-panel').style.display = '';
+    document.getElementById('hl-guess-panel').style.display = 'none';
+
+    const alreadyChosen = gs.chosen && gs.chosen[myId];
+    const secretInput = document.getElementById('hl-secret-input');
+    const waitMsg = document.getElementById('hl-waiting-msg');
+    const btn = document.querySelector('#hl-choose-panel .btn');
+
+    if (alreadyChosen) {
+      if (secretInput) secretInput.disabled = true;
+      if (btn) btn.disabled = true;
+      if (waitMsg) waitMsg.textContent = '✅ Wybrałeś/aś! Czekam na przeciwnika…';
+      document.getElementById('hl-turn').textContent = '';
+      document.getElementById('hl-turn').className = 'turn-indicator wait';
+    } else {
+      if (secretInput) secretInput.disabled = false;
+      if (btn) btn.disabled = false;
+      if (waitMsg) waitMsg.textContent = '';
+      document.getElementById('hl-turn').textContent = '🔐 Wybierz swoją tajną liczbę!';
+      document.getElementById('hl-turn').className = 'turn-indicator my-turn';
+    }
+
+    const oppChosen = gs.chosen && gs.chosen[oppId];
+    if (alreadyChosen && !oppChosen) {
+      if (waitMsg) waitMsg.textContent = `✅ Wybrałeś/aś! Czekam aż ${opp?.name} wybierze…`;
+    } else if (!alreadyChosen && oppChosen) {
+      if (waitMsg) waitMsg.textContent = `${opp?.name} już wybrał/a! Twoja kolej.`;
+    }
+
+  } else if (gs.phase === 'guessing' || gs.phase === 'roundEnd') {
+    document.getElementById('hl-choose-panel').style.display = 'none';
+    document.getElementById('hl-guess-panel').style.display = '';
+
+    const isMyTurn = gs.currentTurn === myId;
+    const turnEl = document.getElementById('hl-turn');
+    const inputArea = document.getElementById('hl-guess-input-area');
+
+    if (gs.phase === 'roundEnd') {
+      turnEl.textContent = '';
+      turnEl.className = 'turn-indicator wait';
+      if (inputArea) inputArea.style.display = 'none';
+    } else if (isMyTurn) {
+      turnEl.textContent = '🎯 Twoja tura — zgaduj!';
+      turnEl.className = 'turn-indicator my-turn';
+      if (inputArea) inputArea.style.display = '';
+      const gi = document.getElementById('hl-guess-input');
+      if (gi) { gi.disabled = false; gi.value = ''; gi.focus(); }
+    } else {
+      turnEl.textContent = `⏳ Tura gracza ${opp?.name}…`;
+      turnEl.className = 'turn-indicator wait';
+      if (inputArea) inputArea.style.display = 'none';
+    }
+
+    // Historia moich prób
+    const myHistory = (gs.guessHistory && gs.guessHistory[myId]) || [];
+    document.getElementById('hl-my-guesses').innerHTML = myHistory.map(hlRenderGuessChip).join('') || '<span style="color:var(--muted);font-size:13px">brak prób</span>';
+
+    // Historia prób przeciwnika
+    const oppHistory = (gs.guessHistory && gs.guessHistory[oppId]) || [];
+    document.getElementById('hl-opp-guesses').innerHTML = oppHistory.map(hlRenderGuessChip).join('') || '<span style="color:var(--muted);font-size:13px">brak prób</span>';
+  }
+}
+
+function hlChoose() {
+  const input = document.getElementById('hl-secret-input');
+  const val = parseInt(input?.value);
+  if (!val || val < 1 || val > 100) {
+    showToast('Wpisz liczbę od 1 do 100!', 'error');
+    return;
+  }
+  hlMySecretChosen = true;
+  // Store locally so we can show it to ourselves
+  const mySecretDisplay = document.getElementById('hl-my-secret-display');
+  if (mySecretDisplay) mySecretDisplay.textContent = `🔒 ${val}`;
+  socket.emit('highlowChoose', { roomId: S.roomId, number: val });
+}
+
+function hlGuess() {
+  const input = document.getElementById('hl-guess-input');
+  const val = parseInt(input?.value);
+  if (!val || val < 1 || val > 100) {
+    showToast('Wpisz liczbę od 1 do 100!', 'error');
+    return;
+  }
+  input.disabled = true;
+  socket.emit('highlowGuess', { roomId: S.roomId, guess: val });
+}
+
+socket.on('highlowState', ({ gs, room }) => {
+  S.room = room;
+  if (!hlMySecretChosen && gs.phase === 'choosing') {
+    // reset per round
+    hlMySecretChosen = !!(gs.chosen && S.playerId && gs.chosen[S.playerId]);
+  }
+  hlRender(gs, room);
+});
+
+socket.on('highlowHint', ({ gs, hint, guess, guesserId, room }) => {
+  S.room = room;
+  const guesserName = room.players.find(p => p.id === guesserId)?.name || '?';
+  const hintText = hint === 'higher' ? '⬆️ Wyżej!' : '⬇️ Niżej!';
+  showToast(`${guesserName} zgaduje ${guess} → ${hintText}`, hint === 'higher' ? 'info' : 'info');
+  hlRender(gs, room);
+});
+
+socket.on('highlowRoundEnd', ({ gs, result, room }) => {
+  S.room = room;
+  const winnerName = room.players.find(p => p.id === result.winner)?.name || '?';
+  const resEl = document.getElementById('hl-result');
+  if (resEl) {
+    resEl.textContent = `🏆 ${winnerName} zgadł/a! Liczba to ${result.secret}`;
+    resEl.style.color = 'var(--accent)';
+  }
+  hlMySecretChosen = false;
+  hlRender(gs, room);
+  showToast(`🏆 ${winnerName} odgadł/a liczbę ${result.secret}!`, 'success');
+});
+
+
+
+// ══ PIN CRACKER ════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// PIN CRACKER
+// ══════════════════════════════════════════════════════════════
+let pcGs = null;
+let pcMyPin = [];       // cyfry ustawianego PINu (faza choose)
+let pcGuessPin = [];    // cyfry zgadywanego PINu (faza guess)
+let pcMyChosenPin = []; // zapamiętany PIN gracza (tylko lokalnie)
+
+// ── Klawiatura ustawiania PINu ─────────────────────────────────
+function pcNumpad(d) {
+  if (pcMyPin.length >= 4) return;
+  pcMyPin.push(d);
+  pcRenderChooseDots();
+}
+function pcDel() {
+  pcMyPin.pop();
+  pcRenderChooseDots();
+}
+function pcRenderChooseDots() {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('pc-d' + i);
+    if (!el) continue;
+    if (i < pcMyPin.length) {
+      el.textContent = '●';
+      el.className = 'pc-digit-box active';
+    } else {
+      el.textContent = '_';
+      el.className = 'pc-digit-box';
+    }
+  }
+  const btn = document.getElementById('pc-confirm-btn');
+  if (btn) btn.disabled = pcMyPin.length < 4;
+}
+function pcConfirm() {
+  if (pcMyPin.length !== 4) return;
+  pcMyChosenPin = [...pcMyPin];
+  socket.emit('pincrackerChoose', { roomId: S.roomId, pin: pcMyPin.join('') });
+  // Zablokuj UI
+  document.getElementById('pc-confirm-btn').disabled = true;
+  document.querySelectorAll('.pc-numpad-btn').forEach(b => b.disabled = true);
+  document.getElementById('pc-choose-wait').textContent = '✅ PIN ustawiony! Czekam na przeciwnika…';
+  // Pokaż PIN gwiazdkami
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('pc-d' + i);
+    if (el) { el.textContent = '🔒'; el.className = 'pc-digit-box correct'; }
+  }
+}
+
+// ── Klawiatura zgadywania PINu ─────────────────────────────────
+function pcGuessNum(d) {
+  if (pcGuessPin.length >= 4) return;
+  pcGuessPin.push(d);
+  pcRenderGuessDots();
+}
+function pcGuessDel() {
+  pcGuessPin.pop();
+  pcRenderGuessDots();
+}
+function pcRenderGuessDots() {
+  // Uwzględnij już odkryte pozycje (locked)
+  const opp = S.room?.players?.find(p => p.id !== S.playerId);
+  const oppId = opp?.id;
+  const revealed = pcGs?.revealed?.[oppId] || [null, null, null, null];
+  let guessIdx = 0;
+
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('pc-g' + i);
+    if (!el) continue;
+    if (revealed[i] === 'correct') {
+      // Pozycja już odgadnięta — pokaż z historii ostatniej próby
+      const hist = pcGs?.guessHistory?.[S.playerId] || [];
+      const lastCorrect = hist.slice().reverse().find(h => h.result[i] === 'correct');
+      el.textContent = lastCorrect ? lastCorrect.guess[i] : '?';
+      el.className = 'pc-digit-box correct';
+    } else {
+      el.textContent = guessIdx < pcGuessPin.length ? pcGuessPin[guessIdx] : '_';
+      el.className = 'pc-digit-box' + (guessIdx < pcGuessPin.length ? ' active' : '');
+      guessIdx++;
+    }
+  }
+  const btn = document.getElementById('pc-guess-ok');
+  // Count non-revealed slots
+  const revealed2 = pcGs?.revealed?.[oppId] || [null, null, null, null];
+  const needed = revealed2.filter(r => !r).length;
+  if (btn) btn.disabled = pcGuessPin.length < needed;
+}
+
+function pcGuessSubmit() {
+  // Reconstruct full 4-digit guess merging revealed + new digits
+  const opp = S.room?.players?.find(p => p.id !== S.playerId);
+  const oppId = opp?.id;
+  const revealed = pcGs?.revealed?.[oppId] || [null, null, null, null];
+  const hist = pcGs?.guessHistory?.[S.playerId] || [];
+
+  let full = [];
+  let guessIdx = 0;
+  for (let i = 0; i < 4; i++) {
+    if (revealed[i] === 'correct') {
+      const lastCorrect = hist.slice().reverse().find(h => h.result[i] === 'correct');
+      full.push(lastCorrect ? lastCorrect.guess[i] : 0);
+    } else {
+      full.push(pcGuessPin[guessIdx++] ?? 0);
+    }
+  }
+
+  const btn = document.getElementById('pc-guess-ok');
+  if (btn) btn.disabled = true;
+  pcGuessPin = [];
+  socket.emit('pincrackerGuess', { roomId: S.roomId, pin: full.join('') });
+}
+
+// ── Render ─────────────────────────────────────────────────────
+function pcRenderScores(gs, room) {
+  if (!room?.players) return;
+  const html = room.players.map(p => {
+    const isMe = p.id === S.playerId;
+    return `<div class="score-item${isMe?' me':''}">
+      <span class="score-name">${p.name}</span>
+      <span class="score-val">${gs.wins[p.id]||0}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('pc-scores').innerHTML = html;
+}
+
+function pcRenderAttemptRow(attempt) {
+  return '<div class="pc-attempt-row">' +
+    attempt.guess.map((d, i) => {
+      const cls = attempt.result[i] === 'correct' ? 'correct' : 'wrong';
+      return `<div class="pc-attempt-digit ${cls}">${d}</div>`;
+    }).join('') +
+  '</div>';
+}
+
+function pcRenderMyPinRevealed(gs, myId) {
+  // Pokaż własny PIN z odkrytymi przez przeciwnika pozycjami
+  const revealed = gs.revealed?.[myId] || [null, null, null, null];
+  const oppHist = gs.guessHistory?.[
+    S.room?.players?.find(p => p.id !== myId)?.id
+  ] || [];
+
+  const el = document.getElementById('pc-my-pin-revealed');
+  if (!el) return;
+  el.innerHTML = Array.from({length: 4}, (_, i) => {
+    if (revealed[i] === 'correct') {
+      // Znajdź jaka cyfra — z naszego zapamiętanego PINu
+      const digit = pcMyChosenPin[i] ?? '?';
+      return `<div class="pc-digit-box correct" style="width:36px;height:42px;font-size:20px">${digit}</div>`;
+    } else {
+      return `<div class="pc-digit-box" style="width:36px;height:42px;font-size:20px">?</div>`;
+    }
+  }).join('');
+}
+
+function pcRender(gs, room) {
+  if (!gs || !room) return;
+  pcGs = gs;
+  showScreen('pincracker');
+
+  pcRenderScores(gs, room);
+  const maxA = gs.maxAttempts || 10;
+  document.getElementById('pc-round-info').textContent =
+    `Runda ${gs.roundCurrent} / ${gs.roundsTotal}  •  maks. ${maxA} prób`;
+  document.getElementById('pc-result').textContent = '';
+
+  const me = room.players.find(p => p.id === S.playerId);
+  const opp = room.players.find(p => p.id !== S.playerId);
+  const myId = me?.id;
+  const oppId = opp?.id;
+
+  // Nazwy
+  document.querySelectorAll('.pc-opp-name').forEach(el => el.textContent = opp?.name || '?');
+
+  if (gs.phase === 'choosing') {
+    document.getElementById('pc-choose-panel').style.display = '';
+    document.getElementById('pc-guess-panel').style.display = 'none';
+
+    const alreadyChosen = gs.chosen?.[myId];
+    const oppChosen = gs.chosen?.[oppId];
+    const turnEl = document.getElementById('pc-turn');
+    const waitEl = document.getElementById('pc-choose-wait');
+
+    if (alreadyChosen) {
+      turnEl.textContent = oppChosen ? '✅ Oboje gotowi! Zaczynamy…' : `Czekam na ${opp?.name}…`;
+      turnEl.className = 'turn-indicator wait';
+    } else {
+      turnEl.textContent = oppChosen ? `${opp?.name} gotowy/a! Teraz Ty — ustaw PIN.` : '🔐 Ustaw swój tajny 4-cyfrowy PIN';
+      turnEl.className = 'turn-indicator my-turn';
+    }
+    if (waitEl && !alreadyChosen) waitEl.textContent = '';
+
+  } else if (gs.phase === 'guessing' || gs.phase === 'roundEnd') {
+    document.getElementById('pc-choose-panel').style.display = 'none';
+    document.getElementById('pc-guess-panel').style.display = '';
+
+    const isMyTurn = gs.currentTurn === myId;
+    const turnEl = document.getElementById('pc-turn');
+    const inputArea = document.getElementById('pc-guess-input-area');
+
+    if (gs.phase === 'roundEnd') {
+      turnEl.textContent = '';
+      turnEl.className = 'turn-indicator wait';
+      if (inputArea) inputArea.style.display = 'none';
+    } else if (isMyTurn) {
+      const myAttemptsLeft = maxA - (gs.guessHistory?.[myId]?.length || 0);
+      turnEl.textContent = `🎯 Twoja tura! Pozostało prób: ${myAttemptsLeft}`;
+      turnEl.className = 'turn-indicator my-turn';
+      if (inputArea) inputArea.style.display = '';
+      // Reset guess input
+      pcGuessPin = [];
+      pcRenderGuessDots();
+    } else {
+      const oppAttemptsLeft = maxA - (gs.guessHistory?.[oppId]?.length || 0);
+      turnEl.textContent = `⏳ Tura ${opp?.name}… (ma ${oppAttemptsLeft} prób)`;
+      turnEl.className = 'turn-indicator wait';
+      if (inputArea) inputArea.style.display = 'none';
+    }
+
+    // Historia moich ataków
+    const myHist = gs.guessHistory?.[myId] || [];
+    document.getElementById('pc-my-attempts').innerHTML =
+      myHist.length ? myHist.map(pcRenderAttemptRow).join('') :
+      '<span style="color:var(--muted);font-size:12px">brak prób</span>';
+
+    // Mój PIN z odkrytymi cyfry
+    pcRenderMyPinRevealed(gs, myId);
+
+    // Historia ataków przeciwnika na mój PIN
+    const oppHist = gs.guessHistory?.[oppId] || [];
+    document.getElementById('pc-opp-attempts').innerHTML =
+      oppHist.length ? oppHist.map(pcRenderAttemptRow).join('') :
+      '<span style="color:var(--muted);font-size:12px">brak prób</span>';
+  }
+}
+
+// ── Socket events ──────────────────────────────────────────────
+socket.on('pincrackerState', ({ gs, room }) => {
+  S.room = room;
+  // Detect new round reset
+  if (gs.phase === 'choosing' && !gs.chosen?.[S.playerId]) {
+    pcMyPin = [];
+    pcMyChosenPin = [];
+    // Re-enable numpad
+    document.querySelectorAll('#pc-choose-panel .pc-numpad-btn').forEach(b => b.disabled = false);
+    const btn = document.getElementById('pc-confirm-btn');
+    if (btn) btn.disabled = true;
+    const waitEl = document.getElementById('pc-choose-wait');
+    if (waitEl) waitEl.textContent = '';
+    pcRenderChooseDots();
+  }
+  pcRender(gs, room);
+});
+
+socket.on('pincrackerRoundEnd', ({ gs, room, winner, revealedPins, attemptsUsed }) => {
+  S.room = room;
+  pcGs = gs;
+  const resEl = document.getElementById('pc-result');
+  if (winner) {
+    const winnerName = room.players.find(p => p.id === winner)?.name || '?';
+    const opp = room.players.find(p => p.id !== winner);
+    const oppPin = revealedPins?.[opp?.id]?.join('') || '????';
+    const isMe = winner === S.playerId;
+    if (resEl) {
+      resEl.textContent = isMe
+        ? `🏆 Odgadłeś/aś PIN ${opp?.name}: ${oppPin}! (${attemptsUsed} prób)`
+        : `💥 ${winnerName} złamał/a Twój PIN: ${revealedPins?.[S.playerId]?.join('')||'????'}!`;
+      resEl.style.color = isMe ? '#2ecc71' : '#e74c3c';
+    }
+    showToast(isMe ? `🏆 Brawo! Odgadłeś/aś PIN!` : `💥 Twój PIN został złamany!`, isMe ? 'success' : 'error');
+  } else {
+    if (resEl) { resEl.textContent = '🤝 Remis! Nikt nie odgadł PINu w limicie prób.'; resEl.style.color = 'var(--muted)'; }
+    showToast('🤝 Remis rundy!', 'info');
+    // Reveal pins
+    if (revealedPins) {
+      const lines = room.players.map(p => `${p.name}: ${revealedPins[p.id]?.join('')||'????'}`);
+      setTimeout(() => showToast('PIN: ' + lines.join(' | '), 'info'), 600);
+    }
+  }
+  pcMyChosenPin = [];
+  pcRender(gs, room);
+});
+
+
+
+// ══ TURNIEJ ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// TURNIEJ — CLIENT
+// ══════════════════════════════════════════════════════════════
+let TM = {
+  current: null,       // aktualny obiekt turnieju
+  isHost: false,
+  myId: null,          // S.playerId alias
+  pendingJoinCode: null,
+};
+
+// ── Helpers ────────────────────────────────────────────────────
+
+function tmMyId() { return S.playerId || TM.myId; }
+
+function tmIsHost() {
+  return TM.current && TM.current.hostId === tmMyId();
+}
+
+function tmOpenList() {
+  socket.emit('tournamentGetList');
+  showScreen('tournament-list');
+}
+
+function tmCreate() {
+  const name = S.playerName || prompt('Twoja nazwa gracza:');
+  if (!name) return;
+  S.playerName = name;
+  socket.emit('tournamentCreate', { playerName: name });
+}
+
+function tmJoinByCode() {
+  const code = document.getElementById('tm-join-code-input')?.value?.trim().toUpperCase();
+  if (!code) return showToast('Wpisz kod turnieju', 'error');
+  const name = S.playerName || prompt('Twoja nazwa gracza:');
+  if (!name) return;
+  S.playerName = name;
+  socket.emit('tournamentJoin', { tournamentId: code, playerName: name });
+}
+
+function tmLeave() {
+  if (TM.current) {
+    socket.emit('tournamentLeave', { tournamentId: TM.current.id });
+    TM.current = null;
+  }
+  showScreen('tournament-list');
+}
+
+function tmStart() {
+  if (!TM.current) return;
+  socket.emit('tournamentStart', { tournamentId: TM.current.id });
+}
+
+function tmPickGame(gameType) {
+  if (!TM.current) return;
+  socket.emit('tournamentPickGame', { tournamentId: TM.current.id, gameType });
+}
+
+function tmSetAdvancers(n) {
+  if (!TM.current) return;
+  socket.emit('tournamentSetAdvancers', { tournamentId: TM.current.id, count: n });
+}
+
+// ── Render lobby ───────────────────────────────────────────────
+
+function tmRenderLobby(t) {
+  TM.current = t;
+  TM.isHost = tmIsHost();
+  showScreen('tournament-lobby');
+
+  document.getElementById('tm-id-badge').textContent = t.id;
+  document.getElementById('tm-join-code').textContent = t.id;
+  document.getElementById('tm-player-count').textContent = t.players.length;
+
+  const subtitle = `Host: ${t.hostName} • Faza grupowa → Eliminacje`;
+  document.getElementById('tm-lobby-subtitle').textContent = subtitle;
+
+  // Gracze
+  const playersEl = document.getElementById('tm-lobby-players');
+  playersEl.innerHTML = t.players.map(p => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg);border-radius:8px">
+      <span style="font-size:16px">${p.id === t.hostId ? '👑' : '👤'}</span>
+      <span style="font-weight:${p.id === tmMyId() ? '800' : '600'}">${p.name}${p.id === tmMyId() ? ' (Ty)' : ''}</span>
+      ${p.id === t.hostId ? '<span style="font-size:11px;color:var(--muted)">host</span>' : ''}
+    </div>
+  `).join('');
+
+  // Ustawienia hosta
+  const settingsEl = document.getElementById('tm-host-settings');
+  const startBtn   = document.getElementById('tm-start-btn');
+  const waitMsg    = document.getElementById('tm-waiting-msg');
+
+  if (TM.isHost) {
+    settingsEl.style.display = '';
+    startBtn.style.display = '';
+    waitMsg.textContent = t.players.length < 3 ? `⚠️ Potrzeba min. 3 graczy (masz ${t.players.length})` : '';
+    startBtn.disabled = t.players.length < 3;
+
+    // Przyciski liczby awansujących
+    const maxAdv = Math.max(2, t.players.length - 1);
+    const advBtns = document.getElementById('tm-adv-buttons');
+    advBtns.innerHTML = Array.from({length: maxAdv - 1}, (_, i) => i + 2).map(n => `
+      <button onclick="tmSetAdvancers(${n})"
+        style="padding:4px 12px;border-radius:8px;border:2px solid ${n === t.playoffAdvancers ? 'var(--accent)' : 'var(--border)'};
+               background:${n === t.playoffAdvancers ? 'var(--accent)' : 'var(--card)'};
+               color:${n === t.playoffAdvancers ? '#fff' : 'var(--text)'};cursor:pointer;font-weight:700">
+        ${n}
+      </button>
+    `).join('');
+    document.getElementById('tm-adv-hint').textContent =
+      `Top ${t.playoffAdvancers} z fazy grupowej awansuje do eliminacji`;
+  } else {
+    settingsEl.style.display = 'none';
+    startBtn.style.display = 'none';
+    waitMsg.textContent = `⏳ Czekaj aż host (${t.hostName}) rozpocznie turniej`;
+  }
+}
+
+// ── Render bracket/standings ────────────────────────────────────
+
+function tmRenderBracket(t) {
+  TM.current = t;
+  showScreen('tournament-bracket');
+
+  const titleEl = document.getElementById('tm-bracket-title');
+  const phaseEl = document.getElementById('tm-bracket-phase');
+  titleEl.textContent = `🏆 Turniej ${t.id}`;
+
+  const phaseNames = { group: '📊 Faza grupowa', playoff: '⚡ Faza eliminacji', finished: '🏁 Zakończony' };
+  phaseEl.textContent = phaseNames[t.status] || t.status;
+
+  // Standings
+  const standEl = document.getElementById('tm-standings-section');
+  if (t.groupStandings && t.status !== 'lobby') {
+    standEl.style.display = '';
+    const rows = Object.entries(t.groupStandings)
+      .map(([id, s]) => ({ id, ...s }))
+      .sort((a, b) => b.points - a.points || b.wins - a.wins);
+    const advIds = new Set(
+      t.status === 'playoff' || t.status === 'finished'
+        ? t.players.filter(p => !p.eliminated || t.status === 'finished').map(p => p.id)
+        : []
+    );
+    document.getElementById('tm-standings-table').innerHTML =
+      rows.map((r, i) => `
+        <div class="tm-standings-row">
+          <span style="width:22px;color:var(--muted);font-weight:700">${i+1}.</span>
+          <span style="flex:1;font-weight:${r.id === tmMyId() ? '800' : '600'}">${r.name}${r.id === tmMyId() ? ' 👤' : ''}</span>
+          <span style="color:#2ecc71;font-weight:700;min-width:30px">${r.wins}W</span>
+          <span style="color:#e74c3c;font-weight:700;min-width:30px">${r.losses}L</span>
+          <span style="color:var(--accent);font-weight:700;min-width:40px">${r.points}pkt</span>
+          ${advIds.has(r.id) && t.status !== 'lobby' && t.status !== 'group' ? '<span class="tm-adv-badge">✅ awans</span>' : ''}
+        </div>
+      `).join('');
+  } else {
+    standEl.style.display = 'none';
+  }
+
+  // Mecze grupowe
+  const groupEl = document.getElementById('tm-group-matches-section');
+  const groupMatches = t.matches.filter(m => m.phase === 'group');
+  if (groupMatches.length) {
+    groupEl.style.display = '';
+    document.getElementById('tm-group-matches-list').innerHTML = groupMatches.map(m => tmMatchCard(m, t)).join('');
+  } else {
+    groupEl.style.display = 'none';
+  }
+
+  // Playoff
+  const playoffEl = document.getElementById('tm-playoff-section');
+  const playoffMatches = t.matches.filter(m => m.phase === 'playoff');
+  if (playoffMatches.length) {
+    playoffEl.style.display = '';
+    const rounds = [...new Set(playoffMatches.map(m => m.playoffRound))].sort();
+    document.getElementById('tm-playoff-bracket').innerHTML = rounds.map(r => {
+      const rMatches = playoffMatches.filter(m => m.playoffRound === r);
+      const rName = rMatches.length === 1 ? 'Finał' : rMatches.length === 2 ? 'Półfinał' : `Runda ${r}`;
+      return `<div style="margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${rName}</div>
+        ${rMatches.map(m => tmMatchCard(m, t)).join('')}
+      </div>`;
+    }).join('');
+  } else {
+    playoffEl.style.display = 'none';
+  }
+
+  // Mistrz
+  const champEl = document.getElementById('tm-champion-section');
+  if (t.status === 'finished' && t.champion) {
+    champEl.style.display = '';
+    document.getElementById('tm-champion-name').textContent = t.champion.name;
+  } else {
+    champEl.style.display = 'none';
+  }
+}
+
+function tmMatchCard(m, t) {
+  const gameIcon = m.gameType ? (tmGetGameIcon(m.gameType) + ' ' + m.gameType) : '';
+  const statusLabel = { pending: 'oczekuje', picking: '🎮 wybór gry', playing: '▶️ gra trwa', done: '✓', bye: 'bye' }[m.status] || m.status;
+
+  const p1cls = m.status === 'done' ? (m.winner?.id === m.p1?.id ? 'winner' : 'loser') : (m.status === 'playing' ? 'active' : '');
+  const p2cls = m.status === 'done' ? (m.winner?.id === m.p2?.id ? 'winner' : 'loser') : (m.status === 'playing' ? 'active' : '');
+
+  return `<div class="tm-match-card ${m.status}">
+    <div class="tm-player-pill ${p1cls}">${m.p1?.name || 'BYE'}</div>
+    <div class="tm-vs">VS</div>
+    <div class="tm-player-pill ${p2cls}">${m.p2?.name || 'BYE'}</div>
+    <div style="font-size:11px;color:var(--muted);min-width:70px;text-align:right">${m.status === 'done' && gameIcon ? gameIcon : statusLabel}</div>
+  </div>`;
+}
+
+function tmGetGameIcon(gameType) {
+  const icons = { tictactoe:'⭕', chess:'♟️', highlow:'🔢', pincracker:'🔑', hangman:'🪢', quiz:'❓', wordrace:'🏃', kalambury:'🎨', familyfeud:'👪', jeopardy:'📺', wavelength:'📡' };
+  return icons[gameType] || '🎮';
+}
+
+// ── Render pick-game screen ─────────────────────────────────────
+
+function tmRenderPickGame(t, match) {
+  TM.current = t;
+  if (!match) return;
+
+  const p1 = match.p1?.name || '?';
+  const p2 = match.p2?.name || '?';
+  document.getElementById('tm-pick-match-info').textContent = `${p1} vs ${p2}`;
+
+  // Only 2-player games
+  const eligible = (window._availableGames || window.games || []).filter(g =>
+    g.maxPlayers === 2 && g.minPlayers === 2 && !['chess','poker','blackjack'].includes(g.id)
+  );
+
+  document.getElementById('tm-pick-games').innerHTML = eligible.map(g => `
+    <div class="tm-game-pick-btn" onclick="tmPickGame('${g.id}')">
+      <div style="font-size:28px;margin-bottom:4px">${g.icon || '🎮'}</div>
+      <div style="font-weight:700;font-size:14px">${g.name}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${g.description || ''}</div>
+    </div>
+  `).join('') || '<div style="color:var(--muted)">Brak dostępnych gier dla 2 graczy</div>';
+
+  showScreen('tournament-pick');
+}
+
+// ── Render wait screen ─────────────────────────────────────────
+
+function tmRenderWait(t, msg, sub) {
+  TM.current = t;
+  document.getElementById('tm-wait-title').textContent = msg || 'Czekaj na swój mecz…';
+  document.getElementById('tm-wait-sub').textContent = sub || '';
+
+  // Mini bracket w poczekalni
+  if (t) {
+    const currentMatch = t.matches.find(m => m.id === t.currentMatchId);
+    if (currentMatch) {
+      document.getElementById('tm-wait-bracket').innerHTML = `
+        <div style="background:var(--card);border-radius:10px;padding:12px;font-size:13px">
+          <div style="color:var(--muted);margin-bottom:6px">Aktualny mecz:</div>
+          ${tmMatchCard(currentMatch, t)}
+        </div>`;
+    }
+  }
+  showScreen('tournament-wait');
+}
+
+// ── Socket events ──────────────────────────────────────────────
+
+socket.on('tournamentList', (list) => {
+  const el = document.getElementById('tm-list-items');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:14px">Brak aktywnych turniejów</div>';
+    return;
+  }
+  const nameInput = document.getElementById('player-name-input')?.value || S.playerName || '';
+  el.innerHTML = list.map(t => `
+    <div style="background:var(--card);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-weight:700">${t.hostName}'s turniej <span style="color:var(--muted);font-weight:400;font-size:12px">${t.id}</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${t.players.length} graczy • ${t.status === 'lobby' ? 'Lobby' : t.status === 'group' ? 'Faza grupowa' : 'Eliminacje'}</div>
+      </div>
+      ${t.status === 'lobby' ? `<button class="btn btn-primary" style="padding:6px 16px;font-size:13px" onclick="tmJoinExisting('${t.id}')">Dołącz</button>` : '<span style="color:var(--muted);font-size:12px">W toku</span>'}
+    </div>
+  `).join('') + `
+    <div style="margin-top:12px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Masz kod turnieju?</div>
+      <div style="display:flex;gap:8px">
+        <input id="tm-join-code-input" class="input" placeholder="Kod turnieju (np. TABC)" style="flex:1;text-transform:uppercase" maxlength="6">
+        <button class="btn btn-secondary" onclick="tmJoinByCode()">Dołącz</button>
+      </div>
+    </div>
+  `;
+});
+
+function tmJoinExisting(id) {
+  const name = S.playerName || prompt('Twoja nazwa:');
+  if (!name) return;
+  S.playerName = name;
+  socket.emit('tournamentJoin', { tournamentId: id, playerName: name });
+}
+
+socket.on('tournamentCreated', ({ tournament }) => {
+  TM.current = tournament;
+  TM.isHost = true;
+  tmRenderLobby(tournament);
+});
+
+socket.on('tournamentJoined', ({ tournament }) => {
+  TM.current = tournament;
+  TM.isHost = false;
+  tmRenderLobby(tournament);
+});
+
+socket.on('tournamentUpdate', ({ tournament }) => {
+  TM.current = tournament;
+  const screen = document.querySelector('.screen.active')?.id;
+
+  if (tournament.status === 'lobby') {
+    // Odśwież lobby jeśli jesteś w nim lub dopiero dołączyłeś
+    if (!screen || screen === 'screen-tournament-lobby' || screen === 'screen-home') {
+      tmRenderLobby(tournament);
+    }
+  } else if (screen && screen.startsWith('screen-tournament')) {
+    if (screen === 'screen-tournament-bracket') tmRenderBracket(tournament);
+    else if (screen === 'screen-tournament-lobby') tmRenderLobby(tournament);
+    // Na wait/pick — zaktualizuj tylko TM.current, render zrobi odpowiedni event
+  }
+  // Jeśli nie jesteśmy na żadnym ekranie turniejowym ale jesteśmy w turnieju
+  // (np. wróciliśmy z meczu), pokaż bracket
+  else if (TM.current && tournament.status !== 'lobby') {
+    const isInTournament = tournament.players.some(p => p.id === tmMyId());
+    if (isInTournament && screen === 'screen-gameover') {
+      tmRenderBracket(tournament);
+    }
+  }
+});
+
+socket.on('tournamentPickGame', ({ tournament, match }) => {
+  TM.current = tournament;
+  if (tmIsHost()) {
+    tmRenderPickGame(tournament, match);
+  } else {
+    // Sprawdź czy to mój mecz
+    const myId = tmMyId();
+    const isMyMatch = match.p1?.id === myId || match.p2?.id === myId;
+    if (isMyMatch) {
+      tmRenderWait(tournament, '⏳ Host wybiera grę dla Twojego meczu…', `${match.p1?.name} vs ${match.p2?.name}`);
+    } else {
+      tmRenderWait(tournament, '⏳ Czekaj na swój mecz', `Trwa mecz: ${match.p1?.name} vs ${match.p2?.name}`);
+    }
+  }
+});
+
+socket.on('tournamentMatchReady', ({ tournament, match, roomId }) => {
+  TM.current = tournament;
+  const myId = tmMyId();
+  const isMyMatch = match.p1?.id === myId || match.p2?.id === myId;
+
+  // Zaktualizuj bracket dla wszystkich
+  if (document.querySelector('.screen.active')?.id === 'screen-tournament-bracket') {
+    tmRenderBracket(tournament);
+  }
+
+  if (isMyMatch) {
+    showToast(`🎮 Twój mecz: ${match.p1.name} vs ${match.p2.name} — ${match.gameType}!`, 'success');
+    // Dołącz do pokoju
+    socket.emit('joinRoom', { roomId, playerName: S.playerName });
+    // Ustaw flagę żeby po gameOver wrócić do brackettu
+    S._inTournamentMatch = true;
+    S._tournamentId = tournament.id;
+  } else {
+    // Obserwuj / czekaj
+    tmRenderWait(tournament,
+      '⏳ Inny mecz trwa…',
+      `${match.p1?.name} vs ${match.p2?.name} (${match.gameType})`
+    );
+  }
+});
+
+socket.on('tournamentPhaseChange', ({ phase, advancers, tournament }) => {
+  TM.current = tournament;
+  if (phase === 'playoff') {
+    const myId = tmMyId();
+    const imIn = advancers.some(a => a.id === myId);
+    showToast(imIn ? '🎉 Awansujesz do fazy eliminacji!' : '😔 Nie awansujesz do playoff', imIn ? 'success' : 'error');
+  }
+  tmRenderBracket(tournament);
+});
+
+socket.on('tournamentFinished', ({ tournament }) => {
+  TM.current = tournament;
+  const isChamp = tournament.champion?.id === tmMyId();
+  showToast(isChamp ? '🏆 Jesteś mistrzem turnieju!' : `🏆 Mistrz: ${tournament.champion?.name}`, isChamp ? 'success' : 'info');
+  tmRenderBracket(tournament);
+});
+
+socket.on('tournamentHostChanged', ({ newHostId }) => {
+  if (TM.current) {
+    TM.current.hostId = newHostId;
+    TM.isHost = newHostId === tmMyId();
+    if (TM.isHost) showToast('👑 Zostałeś nowym hostem turnieju!', 'info');
+    if (document.querySelector('.screen.active')?.id === 'screen-tournament-lobby') {
+      tmRenderLobby(TM.current);
+    }
+  }
+});
+
+socket.on('tournamentError', ({ message }) => {
+  showToast('❌ ' + message, 'error');
+});
+
+// Tournament gameOver — handled in main gameOver handler above
+
+// ── Cache listy gier dla ekranu wyboru ─────────────────────────
+// Request on load
+// _availableGames is populated by utils.js init() via window.games
 
 </script>
 <script src="/js/casino-dh.js"></script>

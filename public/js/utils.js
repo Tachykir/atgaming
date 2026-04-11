@@ -20,6 +20,8 @@ function goHome() { location.reload(); }
 async function init() {
   const [gR, cR, sR] = await Promise.all([fetch('/api/games'), fetch('/api/content'), fetch('/api/config-schemas')]);
   games         = await gR.json();
+  window._availableGames = games;
+  window.games = games;
   content       = await cR.json();
   configSchemas = await sR.json();
 

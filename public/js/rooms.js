@@ -397,7 +397,19 @@ socket.on('roomCreated', ({roomId, room}) => {
   S.roomId=roomId; S.isHost=true; S.room=room; renderLobby(room); showChat(); showScreen('lobby');
 });
 socket.on('roomJoined', ({roomId, room}) => {
-  S.roomId=roomId; S.isHost=false; S.room=room; renderLobby(room); showChat(); showScreen('lobby');
+  S.roomId = roomId;
+  S.isHost = room.hostId === S.playerId;
+  S.room   = room;
+  // Jeśli to pokój meczu turniejowego — nie pokazuj lobby, gra zaraz się auto-wystartuje
+  if (room.config?._tournamentId) {
+    showToast(`⚔️ Mecz turniejowy: ${room.players.map(p=>p.name).join(' vs ')}`, 'info');
+    // Poczekalnia na start gry (auto-start nastąpi max 5s)
+    showScreen('tournament-wait');
+    document.getElementById('tm-wait-title').textContent = '⚔️ Mecz zaraz się zaczyna…';
+    document.getElementById('tm-wait-sub').textContent = room.players.map(p=>p.name).join(' vs ') + ' • ' + room.gameType;
+    return;
+  }
+  renderLobby(room); showChat(); showScreen('lobby');
 });
 socket.on('playerJoined', ({room}) => {
   S.room=room; renderLobby(room);
@@ -421,6 +433,8 @@ socket.on('gameStarted', ({room,mask,wordLength,round,totalRounds,maxWrong,playe
   }
   else if(room.gameType==='familyfeud'){ showScreen('familyfeud'); }
   else if(room.gameType==='kalambury'){ initKalamburyCanvas(); showScreen('kalambury'); }
+  else if(room.gameType==='highlow'){ showScreen('highlow'); }
+  else if(room.gameType==='pincracker'){ showScreen('pincracker'); }
 });
 socket.on('letterGuessed', ({room,letter,correct,mask,currentTurn,playerLives,playerEliminated}) => {
   S.room=room;
@@ -466,7 +480,31 @@ socket.on('wordRaceTimeout', ({answer,room}) => {
   const el=document.getElementById('wr-feedback'); el.style.color='var(--warning)'; el.textContent=`⏰ Czas! Słowo: ${answer.toUpperCase()}`;
   document.getElementById('wr-answer').disabled=true; renderLiveScores(room,'wr-scores');
 });
-socket.on('gameOver', (data) => { S.room=data.room; showGameOver(data); });
+socket.on('gameOver', (data) => {
+  S.room = data.room;
+  // Obsługa meczu turniejowego — nie pokazuj ekranu gameOver, wróć do drabinki
+  if (S._inTournamentMatch) {
+    S._inTournamentMatch = false;
+    const tid = S._tournamentId;
+    S._tournamentId = null;
+    // Krótki toast z wynikiem meczu
+    const winner = data.sorted?.[0];
+    if (winner) {
+      const isMe = winner.id === S.playerId;
+      showToast(isMe ? '🏆 Wygrałeś mecz!' : `😔 Przegrałeś mecz z ${winner.name}`, isMe ? 'success' : 'error');
+    }
+    // Po 2s pokaż aktualną drabinkę turnieju
+    setTimeout(() => {
+      if (tid) {
+        socket.emit('tournamentGet', { tournamentId: tid });
+        if (TM.current) tmRenderBracket(TM.current);
+        else showScreen('tournament-bracket');
+      }
+    }, 2000);
+    return;
+  }
+  showGameOver(data);
+});
 socket.on('gameReset', ({room}) => {
   S.room=room; S.isHost=room.hostId===S.playerId; renderLobby(room);
   document.getElementById('play-again-btn').style.display='none'; showScreen('lobby');
@@ -1360,7 +1398,7 @@ socket.on('roomObserved', ({ roomId, room }) => {
   // If game is already running, show appropriate screen
   if (room.status === 'playing') {
     const gt = room.gameType;
-    if (['tictactoe','chess','poker','blackjack'].includes(gt)) {
+    if (['tictactoe','chess','poker','blackjack','highlow','pincracker'].includes(gt)) {
       showScreen(gt);
     }
   } else {
@@ -1374,3 +1412,872 @@ socket.on('observerJoined', ({ observerName, room }) => {
 });
 
 
+
+// ══════════════════════════════════════════════════════════════
+// HIGH LOW
+// ══════════════════════════════════════════════════════════════
+let hlGs = null;
+let hlMySecretChosen = false;
+
+function hlRenderScores(gs, room) {
+  if (!room || !room.players) return;
+  const scores = room.players.map(p => {
+    const w = gs.wins[p.id] || 0;
+    const isMe = p.id === S.playerId;
+    return `<div class="score-item${isMe?' me':''}">
+      <span class="score-name">${p.name}</span>
+      <span class="score-val">${w}</span>
+    </div>`;
+  });
+  document.getElementById('hl-scores').innerHTML = scores.join('');
+}
+
+function hlRenderGuessChip(g) {
+  let color, icon;
+  if (g.hint === 'correct') { color = '#2ecc71'; icon = '✅'; }
+  else if (g.hint === 'higher') { color = '#e67e22'; icon = '⬆️'; }
+  else { color = '#3498db'; icon = '⬇️'; }
+  return `<span style="background:${color}22;border:1.5px solid ${color};border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;color:${color}">
+    ${g.guess} ${icon}
+  </span>`;
+}
+
+function hlRender(gs, room) {
+  if (!gs || !room) return;
+  hlGs = gs;
+  showScreen('highlow');
+
+  hlRenderScores(gs, room);
+  document.getElementById('hl-round-info').textContent = `Runda ${gs.roundCurrent} / ${gs.roundsTotal}`;
+  document.getElementById('hl-result').textContent = '';
+
+  const me = room.players.find(p => p.id === S.playerId);
+  const opp = room.players.find(p => p.id !== S.playerId);
+  const myId = me?.id;
+  const oppId = opp?.id;
+
+  // Nazwy w polach historii
+  const oppNameEl = document.getElementById('hl-opp-name');
+  const oppNameEl2 = document.getElementById('hl-opp-name2');
+  if (oppNameEl) oppNameEl.textContent = opp?.name || '?';
+  if (oppNameEl2) oppNameEl2.textContent = opp?.name || '?';
+
+  // Moja tajna liczba (widoczna tylko mnie)
+  const mySecretDisplay = document.getElementById('hl-my-secret-display');
+  if (mySecretDisplay) {
+    mySecretDisplay.textContent = hlMySecretChosen ? `🔒` : '?';
+  }
+
+  if (gs.phase === 'choosing') {
+    document.getElementById('hl-choose-panel').style.display = '';
+    document.getElementById('hl-guess-panel').style.display = 'none';
+
+    const alreadyChosen = gs.chosen && gs.chosen[myId];
+    const secretInput = document.getElementById('hl-secret-input');
+    const waitMsg = document.getElementById('hl-waiting-msg');
+    const btn = document.querySelector('#hl-choose-panel .btn');
+
+    if (alreadyChosen) {
+      if (secretInput) secretInput.disabled = true;
+      if (btn) btn.disabled = true;
+      if (waitMsg) waitMsg.textContent = '✅ Wybrałeś/aś! Czekam na przeciwnika…';
+      document.getElementById('hl-turn').textContent = '';
+      document.getElementById('hl-turn').className = 'turn-indicator wait';
+    } else {
+      if (secretInput) secretInput.disabled = false;
+      if (btn) btn.disabled = false;
+      if (waitMsg) waitMsg.textContent = '';
+      document.getElementById('hl-turn').textContent = '🔐 Wybierz swoją tajną liczbę!';
+      document.getElementById('hl-turn').className = 'turn-indicator my-turn';
+    }
+
+    const oppChosen = gs.chosen && gs.chosen[oppId];
+    if (alreadyChosen && !oppChosen) {
+      if (waitMsg) waitMsg.textContent = `✅ Wybrałeś/aś! Czekam aż ${opp?.name} wybierze…`;
+    } else if (!alreadyChosen && oppChosen) {
+      if (waitMsg) waitMsg.textContent = `${opp?.name} już wybrał/a! Twoja kolej.`;
+    }
+
+  } else if (gs.phase === 'guessing' || gs.phase === 'roundEnd') {
+    document.getElementById('hl-choose-panel').style.display = 'none';
+    document.getElementById('hl-guess-panel').style.display = '';
+
+    const isMyTurn = gs.currentTurn === myId;
+    const turnEl = document.getElementById('hl-turn');
+    const inputArea = document.getElementById('hl-guess-input-area');
+
+    if (gs.phase === 'roundEnd') {
+      turnEl.textContent = '';
+      turnEl.className = 'turn-indicator wait';
+      if (inputArea) inputArea.style.display = 'none';
+    } else if (isMyTurn) {
+      turnEl.textContent = '🎯 Twoja tura — zgaduj!';
+      turnEl.className = 'turn-indicator my-turn';
+      if (inputArea) inputArea.style.display = '';
+      const gi = document.getElementById('hl-guess-input');
+      if (gi) { gi.disabled = false; gi.value = ''; gi.focus(); }
+    } else {
+      turnEl.textContent = `⏳ Tura gracza ${opp?.name}…`;
+      turnEl.className = 'turn-indicator wait';
+      if (inputArea) inputArea.style.display = 'none';
+    }
+
+    // Historia moich prób
+    const myHistory = (gs.guessHistory && gs.guessHistory[myId]) || [];
+    document.getElementById('hl-my-guesses').innerHTML = myHistory.map(hlRenderGuessChip).join('') || '<span style="color:var(--muted);font-size:13px">brak prób</span>';
+
+    // Historia prób przeciwnika
+    const oppHistory = (gs.guessHistory && gs.guessHistory[oppId]) || [];
+    document.getElementById('hl-opp-guesses').innerHTML = oppHistory.map(hlRenderGuessChip).join('') || '<span style="color:var(--muted);font-size:13px">brak prób</span>';
+  }
+}
+
+function hlChoose() {
+  const input = document.getElementById('hl-secret-input');
+  const val = parseInt(input?.value);
+  if (!val || val < 1 || val > 100) {
+    showToast('Wpisz liczbę od 1 do 100!', 'error');
+    return;
+  }
+  hlMySecretChosen = true;
+  // Store locally so we can show it to ourselves
+  const mySecretDisplay = document.getElementById('hl-my-secret-display');
+  if (mySecretDisplay) mySecretDisplay.textContent = `🔒 ${val}`;
+  socket.emit('highlowChoose', { roomId: S.roomId, number: val });
+}
+
+function hlGuess() {
+  const input = document.getElementById('hl-guess-input');
+  const val = parseInt(input?.value);
+  if (!val || val < 1 || val > 100) {
+    showToast('Wpisz liczbę od 1 do 100!', 'error');
+    return;
+  }
+  input.disabled = true;
+  socket.emit('highlowGuess', { roomId: S.roomId, guess: val });
+}
+
+socket.on('highlowState', ({ gs, room }) => {
+  S.room = room;
+  if (!hlMySecretChosen && gs.phase === 'choosing') {
+    // reset per round
+    hlMySecretChosen = !!(gs.chosen && S.playerId && gs.chosen[S.playerId]);
+  }
+  hlRender(gs, room);
+});
+
+socket.on('highlowHint', ({ gs, hint, guess, guesserId, room }) => {
+  S.room = room;
+  const guesserName = room.players.find(p => p.id === guesserId)?.name || '?';
+  const hintText = hint === 'higher' ? '⬆️ Wyżej!' : '⬇️ Niżej!';
+  showToast(`${guesserName} zgaduje ${guess} → ${hintText}`, hint === 'higher' ? 'info' : 'info');
+  hlRender(gs, room);
+});
+
+socket.on('highlowRoundEnd', ({ gs, result, room }) => {
+  S.room = room;
+  const winnerName = room.players.find(p => p.id === result.winner)?.name || '?';
+  const resEl = document.getElementById('hl-result');
+  if (resEl) {
+    resEl.textContent = `🏆 ${winnerName} zgadł/a! Liczba to ${result.secret}`;
+    resEl.style.color = 'var(--accent)';
+  }
+  hlMySecretChosen = false;
+  hlRender(gs, room);
+  showToast(`🏆 ${winnerName} odgadł/a liczbę ${result.secret}!`, 'success');
+});
+
+// ══════════════════════════════════════════════════════════════
+// PIN CRACKER
+// ══════════════════════════════════════════════════════════════
+let pcGs = null;
+let pcMyPin = [];       // cyfry ustawianego PINu (faza choose)
+let pcGuessPin = [];    // cyfry zgadywanego PINu (faza guess)
+let pcMyChosenPin = []; // zapamiętany PIN gracza (tylko lokalnie)
+
+// ── Klawiatura ustawiania PINu ─────────────────────────────────
+function pcNumpad(d) {
+  if (pcMyPin.length >= 4) return;
+  pcMyPin.push(d);
+  pcRenderChooseDots();
+}
+function pcDel() {
+  pcMyPin.pop();
+  pcRenderChooseDots();
+}
+function pcRenderChooseDots() {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('pc-d' + i);
+    if (!el) continue;
+    if (i < pcMyPin.length) {
+      el.textContent = '●';
+      el.className = 'pc-digit-box active';
+    } else {
+      el.textContent = '_';
+      el.className = 'pc-digit-box';
+    }
+  }
+  const btn = document.getElementById('pc-confirm-btn');
+  if (btn) btn.disabled = pcMyPin.length < 4;
+}
+function pcConfirm() {
+  if (pcMyPin.length !== 4) return;
+  pcMyChosenPin = [...pcMyPin];
+  socket.emit('pincrackerChoose', { roomId: S.roomId, pin: pcMyPin.join('') });
+  // Zablokuj UI
+  document.getElementById('pc-confirm-btn').disabled = true;
+  document.querySelectorAll('.pc-numpad-btn').forEach(b => b.disabled = true);
+  document.getElementById('pc-choose-wait').textContent = '✅ PIN ustawiony! Czekam na przeciwnika…';
+  // Pokaż PIN gwiazdkami
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('pc-d' + i);
+    if (el) { el.textContent = '🔒'; el.className = 'pc-digit-box correct'; }
+  }
+}
+
+// ── Klawiatura zgadywania PINu ─────────────────────────────────
+function pcGuessNum(d) {
+  if (pcGuessPin.length >= 4) return;
+  pcGuessPin.push(d);
+  pcRenderGuessDots();
+}
+function pcGuessDel() {
+  pcGuessPin.pop();
+  pcRenderGuessDots();
+}
+function pcRenderGuessDots() {
+  // Uwzględnij już odkryte pozycje (locked)
+  const opp = S.room?.players?.find(p => p.id !== S.playerId);
+  const oppId = opp?.id;
+  const revealed = pcGs?.revealed?.[oppId] || [null, null, null, null];
+  let guessIdx = 0;
+
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('pc-g' + i);
+    if (!el) continue;
+    if (revealed[i] === 'correct') {
+      // Pozycja już odgadnięta — pokaż z historii ostatniej próby
+      const hist = pcGs?.guessHistory?.[S.playerId] || [];
+      const lastCorrect = hist.slice().reverse().find(h => h.result[i] === 'correct');
+      el.textContent = lastCorrect ? lastCorrect.guess[i] : '?';
+      el.className = 'pc-digit-box correct';
+    } else {
+      el.textContent = guessIdx < pcGuessPin.length ? pcGuessPin[guessIdx] : '_';
+      el.className = 'pc-digit-box' + (guessIdx < pcGuessPin.length ? ' active' : '');
+      guessIdx++;
+    }
+  }
+  const btn = document.getElementById('pc-guess-ok');
+  // Count non-revealed slots
+  const revealed2 = pcGs?.revealed?.[oppId] || [null, null, null, null];
+  const needed = revealed2.filter(r => !r).length;
+  if (btn) btn.disabled = pcGuessPin.length < needed;
+}
+
+function pcGuessSubmit() {
+  // Reconstruct full 4-digit guess merging revealed + new digits
+  const opp = S.room?.players?.find(p => p.id !== S.playerId);
+  const oppId = opp?.id;
+  const revealed = pcGs?.revealed?.[oppId] || [null, null, null, null];
+  const hist = pcGs?.guessHistory?.[S.playerId] || [];
+
+  let full = [];
+  let guessIdx = 0;
+  for (let i = 0; i < 4; i++) {
+    if (revealed[i] === 'correct') {
+      const lastCorrect = hist.slice().reverse().find(h => h.result[i] === 'correct');
+      full.push(lastCorrect ? lastCorrect.guess[i] : 0);
+    } else {
+      full.push(pcGuessPin[guessIdx++] ?? 0);
+    }
+  }
+
+  const btn = document.getElementById('pc-guess-ok');
+  if (btn) btn.disabled = true;
+  pcGuessPin = [];
+  socket.emit('pincrackerGuess', { roomId: S.roomId, pin: full.join('') });
+}
+
+// ── Render ─────────────────────────────────────────────────────
+function pcRenderScores(gs, room) {
+  if (!room?.players) return;
+  const html = room.players.map(p => {
+    const isMe = p.id === S.playerId;
+    return `<div class="score-item${isMe?' me':''}">
+      <span class="score-name">${p.name}</span>
+      <span class="score-val">${gs.wins[p.id]||0}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('pc-scores').innerHTML = html;
+}
+
+function pcRenderAttemptRow(attempt) {
+  return '<div class="pc-attempt-row">' +
+    attempt.guess.map((d, i) => {
+      const cls = attempt.result[i] === 'correct' ? 'correct' : 'wrong';
+      return `<div class="pc-attempt-digit ${cls}">${d}</div>`;
+    }).join('') +
+  '</div>';
+}
+
+function pcRenderMyPinRevealed(gs, myId) {
+  // Pokaż własny PIN z odkrytymi przez przeciwnika pozycjami
+  const revealed = gs.revealed?.[myId] || [null, null, null, null];
+  const oppHist = gs.guessHistory?.[
+    S.room?.players?.find(p => p.id !== myId)?.id
+  ] || [];
+
+  const el = document.getElementById('pc-my-pin-revealed');
+  if (!el) return;
+  el.innerHTML = Array.from({length: 4}, (_, i) => {
+    if (revealed[i] === 'correct') {
+      // Znajdź jaka cyfra — z naszego zapamiętanego PINu
+      const digit = pcMyChosenPin[i] ?? '?';
+      return `<div class="pc-digit-box correct" style="width:36px;height:42px;font-size:20px">${digit}</div>`;
+    } else {
+      return `<div class="pc-digit-box" style="width:36px;height:42px;font-size:20px">?</div>`;
+    }
+  }).join('');
+}
+
+function pcRender(gs, room) {
+  if (!gs || !room) return;
+  pcGs = gs;
+  showScreen('pincracker');
+
+  pcRenderScores(gs, room);
+  const maxA = gs.maxAttempts || 10;
+  document.getElementById('pc-round-info').textContent =
+    `Runda ${gs.roundCurrent} / ${gs.roundsTotal}  •  maks. ${maxA} prób`;
+  document.getElementById('pc-result').textContent = '';
+
+  const me = room.players.find(p => p.id === S.playerId);
+  const opp = room.players.find(p => p.id !== S.playerId);
+  const myId = me?.id;
+  const oppId = opp?.id;
+
+  // Nazwy
+  document.querySelectorAll('.pc-opp-name').forEach(el => el.textContent = opp?.name || '?');
+
+  if (gs.phase === 'choosing') {
+    document.getElementById('pc-choose-panel').style.display = '';
+    document.getElementById('pc-guess-panel').style.display = 'none';
+
+    const alreadyChosen = gs.chosen?.[myId];
+    const oppChosen = gs.chosen?.[oppId];
+    const turnEl = document.getElementById('pc-turn');
+    const waitEl = document.getElementById('pc-choose-wait');
+
+    if (alreadyChosen) {
+      turnEl.textContent = oppChosen ? '✅ Oboje gotowi! Zaczynamy…' : `Czekam na ${opp?.name}…`;
+      turnEl.className = 'turn-indicator wait';
+    } else {
+      turnEl.textContent = oppChosen ? `${opp?.name} gotowy/a! Teraz Ty — ustaw PIN.` : '🔐 Ustaw swój tajny 4-cyfrowy PIN';
+      turnEl.className = 'turn-indicator my-turn';
+    }
+    if (waitEl && !alreadyChosen) waitEl.textContent = '';
+
+  } else if (gs.phase === 'guessing' || gs.phase === 'roundEnd') {
+    document.getElementById('pc-choose-panel').style.display = 'none';
+    document.getElementById('pc-guess-panel').style.display = '';
+
+    const isMyTurn = gs.currentTurn === myId;
+    const turnEl = document.getElementById('pc-turn');
+    const inputArea = document.getElementById('pc-guess-input-area');
+
+    if (gs.phase === 'roundEnd') {
+      turnEl.textContent = '';
+      turnEl.className = 'turn-indicator wait';
+      if (inputArea) inputArea.style.display = 'none';
+    } else if (isMyTurn) {
+      const myAttemptsLeft = maxA - (gs.guessHistory?.[myId]?.length || 0);
+      turnEl.textContent = `🎯 Twoja tura! Pozostało prób: ${myAttemptsLeft}`;
+      turnEl.className = 'turn-indicator my-turn';
+      if (inputArea) inputArea.style.display = '';
+      // Reset guess input
+      pcGuessPin = [];
+      pcRenderGuessDots();
+    } else {
+      const oppAttemptsLeft = maxA - (gs.guessHistory?.[oppId]?.length || 0);
+      turnEl.textContent = `⏳ Tura ${opp?.name}… (ma ${oppAttemptsLeft} prób)`;
+      turnEl.className = 'turn-indicator wait';
+      if (inputArea) inputArea.style.display = 'none';
+    }
+
+    // Historia moich ataków
+    const myHist = gs.guessHistory?.[myId] || [];
+    document.getElementById('pc-my-attempts').innerHTML =
+      myHist.length ? myHist.map(pcRenderAttemptRow).join('') :
+      '<span style="color:var(--muted);font-size:12px">brak prób</span>';
+
+    // Mój PIN z odkrytymi cyfry
+    pcRenderMyPinRevealed(gs, myId);
+
+    // Historia ataków przeciwnika na mój PIN
+    const oppHist = gs.guessHistory?.[oppId] || [];
+    document.getElementById('pc-opp-attempts').innerHTML =
+      oppHist.length ? oppHist.map(pcRenderAttemptRow).join('') :
+      '<span style="color:var(--muted);font-size:12px">brak prób</span>';
+  }
+}
+
+// ── Socket events ──────────────────────────────────────────────
+socket.on('pincrackerState', ({ gs, room }) => {
+  S.room = room;
+  // Detect new round reset
+  if (gs.phase === 'choosing' && !gs.chosen?.[S.playerId]) {
+    pcMyPin = [];
+    pcMyChosenPin = [];
+    // Re-enable numpad
+    document.querySelectorAll('#pc-choose-panel .pc-numpad-btn').forEach(b => b.disabled = false);
+    const btn = document.getElementById('pc-confirm-btn');
+    if (btn) btn.disabled = true;
+    const waitEl = document.getElementById('pc-choose-wait');
+    if (waitEl) waitEl.textContent = '';
+    pcRenderChooseDots();
+  }
+  pcRender(gs, room);
+});
+
+socket.on('pincrackerRoundEnd', ({ gs, room, winner, revealedPins, attemptsUsed }) => {
+  S.room = room;
+  pcGs = gs;
+  const resEl = document.getElementById('pc-result');
+  if (winner) {
+    const winnerName = room.players.find(p => p.id === winner)?.name || '?';
+    const opp = room.players.find(p => p.id !== winner);
+    const oppPin = revealedPins?.[opp?.id]?.join('') || '????';
+    const isMe = winner === S.playerId;
+    if (resEl) {
+      resEl.textContent = isMe
+        ? `🏆 Odgadłeś/aś PIN ${opp?.name}: ${oppPin}! (${attemptsUsed} prób)`
+        : `💥 ${winnerName} złamał/a Twój PIN: ${revealedPins?.[S.playerId]?.join('')||'????'}!`;
+      resEl.style.color = isMe ? '#2ecc71' : '#e74c3c';
+    }
+    showToast(isMe ? `🏆 Brawo! Odgadłeś/aś PIN!` : `💥 Twój PIN został złamany!`, isMe ? 'success' : 'error');
+  } else {
+    if (resEl) { resEl.textContent = '🤝 Remis! Nikt nie odgadł PINu w limicie prób.'; resEl.style.color = 'var(--muted)'; }
+    showToast('🤝 Remis rundy!', 'info');
+    // Reveal pins
+    if (revealedPins) {
+      const lines = room.players.map(p => `${p.name}: ${revealedPins[p.id]?.join('')||'????'}`);
+      setTimeout(() => showToast('PIN: ' + lines.join(' | '), 'info'), 600);
+    }
+  }
+  pcMyChosenPin = [];
+  pcRender(gs, room);
+});
+
+// ══════════════════════════════════════════════════════════════
+// TURNIEJ — CLIENT
+// ══════════════════════════════════════════════════════════════
+let TM = {
+  current: null,       // aktualny obiekt turnieju
+  isHost: false,
+  myId: null,          // S.playerId alias
+  pendingJoinCode: null,
+};
+
+// ── Helpers ────────────────────────────────────────────────────
+
+function tmMyId() { return S.playerId || TM.myId; }
+
+function tmIsHost() {
+  return TM.current && TM.current.hostId === tmMyId();
+}
+
+function tmOpenList() {
+  socket.emit('tournamentGetList');
+  showScreen('tournament-list');
+}
+
+function tmCreate() {
+  const name = S.playerName || prompt('Twoja nazwa gracza:');
+  if (!name) return;
+  S.playerName = name;
+  socket.emit('tournamentCreate', { playerName: name });
+}
+
+function tmJoinByCode() {
+  const code = document.getElementById('tm-join-code-input')?.value?.trim().toUpperCase();
+  if (!code) return showToast('Wpisz kod turnieju', 'error');
+  const name = S.playerName || prompt('Twoja nazwa gracza:');
+  if (!name) return;
+  S.playerName = name;
+  socket.emit('tournamentJoin', { tournamentId: code, playerName: name });
+}
+
+function tmLeave() {
+  if (TM.current) {
+    socket.emit('tournamentLeave', { tournamentId: TM.current.id });
+    TM.current = null;
+  }
+  showScreen('tournament-list');
+}
+
+function tmStart() {
+  if (!TM.current) return;
+  socket.emit('tournamentStart', { tournamentId: TM.current.id });
+}
+
+function tmPickGame(gameType) {
+  if (!TM.current) return;
+  socket.emit('tournamentPickGame', { tournamentId: TM.current.id, gameType });
+}
+
+function tmSetAdvancers(n) {
+  if (!TM.current) return;
+  socket.emit('tournamentSetAdvancers', { tournamentId: TM.current.id, count: n });
+}
+
+// ── Render lobby ───────────────────────────────────────────────
+
+function tmRenderLobby(t) {
+  TM.current = t;
+  TM.isHost = tmIsHost();
+  showScreen('tournament-lobby');
+
+  document.getElementById('tm-id-badge').textContent = t.id;
+  document.getElementById('tm-join-code').textContent = t.id;
+  document.getElementById('tm-player-count').textContent = t.players.length;
+
+  const subtitle = `Host: ${t.hostName} • Faza grupowa → Eliminacje`;
+  document.getElementById('tm-lobby-subtitle').textContent = subtitle;
+
+  // Gracze
+  const playersEl = document.getElementById('tm-lobby-players');
+  playersEl.innerHTML = t.players.map(p => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg);border-radius:8px">
+      <span style="font-size:16px">${p.id === t.hostId ? '👑' : '👤'}</span>
+      <span style="font-weight:${p.id === tmMyId() ? '800' : '600'}">${p.name}${p.id === tmMyId() ? ' (Ty)' : ''}</span>
+      ${p.id === t.hostId ? '<span style="font-size:11px;color:var(--muted)">host</span>' : ''}
+    </div>
+  `).join('');
+
+  // Ustawienia hosta
+  const settingsEl = document.getElementById('tm-host-settings');
+  const startBtn   = document.getElementById('tm-start-btn');
+  const waitMsg    = document.getElementById('tm-waiting-msg');
+
+  if (TM.isHost) {
+    settingsEl.style.display = '';
+    startBtn.style.display = '';
+    waitMsg.textContent = t.players.length < 3 ? `⚠️ Potrzeba min. 3 graczy (masz ${t.players.length})` : '';
+    startBtn.disabled = t.players.length < 3;
+
+    // Przyciski liczby awansujących
+    const maxAdv = Math.max(2, t.players.length - 1);
+    const advBtns = document.getElementById('tm-adv-buttons');
+    advBtns.innerHTML = Array.from({length: maxAdv - 1}, (_, i) => i + 2).map(n => `
+      <button onclick="tmSetAdvancers(${n})"
+        style="padding:4px 12px;border-radius:8px;border:2px solid ${n === t.playoffAdvancers ? 'var(--accent)' : 'var(--border)'};
+               background:${n === t.playoffAdvancers ? 'var(--accent)' : 'var(--card)'};
+               color:${n === t.playoffAdvancers ? '#fff' : 'var(--text)'};cursor:pointer;font-weight:700">
+        ${n}
+      </button>
+    `).join('');
+    document.getElementById('tm-adv-hint').textContent =
+      `Top ${t.playoffAdvancers} z fazy grupowej awansuje do eliminacji`;
+  } else {
+    settingsEl.style.display = 'none';
+    startBtn.style.display = 'none';
+    waitMsg.textContent = `⏳ Czekaj aż host (${t.hostName}) rozpocznie turniej`;
+  }
+}
+
+// ── Render bracket/standings ────────────────────────────────────
+
+function tmRenderBracket(t) {
+  TM.current = t;
+  showScreen('tournament-bracket');
+
+  const titleEl = document.getElementById('tm-bracket-title');
+  const phaseEl = document.getElementById('tm-bracket-phase');
+  titleEl.textContent = `🏆 Turniej ${t.id}`;
+
+  const phaseNames = { group: '📊 Faza grupowa', playoff: '⚡ Faza eliminacji', finished: '🏁 Zakończony' };
+  phaseEl.textContent = phaseNames[t.status] || t.status;
+
+  // Standings
+  const standEl = document.getElementById('tm-standings-section');
+  if (t.groupStandings && t.status !== 'lobby') {
+    standEl.style.display = '';
+    const rows = Object.entries(t.groupStandings)
+      .map(([id, s]) => ({ id, ...s }))
+      .sort((a, b) => b.points - a.points || b.wins - a.wins);
+    const advIds = new Set(
+      t.status === 'playoff' || t.status === 'finished'
+        ? t.players.filter(p => !p.eliminated || t.status === 'finished').map(p => p.id)
+        : []
+    );
+    document.getElementById('tm-standings-table').innerHTML =
+      rows.map((r, i) => `
+        <div class="tm-standings-row">
+          <span style="width:22px;color:var(--muted);font-weight:700">${i+1}.</span>
+          <span style="flex:1;font-weight:${r.id === tmMyId() ? '800' : '600'}">${r.name}${r.id === tmMyId() ? ' 👤' : ''}</span>
+          <span style="color:#2ecc71;font-weight:700;min-width:30px">${r.wins}W</span>
+          <span style="color:#e74c3c;font-weight:700;min-width:30px">${r.losses}L</span>
+          <span style="color:var(--accent);font-weight:700;min-width:40px">${r.points}pkt</span>
+          ${advIds.has(r.id) && t.status !== 'lobby' && t.status !== 'group' ? '<span class="tm-adv-badge">✅ awans</span>' : ''}
+        </div>
+      `).join('');
+  } else {
+    standEl.style.display = 'none';
+  }
+
+  // Mecze grupowe
+  const groupEl = document.getElementById('tm-group-matches-section');
+  const groupMatches = t.matches.filter(m => m.phase === 'group');
+  if (groupMatches.length) {
+    groupEl.style.display = '';
+    document.getElementById('tm-group-matches-list').innerHTML = groupMatches.map(m => tmMatchCard(m, t)).join('');
+  } else {
+    groupEl.style.display = 'none';
+  }
+
+  // Playoff
+  const playoffEl = document.getElementById('tm-playoff-section');
+  const playoffMatches = t.matches.filter(m => m.phase === 'playoff');
+  if (playoffMatches.length) {
+    playoffEl.style.display = '';
+    const rounds = [...new Set(playoffMatches.map(m => m.playoffRound))].sort();
+    document.getElementById('tm-playoff-bracket').innerHTML = rounds.map(r => {
+      const rMatches = playoffMatches.filter(m => m.playoffRound === r);
+      const rName = rMatches.length === 1 ? 'Finał' : rMatches.length === 2 ? 'Półfinał' : `Runda ${r}`;
+      return `<div style="margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${rName}</div>
+        ${rMatches.map(m => tmMatchCard(m, t)).join('')}
+      </div>`;
+    }).join('');
+  } else {
+    playoffEl.style.display = 'none';
+  }
+
+  // Mistrz
+  const champEl = document.getElementById('tm-champion-section');
+  if (t.status === 'finished' && t.champion) {
+    champEl.style.display = '';
+    document.getElementById('tm-champion-name').textContent = t.champion.name;
+  } else {
+    champEl.style.display = 'none';
+  }
+}
+
+function tmMatchCard(m, t) {
+  const gameIcon = m.gameType ? (tmGetGameIcon(m.gameType) + ' ' + m.gameType) : '';
+  const statusLabel = { pending: 'oczekuje', picking: '🎮 wybór gry', playing: '▶️ gra trwa', done: '✓', bye: 'bye' }[m.status] || m.status;
+
+  const p1cls = m.status === 'done' ? (m.winner?.id === m.p1?.id ? 'winner' : 'loser') : (m.status === 'playing' ? 'active' : '');
+  const p2cls = m.status === 'done' ? (m.winner?.id === m.p2?.id ? 'winner' : 'loser') : (m.status === 'playing' ? 'active' : '');
+
+  return `<div class="tm-match-card ${m.status}">
+    <div class="tm-player-pill ${p1cls}">${m.p1?.name || 'BYE'}</div>
+    <div class="tm-vs">VS</div>
+    <div class="tm-player-pill ${p2cls}">${m.p2?.name || 'BYE'}</div>
+    <div style="font-size:11px;color:var(--muted);min-width:70px;text-align:right">${m.status === 'done' && gameIcon ? gameIcon : statusLabel}</div>
+  </div>`;
+}
+
+function tmGetGameIcon(gameType) {
+  const icons = { tictactoe:'⭕', chess:'♟️', highlow:'🔢', pincracker:'🔑', hangman:'🪢', quiz:'❓', wordrace:'🏃', kalambury:'🎨', familyfeud:'👪', jeopardy:'📺', wavelength:'📡' };
+  return icons[gameType] || '🎮';
+}
+
+// ── Render pick-game screen ─────────────────────────────────────
+
+function tmRenderPickGame(t, match) {
+  TM.current = t;
+  if (!match) return;
+
+  const p1 = match.p1?.name || '?';
+  const p2 = match.p2?.name || '?';
+  document.getElementById('tm-pick-match-info').textContent = `${p1} vs ${p2}`;
+
+  // Only 2-player games
+  const eligible = (window._availableGames || window.games || []).filter(g =>
+    g.maxPlayers === 2 && g.minPlayers === 2 && !['chess','poker','blackjack'].includes(g.id)
+  );
+
+  document.getElementById('tm-pick-games').innerHTML = eligible.map(g => `
+    <div class="tm-game-pick-btn" onclick="tmPickGame('${g.id}')">
+      <div style="font-size:28px;margin-bottom:4px">${g.icon || '🎮'}</div>
+      <div style="font-weight:700;font-size:14px">${g.name}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${g.description || ''}</div>
+    </div>
+  `).join('') || '<div style="color:var(--muted)">Brak dostępnych gier dla 2 graczy</div>';
+
+  showScreen('tournament-pick');
+}
+
+// ── Render wait screen ─────────────────────────────────────────
+
+function tmRenderWait(t, msg, sub) {
+  TM.current = t;
+  document.getElementById('tm-wait-title').textContent = msg || 'Czekaj na swój mecz…';
+  document.getElementById('tm-wait-sub').textContent = sub || '';
+
+  // Mini bracket w poczekalni
+  if (t) {
+    const currentMatch = t.matches.find(m => m.id === t.currentMatchId);
+    if (currentMatch) {
+      document.getElementById('tm-wait-bracket').innerHTML = `
+        <div style="background:var(--card);border-radius:10px;padding:12px;font-size:13px">
+          <div style="color:var(--muted);margin-bottom:6px">Aktualny mecz:</div>
+          ${tmMatchCard(currentMatch, t)}
+        </div>`;
+    }
+  }
+  showScreen('tournament-wait');
+}
+
+// ── Socket events ──────────────────────────────────────────────
+
+socket.on('tournamentList', (list) => {
+  const el = document.getElementById('tm-list-items');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:14px">Brak aktywnych turniejów</div>';
+    return;
+  }
+  const nameInput = document.getElementById('player-name-input')?.value || S.playerName || '';
+  el.innerHTML = list.map(t => `
+    <div style="background:var(--card);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-weight:700">${t.hostName}'s turniej <span style="color:var(--muted);font-weight:400;font-size:12px">${t.id}</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${t.players.length} graczy • ${t.status === 'lobby' ? 'Lobby' : t.status === 'group' ? 'Faza grupowa' : 'Eliminacje'}</div>
+      </div>
+      ${t.status === 'lobby' ? `<button class="btn btn-primary" style="padding:6px 16px;font-size:13px" onclick="tmJoinExisting('${t.id}')">Dołącz</button>` : '<span style="color:var(--muted);font-size:12px">W toku</span>'}
+    </div>
+  `).join('') + `
+    <div style="margin-top:12px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Masz kod turnieju?</div>
+      <div style="display:flex;gap:8px">
+        <input id="tm-join-code-input" class="input" placeholder="Kod turnieju (np. TABC)" style="flex:1;text-transform:uppercase" maxlength="6">
+        <button class="btn btn-secondary" onclick="tmJoinByCode()">Dołącz</button>
+      </div>
+    </div>
+  `;
+});
+
+function tmJoinExisting(id) {
+  const name = S.playerName || prompt('Twoja nazwa:');
+  if (!name) return;
+  S.playerName = name;
+  socket.emit('tournamentJoin', { tournamentId: id, playerName: name });
+}
+
+socket.on('tournamentCreated', ({ tournament }) => {
+  TM.current = tournament;
+  TM.isHost = true;
+  tmRenderLobby(tournament);
+});
+
+socket.on('tournamentJoined', ({ tournament }) => {
+  TM.current = tournament;
+  TM.isHost = false;
+  tmRenderLobby(tournament);
+});
+
+socket.on('tournamentUpdate', ({ tournament }) => {
+  TM.current = tournament;
+  const screen = document.querySelector('.screen.active')?.id;
+
+  if (tournament.status === 'lobby') {
+    // Odśwież lobby jeśli jesteś w nim lub dopiero dołączyłeś
+    if (!screen || screen === 'screen-tournament-lobby' || screen === 'screen-home') {
+      tmRenderLobby(tournament);
+    }
+  } else if (screen && screen.startsWith('screen-tournament')) {
+    if (screen === 'screen-tournament-bracket') tmRenderBracket(tournament);
+    else if (screen === 'screen-tournament-lobby') tmRenderLobby(tournament);
+    // Na wait/pick — zaktualizuj tylko TM.current, render zrobi odpowiedni event
+  }
+  // Jeśli nie jesteśmy na żadnym ekranie turniejowym ale jesteśmy w turnieju
+  // (np. wróciliśmy z meczu), pokaż bracket
+  else if (TM.current && tournament.status !== 'lobby') {
+    const isInTournament = tournament.players.some(p => p.id === tmMyId());
+    if (isInTournament && screen === 'screen-gameover') {
+      tmRenderBracket(tournament);
+    }
+  }
+});
+
+socket.on('tournamentPickGame', ({ tournament, match }) => {
+  TM.current = tournament;
+  if (tmIsHost()) {
+    tmRenderPickGame(tournament, match);
+  } else {
+    // Sprawdź czy to mój mecz
+    const myId = tmMyId();
+    const isMyMatch = match.p1?.id === myId || match.p2?.id === myId;
+    if (isMyMatch) {
+      tmRenderWait(tournament, '⏳ Host wybiera grę dla Twojego meczu…', `${match.p1?.name} vs ${match.p2?.name}`);
+    } else {
+      tmRenderWait(tournament, '⏳ Czekaj na swój mecz', `Trwa mecz: ${match.p1?.name} vs ${match.p2?.name}`);
+    }
+  }
+});
+
+socket.on('tournamentMatchReady', ({ tournament, match, roomId }) => {
+  TM.current = tournament;
+  const myId = tmMyId();
+  const isMyMatch = match.p1?.id === myId || match.p2?.id === myId;
+
+  // Zaktualizuj bracket dla wszystkich
+  if (document.querySelector('.screen.active')?.id === 'screen-tournament-bracket') {
+    tmRenderBracket(tournament);
+  }
+
+  if (isMyMatch) {
+    showToast(`🎮 Twój mecz: ${match.p1.name} vs ${match.p2.name} — ${match.gameType}!`, 'success');
+    // Dołącz do pokoju
+    socket.emit('joinRoom', { roomId, playerName: S.playerName });
+    // Ustaw flagę żeby po gameOver wrócić do brackettu
+    S._inTournamentMatch = true;
+    S._tournamentId = tournament.id;
+  } else {
+    // Obserwuj / czekaj
+    tmRenderWait(tournament,
+      '⏳ Inny mecz trwa…',
+      `${match.p1?.name} vs ${match.p2?.name} (${match.gameType})`
+    );
+  }
+});
+
+socket.on('tournamentPhaseChange', ({ phase, advancers, tournament }) => {
+  TM.current = tournament;
+  if (phase === 'playoff') {
+    const myId = tmMyId();
+    const imIn = advancers.some(a => a.id === myId);
+    showToast(imIn ? '🎉 Awansujesz do fazy eliminacji!' : '😔 Nie awansujesz do playoff', imIn ? 'success' : 'error');
+  }
+  tmRenderBracket(tournament);
+});
+
+socket.on('tournamentFinished', ({ tournament }) => {
+  TM.current = tournament;
+  const isChamp = tournament.champion?.id === tmMyId();
+  showToast(isChamp ? '🏆 Jesteś mistrzem turnieju!' : `🏆 Mistrz: ${tournament.champion?.name}`, isChamp ? 'success' : 'info');
+  tmRenderBracket(tournament);
+});
+
+socket.on('tournamentHostChanged', ({ newHostId }) => {
+  if (TM.current) {
+    TM.current.hostId = newHostId;
+    TM.isHost = newHostId === tmMyId();
+    if (TM.isHost) showToast('👑 Zostałeś nowym hostem turnieju!', 'info');
+    if (document.querySelector('.screen.active')?.id === 'screen-tournament-lobby') {
+      tmRenderLobby(TM.current);
+    }
+  }
+});
+
+socket.on('tournamentError', ({ message }) => {
+  showToast('❌ ' + message, 'error');
+});
+
+// Tournament gameOver — handled in main gameOver handler above
+
+// ── Cache listy gier dla ekranu wyboru ─────────────────────────
+// Request on load
+// _availableGames is populated by utils.js init() via window.games
