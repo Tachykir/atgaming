@@ -1,0 +1,74 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ *  KONFIGURACJA RTP (zwrotu dla gracza) — ustawiana z panelu admina
+ *
+ *  Każda gra ma bazowe RTP (z kalibracji symulacjami). Admin ustawia docelowe RTP,
+ *  a gra dostaje współczynnik scale = target / base:
+ *   - automaty: wszystkie wypłaty (linie, scattery, jackpoty, bonusy) × scale
+ *   - pachinko: mnożniki pól × scale
+ *   - crash:    P(crash ≥ x) = target / x
+ *   - coinflip: wypłata solo = 2 × target
+ *  Gry o stałych zasadach (ruletka, blackjack, poker PvP) są tylko do podglądu.
+ * ═══════════════════════════════════════════════════════════════
+ */
+'use strict';
+
+const store = require('./store');
+
+const GAMES = {
+  slots:            { name: 'Lucky Fruits',     kind: 'slot', base: 0.950 },
+  path_of_gambling: { name: 'Path of Gambling', kind: 'slot', base: 0.950 },
+  jackpot_frenzy:   { name: 'Jackpot Frenzy',   kind: 'slot', base: 0.955 },
+  dragon_hoard:     { name: 'Dragon Hoard',     kind: 'slot', base: 0.950 },
+  arcane_academy:   { name: 'Arcane Academy',   kind: 'slot', base: 0.945 },
+  dual_blades:      { name: 'Dual Blades',      kind: 'slot', base: 0.955 },
+  neon_racer:       { name: 'Neon Racer',       kind: 'slot', base: 0.952 },
+  candy_tumble:     { name: 'Candy Tumble',     kind: 'slot', base: 0.951 },
+  book_pharaoh:     { name: 'Księga Faraona',   kind: 'slot', base: 0.952 },
+  hot_777:          { name: 'Hot 777',          kind: 'slot', base: 0.948 },
+  pachinko:         { name: 'Pachinko',         kind: 'pachinko', base: 0.960 },
+  crash:            { name: 'Crash',            kind: 'crash', base: 0.960 },
+  coinflip:         { name: 'Coinflip (solo)',  kind: 'coinflip', base: 0.980 },
+  roulette:         { name: 'Ruletka',          kind: 'fixed', base: 0.973 },
+  blackjack:        { name: 'Blackjack',        kind: 'fixed', base: 0.995 },
+  poker:            { name: 'Poker (PvP)',      kind: 'fixed', base: 1.000 },
+};
+const MIN = 0.5, MAX = 1.2;
+const SETTING_KEY = 'rtp_targets';
+
+let targets = {};      // gameId → docelowe RTP (tylko nadpisane)
+let history = [];      // ostatnie zmiany (audyt)
+
+async function load() {
+  const saved = await store.getSetting(SETTING_KEY).catch(() => null);
+  if (saved && typeof saved === 'object') {
+    targets = saved.targets || {};
+    history = saved.history || [];
+  }
+}
+
+function adjustable(gameId) { const g = GAMES[gameId]; return !!g && g.kind !== 'fixed'; }
+function target(gameId) { const g = GAMES[gameId]; if (!g) return 1; return targets[gameId] ?? g.base; }
+function scale(gameId) { const g = GAMES[gameId]; if (!g || g.kind === 'fixed') return 1; return target(gameId) / g.base; }
+
+async function set(gameId, value, by = 'admin') {
+  if (!adjustable(gameId)) throw new Error('Tej gry nie można regulować');
+  const v = Math.round(Number(value) * 10000) / 10000;
+  if (!(v >= MIN && v <= MAX)) throw new Error(`RTP musi być w zakresie ${MIN * 100}–${MAX * 100}%`);
+  const prev = target(gameId);
+  if (Math.abs(v - GAMES[gameId].base) < 1e-9) delete targets[gameId]; else targets[gameId] = v;
+  history = [{ gameId, from: prev, to: v, by, at: new Date().toISOString() }, ...history].slice(0, 50);
+  await store.setSetting(SETTING_KEY, { targets, history });
+  return v;
+}
+async function resetAll(by = 'admin') {
+  history = [{ gameId: '*', from: null, to: null, by, at: new Date().toISOString() }, ...history].slice(0, 50);
+  targets = {};
+  await store.setSetting(SETTING_KEY, { targets, history });
+}
+
+function list() {
+  return Object.entries(GAMES).map(([id, g]) => ({ id, name: g.name, kind: g.kind, base: g.base, target: target(id), scale: scale(id), adjustable: g.kind !== 'fixed', overridden: id in targets }));
+}
+
+module.exports = { GAMES, MIN, MAX, load, target, scale, set, resetAll, list, adjustable, get history() { return history; } };

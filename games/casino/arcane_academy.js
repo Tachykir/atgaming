@@ -160,6 +160,9 @@ function autoBonus(state) {
   return won;
 }
 
+// Kwoty w bonusie (suma i odkryte pola gotówki) w AT$ po skalowaniu RTP — klient pokazuje value × bet × rtpScale
+function scalePick(pp, k) { return k === 1 ? pp : { ...pp, total: pp.total * k }; }
+
 function registerHandlers(socket, io, casino) {
   E.register(def, socket, io, casino);
   socket.on('casinoAAPick', async (data) => {
@@ -170,22 +173,27 @@ function registerHandlers(socket, io, casino) {
       if (!state.pick || state.pick.done) return;
       const r = resolvePick(state, Number(data.index));
       if (!r) return;
-      if (r.cash > 0) {
-        await casino.updateBalance(discordUser.id, Math.floor(r.cash));
-        await casino.updateSlotStats(discordUser.id, def.game, { won: Math.floor(r.cash), bestWin: Math.floor(r.cash) });
+      const k = E.rtpScale(casino, def.game);
+      const cash = Math.floor(r.cash * k);
+      if (cash > 0) {
+        await casino.updateBalance(discordUser.id, cash);
+        casino.tracker?.track(def.game, { wagered: 0, returned: cash, rounds: 0 });
+        await casino.updateSlotStats(discordUser.id, def.game, { won: cash, bestWin: cash });
       }
       const balance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
       const pk = state.pick;
-      socket.emit('casinoAAPickResult', { index: Number(data.index), item: r.item, cash: Math.floor(r.cash), fsAwarded: r.fsAwarded, pick: publicPick(pk, pk.done), balance, freeSpins: state.freeSpins });
+      socket.emit('casinoAAPickResult', { index: Number(data.index), item: r.item, cash, fsAwarded: r.fsAwarded, pick: scalePick(publicPick(pk, pk.done), k), balance, freeSpins: state.freeSpins, rtpScale: k });
       if (pk.done) state.pick = null;
+      E.persistState(def, casino, discordUser.id);
     });
   });
   // Po reconnect klient może zapytać o niedokończony bonus
-  socket.on('casinoAAGetState', (data) => {
+  socket.on('casinoAAGetState', async (data) => {
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return;
-    const state = E.stateFor(def, discordUser.id);
-    socket.emit('casinoAAState', { freeSpins: state.freeSpins, fsMult: state.fsMult, freeBet: state.freeBet, pick: state.pick && !state.pick.done ? publicPick(state.pick, false) : null });
+    const state = await E.loadState(def, casino, discordUser.id);
+    const k = E.rtpScale(casino, def.game);
+    socket.emit('casinoAAState', { freeSpins: state.freeSpins, fsMult: state.fsMult, freeBet: state.freeBet, rtpScale: k, pick: state.pick && !state.pick.done ? scalePick(publicPick(state.pick, false), k) : null });
   });
 }
 

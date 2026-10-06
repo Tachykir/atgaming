@@ -213,6 +213,33 @@ select.input option{background:var(--surface2);}
 .tab-btn.active{background:var(--accent);color:white;border-color:var(--accent);}
 .admin-section{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px;margin-bottom:16px;}
 .admin-section h3{font-size:16px;font-weight:700;margin-bottom:16px;}
+/* Panel RTP kasyna */
+.rtp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.rtp-kpis>div,.rtp-obs>div{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.rtp-kpis span,.rtp-obs span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.rtp-kpis b{font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.rtp-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rtp-input{width:84px;padding:6px 8px;font-size:13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);text-align:right}
+.rtp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:12px;margin-bottom:16px}
+.rtp-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.rtp-card.changed{border-color:var(--accent)}
+.rtp-card.danger{border-color:var(--warning);box-shadow:0 0 0 1px rgba(252,192,92,.25) inset}
+.rtp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.rtp-head b{font-size:15px}
+.rtp-kind{margin-left:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:99px;padding:2px 7px;white-space:nowrap}
+.rtp-target{font-size:20px;font-weight:800;color:var(--accent3);font-variant-numeric:tabular-nums}
+.rtp-hint{font-size:12px;color:var(--muted);line-height:1.45}
+.rtp-edit{display:flex;align-items:center;gap:8px}
+.rtp-edit input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.rtp-warn{font-size:12px;color:var(--warning);background:rgba(252,192,92,.08);border:1px solid rgba(252,192,92,.3);border-radius:8px;padding:6px 10px}
+.rtp-actions{display:flex;gap:6px;flex-wrap:wrap}
+.rtp-obs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.rtp-obs b{font-size:13px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+@media (max-width:520px){.rtp-obs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rtp-sim{font-size:12px;background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.3);border-radius:8px;padding:7px 10px}
+.rtp-hist{width:100%;border-collapse:collapse;font-size:13px}
+.rtp-hist th{text-align:left;color:var(--muted);font-weight:600;padding:6px;border-bottom:1px solid var(--border)}
+.rtp-hist td{padding:6px;border-bottom:1px solid var(--border)}
 .word-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
 .word-chip{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:13px;font-family:'DM Mono',monospace;}
 .word-chip button{background:none;border:none;color:var(--error);cursor:pointer;font-size:15px;line-height:1;}
@@ -1161,7 +1188,7 @@ select.input option{background:var(--surface2);}
     </div>
     <div class="hero-links">
       <span class="hero-link" onclick="showLeaderboard()">🏆 Leaderboard</span>
-      <span class="hero-link" onclick="showScreen('admin-login')">⚙️ Panel admina</span>
+      <span class="hero-link" onclick="openAdmin()">⚙️ Panel admina</span>
     </div>
   </div>
 </div>
@@ -1379,6 +1406,7 @@ select.input option{background:var(--surface2);}
       <h2>⚙️ Panel Admina</h2>
       <button class="btn btn-danger btn-sm" onclick="adminResetLb()">🗑️ Wyczyść LB</button>
       <button class="btn btn-danger btn-sm" onclick="adminReset()">🔄 Reset treści</button>
+      <button class="btn btn-secondary btn-sm" onclick="adminLogout()">🚪 Wyloguj</button>
     </div>
     <div class="admin-tabs" id="admin-tabs"></div>
     <div id="admin-tab-content"></div>
@@ -3397,11 +3425,19 @@ socket.on('kalamburyReveal', ({word, room}) => {
 });
 
 // ── ADMIN ──────────────────────────────────────────────────────
+// Sesja admina przetrwa odświeżenie strony — nie trzeba logować się ponownie
+async function openAdmin() {
+  try {
+    const r = await fetch('/api/admin/session');
+    if (r.ok && (await r.json()).isAdmin) { await loadAdminContent(); return showScreen('admin'); }
+  } catch (e) {}
+  showScreen('admin-login');
+}
 async function adminLogin() {
   const pwd = document.getElementById('admin-password').value;
   const r = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
-  const {ok} = await r.json();
-  if (!ok) return showToast('Złe hasło!','error');
+  const {ok, error} = await r.json().catch(() => ({}));
+  if (!ok) return showToast(error || 'Złe hasło!','error');
   adminPwd = pwd; await loadAdminContent(); showScreen('admin');
 }
 async function loadAdminContent() {
@@ -3410,12 +3446,13 @@ async function loadAdminContent() {
 }
 function renderAdminTabs() {
   const ids = Object.keys(content);
-  const allIds = [...ids, 'casino'];
+  const allIds = [...ids, 'casino', 'casino-rtp'];
   if (!activeAdminTab || !allIds.includes(activeAdminTab)) activeAdminTab = ids[0];
   document.getElementById('admin-tabs').innerHTML = ids.map(id => {
     const meta = games.find(g=>g.id===id)||{icon:'🎮',name:id};
     return `<button class="tab-btn ${id===activeAdminTab?'active':''}" onclick="adminTab('${id}')">${meta.icon} ${meta.name}</button>`;
-  }).join('') + `<button class="tab-btn ${activeAdminTab==='casino'?'active':''}" onclick="adminTab('casino')">💰 Kasino AT$</button>`;
+  }).join('') + `<button class="tab-btn ${activeAdminTab==='casino'?'active':''}" onclick="adminTab('casino')">💰 Kasyno: portfele</button>`
+    + `<button class="tab-btn ${activeAdminTab==='casino-rtp'?'active':''}" onclick="adminTab('casino-rtp')">🎛️ Kasyno: RTP</button>`;
   renderAdminTabContent(activeAdminTab);
 }
 function adminTab(t) { activeAdminTab=t; renderAdminTabs(); }
@@ -3426,6 +3463,7 @@ function renderAdminTabContent(gameId) {
   else if(gameId==='quiz') el.innerHTML=renderQuizAdmin(c);
   else if(gameId==='wordrace') el.innerHTML=renderWordRaceAdmin(c);
   else if(gameId==='casino') { renderCasinoAdmin(); }
+  else if(gameId==='casino-rtp') { renderCasinoRtpAdmin(); }
   else el.innerHTML='<p style="color:var(--muted)">Brak panelu admina dla tej gry.</p>';
 }
 function renderHangmanAdmin(c){
@@ -3515,7 +3553,7 @@ async function casinoAdminLoadWallets() {
   if (!el) return;
   el.innerHTML = '<p style="color:var(--muted);font-size:13px">⏳ Ładowanie...</p>';
   try {
-    const r = await fetch('/api/admin/casino/wallets?password=' + encodeURIComponent(adminPwd));
+    const r = await fetch('/api/admin/casino/wallets', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: adminPwd || undefined }) });
     if (!r.ok) { el.innerHTML = '<p style="color:var(--error)">Błąd dostępu</p>'; return; }
     const wallets = await r.json();
     casinoAdminWallets = wallets;
@@ -5234,5 +5272,6 @@ socket.on('tournamentError', ({ message }) => {
 <script src="/js/casino-ct.js"></script>
 <script src="/js/casino-bp.js"></script>
 <script src="/js/casino-h7.js"></script>
+<script src="/js/admin-casino.js"></script>
 </body>
 </html>

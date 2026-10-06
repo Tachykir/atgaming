@@ -12,10 +12,10 @@ const TICK_MS = 100;
 const GROWTH = 0.07;          // multiplier = e^(GROWTH * t)
 const MAX_MULT = 1000;
 
-// House edge ~4%: P(crash >= x) = 0.96 / x
-function generateCrashPoint() {
+// P(crash >= x) = RTP / x  (domyślnie RTP 96%, ustawiane w panelu admina)
+function generateCrashPoint(rtp = 0.96) {
   const r = Math.random();
-  const x = 0.96 / (1 - r);
+  const x = rtp / (1 - r);
   return Math.min(MAX_MULT, Math.max(1, Math.floor(x * 100) / 100));
 }
 
@@ -56,6 +56,7 @@ async function settleCashout(table, io, casino, discordId, mult, socket) {
   bet.cashOutAt = mult;
   bet.winAmount = Math.floor(bet.amount * mult);
   await casino.updateBalance(discordId, bet.winAmount);
+  casino.tracker?.track('crash', { wagered: 0, returned: bet.winAmount, rounds: 0 });
   const balance = (await casino.getWallet(discordId))?.balance ?? 0;
   const payload = { tableId: table.id, discordId, multiplier: mult, winAmount: bet.winAmount, net: bet.winAmount - bet.amount, balance };
   if (socket) socket.emit('casinoCrashCashedOut', payload);
@@ -87,6 +88,7 @@ function registerHandlers(socket, io, casino) {
         return socket.emit('casinoError', { message: 'Runda już wystartowała' });
       }
       await casino.ensureWallet(discordUser);
+      casino.tracker?.track('crash', { wagered: betAmt, returned: 0 });
       gs.bets[discordUser.id] = {
         amount: betAmt, autoCashout, socketId: socket.id,
         name: discordUser.globalName || discordUser.username, avatar: discordUser.avatar,
@@ -125,7 +127,7 @@ function startCrashLoop(table, io, casino) {
     gs.phase = 'betting';
     gs.bets = {};
     gs.currentMultiplier = 1.00;
-    gs.crashPoint = generateCrashPoint();
+    gs.crashPoint = generateCrashPoint(casino.rtp ? casino.rtp.target('crash') : 0.96);
     gs.bettingTimeLeft = BETTING_SECONDS;
     table.status = 'betting';
     io.to(room).emit('casinoCrashState', buildPublicState(gs, table));

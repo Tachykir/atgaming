@@ -16,10 +16,10 @@ const DH_JP_LABEL = { mini: 'MINI', minor: 'MINOR', major: 'MAJOR', grand: 'GRAN
 let dhKit = null;
 let dhState = { gems: [], hold: false, respins: 0 };
 
-function dhGemLabel(g) { return g.jp ? DH_JP_LABEL[g.jp] : '×' + g.v; }
+function dhGemLabel(g) { return g.jp ? DH_JP_LABEL[g.jp] : '×' + +(g.v * cxK('dragon_hoard')).toFixed(2); }
 function dhJPHtml(bet) {
   return `<div class="sk-meter" style="flex:2"><div class="sk-meter-top"><span>💎 6+ gemów = Hold & Win · zapełnij 20 pól = GRAND</span></div>
-    <div class="cx-row" style="gap:6px">${Object.entries(DH_JP).map(([k, m]) => `<div style="flex:1;text-align:center;padding:6px;border-radius:10px;background:rgba(255,138,61,.12);border:1px solid rgba(255,138,61,.35)"><div style="font-size:10px;font-weight:800;color:#ffb37a">${DH_JP_LABEL[k]}</div><b class="cx-mono" data-dh-jp="${k}" style="font-size:13px;color:var(--cx-gold)">${cxShort(m * bet)}</b></div>`).join('')}</div></div>`;
+    <div class="cx-row" style="gap:6px">${Object.entries(DH_JP).map(([k, m]) => `<div style="flex:1;text-align:center;padding:6px;border-radius:10px;background:rgba(255,138,61,.12);border:1px solid rgba(255,138,61,.35)"><div style="font-size:10px;font-weight:800;color:#ffb37a">${DH_JP_LABEL[k]}</div><b class="cx-mono" data-dh-jp="${k}" style="font-size:13px;color:var(--cx-gold)">${cxShort(m * bet * cxK('dragon_hoard'))}</b></div>`).join('')}</div></div>`;
 }
 
 function initDHUI(table) {
@@ -38,7 +38,7 @@ function initDHUI(table) {
       }
     },
     features: () => dhJPHtml(table.config.minBet),
-    onBetChange: bet => Object.entries(DH_JP).forEach(([k, m]) => { const el = dhKit?.root.querySelector(`[data-dh-jp="${k}"]`); if (el) el.textContent = cxShort(m * bet); }),
+    onBetChange: bet => Object.entries(DH_JP).forEach(([k, m]) => { const el = dhKit?.root.querySelector(`[data-dh-jp="${k}"]`); if (el) el.textContent = cxShort(m * bet * cxK('dragon_hoard')); }),
     onSpinStart(kit) {
       if (dhState.hold) {
         // Migotanie pustych pól

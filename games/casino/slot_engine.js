@@ -55,14 +55,55 @@ function meterBet(meter, fallback) {
 }
 function meterReset(meter) { meter.points = 0; meter.wager = 0; }
 
-// Stany graczy: per gra → per gracz
+// Stany graczy: per gra → per gracz (w pamięci + zapis w bazie, żeby free spiny / bonusy przetrwały restart)
 const states = {};
+const savedJson = new Map(); // game:user → ostatnio zapisany JSON (pomija zbędne zapisy)
 function stateFor(def, userId) {
   if (!states[def.game]) states[def.game] = new Map();
   const m = states[def.game];
   if (!m.has(userId)) m.set(userId, def.newState());
   return m.get(userId);
 }
+async function loadState(def, casino, userId) {
+  const state = stateFor(def, userId);
+  if (state._loaded) return state;
+  state._loaded = true;
+  let restored = false;
+  try {
+    const saved = casino.getSlotState ? await casino.getSlotState(userId, def.game) : null;
+    if (saved && typeof saved === 'object') {
+      Object.assign(state, saved, { _loaded: true });
+      savedJson.set(def.game + ':' + userId, JSON.stringify(saved));
+      restored = true;
+    }
+  } catch (e) { console.error(`[${def.game}] loadState:`, e.message); }
+  if (!restored && def.load) { try { await def.load(state, casino, userId); } catch (e) {} }
+  return state;
+}
+async function persistState(def, casino, userId) {
+  if (!casino.setSlotState) return;
+  const { _loaded, ...rest } = stateFor(def, userId);
+  const json = JSON.stringify(rest);
+  const key = def.game + ':' + userId;
+  if (savedJson.get(key) === json) return;
+  savedJson.set(key, json);
+  try { await casino.setSlotState(userId, def.game, rest); } catch (e) { console.error(`[${def.game}] persistState:`, e.message); }
+}
+
+// Skalowanie wypłat do docelowego RTP (panel admina): wszystkie pola kwot w wyniku × k
+const MONEY_KEYS = new Set(['payout', 'win', 'amount', 'baseWin', 'miniWinSum', 'finalPayout', 'leftPay', 'rightPay', 'cash']);
+function scaleMoney(v, k, all = false) {
+  if (Array.isArray(v)) return v.map(x => (x && typeof x === 'object') ? scaleMoney(x, k) : x);
+  if (!v || typeof v !== 'object') return v;
+  const out = {};
+  for (const [key, x] of Object.entries(v)) {
+    if (typeof x === 'number') out[key] = (all || MONEY_KEYS.has(key)) ? x * k : x;
+    else if (x && typeof x === 'object') out[key] = scaleMoney(x, k, key === 'progressiveJP');
+    else out[key] = x;
+  }
+  return out;
+}
+function rtpScale(casino, game) { return casino.rtp ? casino.rtp.scale(game) : 1; }
 
 function register(def, socket, io, casino) {
   socket.on(def.event, async (data) => {
@@ -72,11 +113,7 @@ function register(def, socket, io, casino) {
     if (!discordUser) return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord!' });
 
     const done = await casino.exclusive(def.game + ':' + discordUser.id, async () => {
-      const state = stateFor(def, discordUser.id);
-      if (def.load && !state._loaded) {
-        state._loaded = true;
-        try { await def.load(state, casino, discordUser.id); } catch (e) {}
-      }
+      const state = await loadState(def, casino, discordUser.id);
       const blockedMsg = def.blocked ? def.blocked(state) : null;
       if (blockedMsg) return socket.emit('casinoError', { message: blockedMsg });
       const cfg = table.config;
@@ -102,8 +139,12 @@ function register(def, socket, io, casino) {
         if (!free) await casino.updateBalance(discordUser.id, bet);
         return socket.emit('casinoError', { message: 'Błąd automatu — stawka zwrócona' });
       }
+      const k = rtpScale(casino, def.game);
+      if (k !== 1) res = scaleMoney(res, k);
       const payout = Math.max(0, Math.floor(res.payout || 0));
       if (payout > 0) await casino.updateBalance(discordUser.id, payout);
+      casino.tracker?.track(def.game, { wagered: free ? 0 : bet, returned: payout });
+      persistState(def, casino, discordUser.id);
       await casino.recordGame(discordUser.id);
       await casino.updateSlotStats(discordUser.id, def.statsId || def.game, {
         spins: 1, spent: free ? 0 : bet, won: payout, bestWin: payout,
@@ -116,7 +157,7 @@ function register(def, socket, io, casino) {
         ...res,
         payout, bet, paid: !free, cost: free ? 0 : bet, net: payout - (free ? 0 : bet),
         mult, tier: tier.tier, label: tier.label, balance,
-        nextFree: def.isFree(state),
+        nextFree: def.isFree(state), rtpScale: k,
       });
       return true;
     });
@@ -185,7 +226,7 @@ function levelFromConfig(cfg) {
 }
 
 // Symulacja RTP (używana w testach/kalibracji)
-function simulate(def, spins = 200000, bet = 100) {
+function simulate(def, spins = 200000, bet = 100, autoBonus = null) {
   const state = def.newState();
   let paid = 0, won = 0, hits = 0, max = 0;
   for (let i = 0; i < spins; i++) {
@@ -193,11 +234,13 @@ function simulate(def, spins = 200000, bet = 100) {
     const b = free ? state.freeBet : bet;
     if (!free) paid += bet;
     const r = def.spin(state, { bet: b, paid: !free, level: 'low', cfg: { minBet: 1, maxBet: 1e9 }, data: {} });
-    won += r.payout;
-    if (r.payout > 0) hits++;
-    if (r.payout / bet > max) max = r.payout / bet;
+    let w = r.payout;
+    if (autoBonus && state.pick) w += autoBonus(state);
+    won += w;
+    if (w > 0) hits++;
+    if (w / bet > max) max = w / bet;
   }
   return { rtp: won / paid, hitRate: hits / spins, maxMult: max };
 }
 
-module.exports = { register, stateFor, getTier, WIN_TIERS, makePicker, weightedPick, meterAdd, meterBet, meterReset, simulate, levelFromConfig, evalLines, countSym };
+module.exports = { register, stateFor, loadState, persistState, scaleMoney, rtpScale, getTier, WIN_TIERS, makePicker, weightedPick, meterAdd, meterBet, meterReset, simulate, levelFromConfig, evalLines, countSym };

@@ -135,6 +135,7 @@ function doSpin(table, io, casino, gs) {
         }
       }
       if (won > 0) await casino.updateBalance(discordId, won).catch(() => {});
+      casino.tracker?.track('roulette', { wagered: staked, returned: won });
       await casino.recordGame(discordId).catch(() => {});
       const balance = (await casino.getWallet(discordId).catch(() => null))?.balance ?? null;
       results.push({ discordId, staked, won, net: won - staked, wins, balance });

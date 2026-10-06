@@ -37,6 +37,14 @@ const CX_LEVEL_LABEL = { low: 'Low', medium: 'Medium', high: 'High' };
 
 // ── Helpery ───────────────────────────────────────────────────
 function cxEsc(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+// Współczynnik RTP per gra (ustawiany przez admina): kwoty bonusów wyrażone jako × stawki trzeba przez niego mnożyć
+const cxRtpK = {};
+const cxK = game => cxRtpK[game] || 1;
+const cxRtpPct = r => (r * 100).toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + '%';
+async function cxLoadRtp(game) {
+  try { const r = await fetch('/api/casino/game-meta/' + game); if (r.ok) { const m = await r.json(); if (m.rtpScale) cxRtpK[game] = m.rtpScale; return m; } } catch (e) {}
+  return null;
+}
 function cxFmt(n) { return Math.floor(Number(n) || 0).toLocaleString('pl-PL'); }
 function cxShort(v) {
   v = Number(v) || 0;
@@ -722,3 +730,6 @@ function spawnCoinFloat(amount) {
     }, i * 80);
   }
 }
+
+// Restart serwera (deploy) — AT$ z gier w toku zostały zwrócone
+socket.on('serverRestart', d => cxToast('🔄 ' + (d?.message || 'Restart serwera'), 'success'));

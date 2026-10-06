@@ -19,6 +19,14 @@ function rtpOf(cfg) {
   return cfg.mults.reduce((s, m, i) => s + m * C(i) / 2 ** n, 0);
 }
 
+// Mnożniki przeskalowane do docelowego RTP ustawionego w panelu admina
+function riskConfigs(scale = 1) {
+  const out = {};
+  for (const [k, rc] of Object.entries(RISK_CONFIGS))
+    out[k] = { rows: rc.rows, mults: rc.mults.map(m => Math.round(m * scale * 100) / 100) };
+  return out;
+}
+
 function dropBall(rows) {
   const path = [];
   let pos = 0;
@@ -39,7 +47,7 @@ function registerHandlers(socket, io, casino) {
 
     const cfg = table.config;
     const risk = RISK_CONFIGS[data.risk] ? data.risk : 'medium';
-    const rc = RISK_CONFIGS[risk];
+    const rc = riskConfigs(casino.rtp ? casino.rtp.scale('pachinko') : 1)[risk];
     const bet = Math.floor(Number(data.bet) || 0);
     const balls = Math.max(1, Math.min(MAX_BALLS, Math.floor(Number(data.balls) || 1)));
     if (bet < cfg.minBet || bet > cfg.maxBet)
@@ -59,6 +67,7 @@ function registerHandlers(socket, io, casino) {
         results.push({ path, slot, mult, win });
       }
       if (winAmount > 0) await casino.updateBalance(discordUser.id, winAmount);
+      casino.tracker?.track('pachinko', { wagered: total, returned: winAmount, rounds: balls });
       await casino.recordGame(discordUser.id);
       await casino.updateSlotStats(discordUser.id, 'pachinko', { spins: balls, spent: total, won: winAmount, bestWin: Math.max(...results.map(r => r.win)) });
       const balance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
@@ -67,4 +76,4 @@ function registerHandlers(socket, io, casino) {
   });
 }
 
-module.exports = { registerHandlers, RISK_CONFIGS, rtpOf, MAX_BALLS };
+module.exports = { registerHandlers, RISK_CONFIGS, riskConfigs, rtpOf, MAX_BALLS };

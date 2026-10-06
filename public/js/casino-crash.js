@@ -3,7 +3,9 @@
 // ══════════════════════════════════════════════════════════════
 let cr = null;
 
+let cxCrashRtp = 0.96;
 function initCrashUI(table) {
+  cxLoadRtp('crash').then(m => { if (m?.rtp) { cxCrashRtp = m.rtp; document.querySelectorAll('#screen-casino-crash [data-rtp]').forEach(el => el.textContent = cxRtpPct(m.rtp)); } });
   if (cr?.raf) cancelAnimationFrame(cr.raf);
   const chips = cxChipValues(table.config.minBet, table.config.maxBet, 6);
   let bet = chips[0];
@@ -12,7 +14,7 @@ function initCrashUI(table) {
   try { cr.auto = localStorage.getItem('cr_auto') || ''; } catch (e) {}
   const scr = cxScreen('casino-crash');
   scr.innerHTML = `<div class="cx-shell">
-    ${cxTopbar({ icon: '🚀', title: table.name, sub: `Zakład ${cxShort(table.config.minBet)}–${cxShort(table.config.maxBet)} AT$ · RTP 96%`, info: 'crInfo()' })}
+    ${cxTopbar({ icon: '🚀', title: table.name, sub: `Zakład ${cxShort(table.config.minBet)}–${cxShort(table.config.maxBet)} AT$ · RTP <span data-rtp>96%</span>`, info: 'crInfo()' })}
     <div class="cx-panel" style="padding:10px 14px"><div class="cr-history" id="cr-history"></div></div>
     <div class="cr-wrap">
       <div class="cr-stage"><canvas id="cr-canvas"></canvas><div class="cr-mult" id="cr-mult">1.00×</div><div class="cr-sub" id="cr-sub">Łączenie…</div></div>
@@ -42,7 +44,7 @@ function crInfo() {
     <li>Kliknij <b>Wypłać</b>, aby zgarnąć stawka × aktualny mnożnik. Jeśli rakieta wybuchnie przed wypłatą — tracisz stawkę.</li>
     <li><b>Auto cash-out</b>: wpisz mnożnik (np. 2.00), a serwer wypłaci Cię automatycznie, gdy zostanie osiągnięty.</li>
     <li>Możesz kliknąć <b>Postaw</b> w trakcie lotu — zakład trafi do następnej rundy.</li>
-    <li>Punkt wybuchu jest losowany na starcie rundy: P(≥ x) = 0,96 / x (RTP 96%). Max ×1000.</li></ul></div>`);
+    <li>Punkt wybuchu jest losowany na starcie rundy: P(≥ x) = RTP / x (obecnie RTP ${cxRtpPct(cxCrashRtp)}). Max ×1000.</li></ul></div>`);
 }
 function crSaveBet() { const v = Number(document.getElementById('cr-bet').value); if (v) { cr.bet = v; try { localStorage.setItem('cr_bet_' + cr.table.id, v); } catch (e) {} } }
 function crBetMul(m) {

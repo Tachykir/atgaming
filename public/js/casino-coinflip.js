@@ -11,7 +11,7 @@ function initCoinflipUI(table) {
   cf = { table, side: 'heads', bet: chips[0], state: null, flipping: false, rot: 0 };
   const scr = cxScreen('casino-coinflip');
   scr.innerHTML = `<div class="cx-shell">
-    ${cxTopbar({ icon: '🪙', title: table.name, sub: 'PvP 50/50 · Solo ×1,96', info: 'cfInfo()' })}
+    ${cxTopbar({ icon: '🪙', title: table.name, sub: 'PvP 50/50 · Solo <span data-cf-x>×1,96</span>', info: 'cfInfo()' })}
     <div class="cf-wrap">
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="cx-panel" style="padding:0;overflow:hidden">
@@ -25,7 +25,7 @@ function initCoinflipUI(table) {
           <input class="cx-input" id="cf-bet" type="number" value="${cf.bet}" min="${table.config.minBet}" style="width:100%">
           <div id="cf-chips" style="margin-top:10px"></div>
           <div class="cx-row" style="margin-top:14px">
-            <button class="cx-btn green cx-grow" onclick="cfSolo()">🎲 Rzuć solo (×1,96)</button>
+            <button class="cx-btn green cx-grow" onclick="cfSolo()">🎲 Rzuć solo (<span data-cf-x>×1,96</span>)</button>
             <button class="cx-btn purple cx-grow" onclick="cfCreate()">⚔️ Wyzwij graczy</button>
           </div>
         </div>
@@ -41,7 +41,7 @@ function initCoinflipUI(table) {
 }
 function cfInfo() {
   cxModal(`<h3>🪙 Coinflip</h3><div class="cx-rules"><ul>
-    <li><b>Solo</b>: wybierz stronę i rzuć przeciwko kasynu. Trafienie wypłaca 1,96× stawki.</li>
+    <li><b>Solo</b>: wybierz stronę i rzuć przeciwko kasynu. Trafienie wypłaca ${(cf?.state?.soloPayout || 1.96).toLocaleString('pl-PL')}× stawki.</li>
     <li><b>PvP</b>: wystaw wyzwanie — inny gracz przyjmuje je, stawiając tyle samo na przeciwną stronę. Zwycięzca zabiera całą pulę (50/50, bez prowizji).</li>
     <li>Możesz mieć do 3 otwartych wyzwań. Nieprzyjęte wyzwanie możesz anulować — stawka wraca.</li></ul></div>`);
 }
@@ -85,6 +85,7 @@ function cfAnimate(result, dur = 1800) {
 }
 
 function cfRender() {
+  if (cf?.state?.soloPayout) document.querySelectorAll('[data-cf-x]').forEach(el => el.textContent = '×' + cf.state.soloPayout.toLocaleString('pl-PL'));
   const st = cf.state;
   const list = document.getElementById('cf-list');
   if (!list) return;

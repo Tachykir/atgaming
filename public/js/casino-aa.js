@@ -94,7 +94,7 @@ function aaBookFace(it) {
   if (!it) return '📕';
   if (it.type === 'bomb') return '💣';
   if (it.type === 'fs') return `<span style="font-size:16px">🎁<br>+${it.value} FS</span>`;
-  return `<span style="font-size:16px;color:var(--cx-gold)">×${it.value}</span>`;
+  return `<span style="font-size:16px;color:var(--cx-gold)">×${+(it.value * cxK('arcane_academy')).toFixed(2)}</span>`;
 }
 socket.on('casinoAAPickResult', d => {
   if (!aaPick || !aaKit) return;

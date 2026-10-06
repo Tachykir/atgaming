@@ -33,20 +33,45 @@ Wirtualna waluta AT$ (start 100 000, cotygodniowe doładowanie), logowanie przez
 
 **Zasady techniczne**
 - Wypłata automatów to dokładnie to, co widać na planszy (ewaluacja linii / klastrów po stronie serwera).
-- RTP automatów ≈ 95%, Pachinko ≈ 96%, Crash 96% — skalibrowane symulacjami Monte Carlo
-  (`games/casino/slot_engine.js → simulate()`).
+- Domyślne RTP: automaty ≈ 95%, Pachinko ≈ 96%, Crash 96%, Coinflip solo 98% — skalibrowane symulacjami
+  Monte Carlo (`games/casino/slot_engine.js → simulate()`). RTP każdej gry można zmienić w panelu admina.
 - Wszystkie stawki pobierane są atomowo (`casino.debit`) — brak możliwości zejścia poniżej zera.
 - Bonusy typu „licznik” (Pit Meter, kociołki, Speed/Sync Meter) grają za średnią stawkę z nabijania.
 
+**Panel admina → 🎛️ Kasyno: RTP**
+- Docelowe RTP per gra (50–120%). Automaty: wszystkie wypłaty × (cel / bazowe RTP); Pachinko: mnożniki pól;
+  Crash: P(wybuch ≥ x) = RTP / x; Coinflip solo: wypłata 2 × RTP. Ruletka, blackjack i poker — tylko podgląd.
+- Faktyczny RTP z gry (postawiono / wypłacono / rundy) per gra, zysk kasyna, historia zmian.
+- 🧪 Symulacja 300 000 spinów automatu w osobnym wątku (nie blokuje serwera).
+- Ustawienia zapisują się w bazie (`casino_settings`) i działają od razu, bez restartu.
+- Logowanie hasłem tworzy sesję admina (bez wysyłania hasła z każdym żądaniem), 5 błędnych prób = blokada 10 min.
+  W produkcji (`NODE_ENV=production`) bez `ADMIN_PASSWORD` panel jest wyłączony.
+
+**Niezawodność**
+- Stan automatów (free spiny, bonusy, liczniki) zapisywany w bazie — przetrwa restart serwera.
+- SIGTERM/SIGINT (deploy): zwrot AT$ z gier w toku (żetony przy stołach, zakłady ruletki/crash, otwarte wyzwania
+  coinflip), zapis statystyk, zamknięcie bazy.
+- Limit zdarzeń kasyna per połączenie (20/s), zapis JSON atomowy i z debounce.
+
 **Struktura kodu kasyna**
 ```
-casino.js                     # portfele, stoły, statystyki (PostgreSQL / JSON)
+casino/index.js               # fasada modułu (API używane przez gry)
+casino/store.js               # portfele, statystyki, ustawienia, stan automatów (PostgreSQL / JSON)
+casino/rtp.js                 # konfiguracja RTP ustawiana z panelu admina
+casino/tracker.js             # faktyczne postawione/wypłacone AT$ per gra
+casino/tables.js              # stałe stoły + stoły graczy
+casino/games.js               # rejestr gier
+casino/http.js                # API HTTP kasyna i panelu admina
+casino/sockets.js             # sockety kasyna, limit zdarzeń, bezpieczne zamykanie
+casino/simWorker.js           # symulacje RTP w osobnym wątku
+lib/adminAuth.js              # logowanie admina (sesja, blokada prób)
 games/casino/slot_engine.js   # wspólny silnik automatów (stawki, wypłaty, symulacja RTP)
 games/casino/*.js             # logika poszczególnych gier
 public/css/casino.css         # wygląd kasyna
 public/js/casino-core.js      # lobby, helpery UI, wejście/wyjście ze stołów
 public/js/casino-slotkit.js   # wspólny komponent UI automatów
 public/js/casino-*.js         # interfejsy poszczególnych gier
+public/js/admin-casino.js     # panel admina: RTP i statystyki kasyna
 ```
 
 Testy lokalne bez Discorda: uruchom z `DEV_LOGIN=1` i wejdź na `http://localhost:3000/auth/dev-login?name=Tester`.

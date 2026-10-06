@@ -6,7 +6,8 @@
 'use strict';
 
 const MAX_OPEN_PER_PLAYER = 3;
-const SOLO_PAYOUT = 1.96;
+const SOLO_PAYOUT = 1.96;  // domyślnie (RTP 98%); faktyczna wartość = 2 × RTP z panelu admina
+const soloPayout = casino => casino?.rtp ? Math.round(2 * casino.rtp.target('coinflip') * 1000) / 1000 : SOLO_PAYOUT;
 const FLIP_MS = 1800;
 
 function ensureState(table) {
@@ -24,7 +25,7 @@ function buildPublicState(table) {
     history: gs.history,
     minBet: table.config.minBet,
     maxBet: table.config.maxBet || null,
-    soloPayout: SOLO_PAYOUT,
+    soloPayout: soloPayout(table._casino),
   };
 }
 function broadcast(table, io) { io.to('casino:' + table.id).emit('casinoCoinflipState', buildPublicState(table)); }
@@ -144,7 +145,8 @@ function registerHandlers(socket, io, casino) {
       if (await casino.debit(discordUser.id, bet) === null) return socket.emit('casinoError', { message: 'Za mało AT$!' });
       const result = Math.random() < 0.5 ? 'heads' : 'tails';
       const win = result === data.side;
-      const payout = win ? Math.floor(bet * SOLO_PAYOUT) : 0;
+      const payout = win ? Math.floor(bet * soloPayout(casino)) : 0;
+      casino.tracker?.track('coinflip', { wagered: bet, returned: payout });
       if (payout) await casino.updateBalance(discordUser.id, payout);
       await casino.recordGame(discordUser.id);
       const balance = (await casino.getWallet(discordUser.id))?.balance ?? 0;

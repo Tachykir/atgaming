@@ -28,6 +28,7 @@ class SlotKit {
   mount(table) {
     this.table = table;
     const cfg = table.config;
+    cxLoadRtp(this.o.game).then(() => { if (this.root && this.steps) this.updateBet(); });
     this.steps = cxBetSteps(cfg.minBet, cfg.maxBet);
     let saved = null;
     try { saved = Number(localStorage.getItem('sk_bet_' + table.id)); } catch (e) {}
@@ -477,6 +478,7 @@ class SlotKit {
   async onResult(res) {
     if (!this.spinning || skActive !== this) return;
     clearTimeout(this.timeout);
+    if (res.rtpScale) cxRtpK[this.o.game] = res.rtpScale;
     const wasFree = !res.paid;
     try { await this.o.present(res, this); } catch (e) { console.error(e); }
     // Księgowanie
@@ -550,7 +552,7 @@ class SlotKit {
   // ── Tabela wypłat ───────────────────────────────────────
   async showInfo() {
     let meta = null;
-    try { const r = await fetch('/api/casino/game-meta/' + this.o.game); if (r.ok) meta = await r.json(); } catch (e) {}
+    meta = await cxLoadRtp(this.o.game);
     const lines = meta?.lines?.length || this.o.lineCount || 1;
     const pays = (meta?.syms || []).filter(s => s.p && s.p.some(v => v > 0)).map((s, i) => {
       const idx = meta.syms.indexOf(s);
@@ -560,7 +562,7 @@ class SlotKit {
       return `<div class="cx-pay"><div class="ico">${html}</div><div><div style="font-size:11px;font-weight:700">${cxEsc(s.n)}${s.wild ? ' · WILD' : ''}</div><ul>${rows}</ul></div></div>`;
     }).join('');
     cxModal(`<h3>${this.o.icon} ${cxEsc(this.o.title)}</h3>
-      <div class="cx-rules"><ul>${(this.o.rules || []).map(r => `<li>${r}</li>`).join('')}</ul></div>
+      <div class="cx-rules"><ul>${(this.o.rules || []).map(r => `<li>${meta?.rtp ? r.replace(/RTP ≈ [\d,.]+%/, 'RTP ' + cxRtpPct(meta.rtp)) : r}</li>`).join('')}</ul></div>
       ${pays ? `<h4 style="margin-top:14px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Wypłaty (× stawki łącznej${meta?.lines ? ', na linię' : ''})</h4><div class="cx-paytable">${pays}</div>` : ''}
       <div style="font-size:11px;color:var(--muted)">Skróty: <b>Spacja</b> — spin/stop auto. Wygrane z wielu linii sumują się.</div>`, { wide: true });
   }

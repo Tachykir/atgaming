@@ -16,7 +16,7 @@ function initPachinkoUI(table) {
   pk = { table, risk, bet: chips[0], balls: 1, flying: [], flash: {}, last: [], raf: null, busy: false, auto: false };
   const scr = cxScreen('casino-pachinko');
   scr.innerHTML = `<div class="cx-shell">
-    ${cxTopbar({ icon: '🎯', title: table.name, sub: 'Plinko · RTP ≈ 96%', info: 'pkInfo()' })}
+    ${cxTopbar({ icon: '🎯', title: table.name, sub: 'Plinko · RTP <span data-rtp>≈ 96%</span>', info: 'pkInfo()' })}
     <div class="pk-wrap">
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="cx-panel"><h4>Ryzyko</h4><div class="pk-risk">
@@ -41,13 +41,21 @@ function initPachinkoUI(table) {
   pkSetRisk(risk);
   pkResize();
   pkLoop();
+  // Mnożniki z serwera (uwzględniają RTP ustawione przez admina)
+  cxLoadRtp('pachinko').then(m => {
+    if (!m?.risks || !pk) return;
+    Object.assign(PK_CFG, m.risks);
+    pk.rtp = m.rtp;
+    scr.querySelectorAll('[data-rtp]').forEach(el => el.textContent = cxRtpPct(m.rtp));
+    if (!pk.flying.length) pkSetRisk(pk.risk);
+  });
 }
 function pkInfo() {
   cxModal(`<h3>🎯 Pachinko</h3><div class="cx-rules"><ul>
     <li>Kulka spada przez rzędy kołków i w każdym odbija się w lewo lub prawo (50/50). Pole, w które wpadnie, mnoży stawkę.</li>
     <li>Ryzyko niskie: 8 rzędów, mnożniki 0,4×–5,6×. Średnie: 12 rzędów, 0,17×–33×. Wysokie: 16 rzędów, 0,16×–1000×.</li>
     <li>Możesz zrzucić do 10 kulek naraz — każda gra osobno.</li>
-    <li>RTP ≈ 96% na każdym poziomie ryzyka.</li></ul></div>`);
+    <li>RTP ${pk?.rtp ? cxRtpPct(pk.rtp) : '≈ 96%'} na każdym poziomie ryzyka.</li></ul></div>`);
 }
 function pkSetRisk(r) {
   if (pk.flying.length) return;
@@ -85,6 +93,7 @@ function pkDrop() {
 
 socket.on('casinoPachinkoResult', d => {
   if (!pk) return;
+  if (d.mults) PK_CFG[d.risk].mults = d.mults;
   const cfg = PK_CFG[d.risk];
   pk.pending = { left: d.balls.length, balance: d.balance, total: d.winAmount, totalBet: d.totalBet };
   d.balls.forEach((b, i) => setTimeout(() => {
