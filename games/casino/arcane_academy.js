@@ -1,228 +1,194 @@
 /**
  * ARCANE ACADEMY — AT Gaming Casino
- * Siatka 10×10, Cluster Pays (min 5 sąsiadów), Cascading Reels + Multiplier Trail
+ * Siatka 7×7, Cluster Pays (min 5), Cascading Reels + Multiplier Trail.
  *
- * Mechanika:
- *  - Wygrane symbole znikają → nowe "spadają" z góry (gravity cascade)
- *  - Każda kaskada w jednym spinie +1 do mnożnika (x1 → x2 → x3 … max x15)
- *  - Symbol "Tome" (Scatter) = 3+ → Bonus Pick (5 ksiąg, 3 próby, unikaj bomb)
- *  - Symbol "Orb" (Wild) = zastępuje wszystkie z wyjątkiem Scatter/Tome
- *  - RTP ~78%
- *  - Hasło dostępu: 12345
+ *  - Wygrane klastry znikają, nowe symbole spadają z góry (kaskada)
+ *  - Każda kolejna kaskada w spinie zwiększa mnożnik: ×1 → ×2 → ×3 … (max ×10)
+ *  - 💫 Orb (Wild) dołącza do każdego klastra
+ *  - 📚 Tome (Scatter): 3+ w spinie → Bonus Pick: 12 ksiąg, odkrywaj nagrody
+ *    (AT$ lub Free Spiny), 3 bomby kończą bonus.
+ *  - Free Spiny: mnożnik NIE resetuje się między spinami (rośnie przez cały bonus)
  */
 'use strict';
+const E = require('./slot_engine');
 
-const ACCESS_PASSWORD = '12345';
-const COLS = 10;
-const ROWS = 10;
-const CLUSTER_MIN = 5;
-const MAX_MULT = 20;
+const COLS = 7, ROWS = 7, CLUSTER_MIN = 5, MAX_MULT = 10;
+const PAY_SCALE = 0.545;
 
-const SYMS = [
-  { id: 'arcane',  e: '🔮', n: 'Kryształ Arcane', w: 2,  p: [0,0,0,0,0,8,16,30,60,120,250]  },
-  { id: 'phoenix', e: '🦅', n: 'Feniks',           w: 3,  p: [0,0,0,0,0,5,10,18,40, 80,160]  },
-  { id: 'wand',    e: '🪄', n: 'Różdżka',          w: 5,  p: [0,0,0,0,0,3, 6,12,24, 50,100]  },
-  { id: 'hat',     e: '🎩', n: 'Kapelusz',         w: 7,  p: [0,0,0,0,0,2, 4, 8,16, 32, 65]  },
-  { id: 'potion',  e: '⚗️',  n: 'Eliksir',          w: 9,  p: [0,0,0,0,0,1, 3, 5,10, 20, 40]  },
-  { id: 'star',    e: '⭐', n: 'Gwiazda',          w: 11, p: [0,0,0,0,0,1, 2, 3, 6, 12, 22]  },
-  { id: 'leaf',    e: '🍃', n: 'Liść',             w: 13, p: [0,0,0,0,0,1, 2, 3, 5,  9, 16]  },
-  { id: 'orb',     e: '💫', n: 'Orb (Wild)',       w: 3,  p: [0,0,0,0,0,10,20,40,80,160,400], wild: true },
-  { id: 'tome',    e: '📚', n: 'Tome (Scatter)',   w: 3,  p: [0,0,0,0,0,0, 0, 0, 0,  0,  0], scatter: true },
+const raw = [
+  { id: 'arcane',  e: '🔮', n: 'Kryształ Arcane', w: 5,  p: [0,0,0,0,0,5,8,12,20,40,100] },
+  { id: 'phoenix', e: '🦅', n: 'Feniks',          w: 6,  p: [0,0,0,0,0,3,5,8,12,25,60] },
+  { id: 'wand',    e: '🪄', n: 'Różdżka',         w: 7,  p: [0,0,0,0,0,2,3,5,8,15,40] },
+  { id: 'hat',     e: '🎩', n: 'Kapelusz',        w: 8,  p: [0,0,0,0,0,1.5,2,3,5,10,25] },
+  { id: 'potion',  e: '⚗️', n: 'Eliksir',         w: 8,  p: [0,0,0,0,0,1,1.5,2,4,8,20] },
+  { id: 'star',    e: '⭐', n: 'Gwiazda',         w: 9,  p: [0,0,0,0,0,0.8,1,1.5,3,6,15] },
+  { id: 'leaf',    e: '🍃', n: 'Liść',            w: 9, p: [0,0,0,0,0,0.5,0.8,1,2,5,12] },
+  { id: 'orb',     e: '💫', n: 'Orb (Wild)',      w: 0.8, wild: true },
+  { id: 'tome',    e: '📚', n: 'Tome (Scatter)',  w: 0.4, scatter: true },
 ];
+const SYMS = raw.map(s => ({ ...s, p: s.p ? s.p.map(v => v * PAY_SCALE) : null }));
+const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
+const pick = E.makePicker(SYMS.map(s => s.w));
+const pickNoScatter = E.makePicker(SYMS.map((s, i) => i === I.tome ? 0 : s.w));
 
-const IDX = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
-const DRUM_W   = SYMS.map(s => s.w);
-const DRUM_TOT = DRUM_W.reduce((a, b) => a + b, 0);
-
-const WIN_TIERS = [
-  { min: 0,   max: 1.5,      tier: 'win',   label: 'Win'                  },
-  { min: 1.5, max: 5,        tier: 'big',   label: 'Big Win'              },
-  { min: 5,   max: 20,       tier: 'mega',  label: 'Mega Win'             },
-  { min: 20,  max: 50,       tier: 'huge',  label: 'Huge Win'             },
-  { min: 50,  max: 500,      tier: 'giga',  label: 'Giga Win'             },
-  { min: 500, max: Infinity, tier: 'frito', label: '✨ Arcane Jackpot!'   },
-];
-function getTier(m) { return WIN_TIERS.find(t => m >= t.min && m < t.max) || WIN_TIERS[0]; }
-
-const playerStates = {};
-function getState(id) {
-  if (!playerStates[id]) playerStates[id] = { freeSpins: 0, betPerLine: 10, activeLines: 1 };
-  return playerStates[id];
-}
-
-function rollSym() {
-  let r = Math.random() * DRUM_TOT;
-  for (let i = 0; i < SYMS.length; i++) { r -= DRUM_W[i]; if (r <= 0) return i; }
-  return SYMS.length - 1;
-}
-
-function buildGrid() {
-  const g = [];
-  for (let c = 0; c < COLS; c++) { g.push([]); for (let r = 0; r < ROWS; r++) g[c].push(rollSym()); }
-  return g;
-}
-
-// BFS cluster finder
 function findClusters(grid) {
   const visited = Array.from({ length: COLS }, () => Array(ROWS).fill(false));
   const clusters = [];
   for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
     if (visited[c][r]) continue;
-    const sym = SYMS[grid[c][r]];
-    if (sym.scatter || sym.gem) continue;
-    const matchId = sym.wild ? null : sym.id;
-    const queue = [[c, r]];
-    const cells = [];
+    const si = grid[c][r];
+    if (!SYMS[si].p) continue;
+    const used = new Set([c + ',' + r]);
+    const queue = [[c, r]], cells = [];
     visited[c][r] = true;
     while (queue.length) {
       const [cc, rr] = queue.shift();
-      const s = SYMS[grid[cc][rr]];
-      if (s.wild || s.id === matchId) {
-        cells.push([cc, rr]);
-        for (const [nc, nr] of [[cc-1,rr],[cc+1,rr],[cc,rr-1],[cc,rr+1]]) {
-          if (nc>=0&&nc<COLS&&nr>=0&&nr<ROWS&&!visited[nc][nr]) {
-            const ns = SYMS[grid[nc][nr]];
-            if (ns.wild || ns.id === matchId) { visited[nc][nr] = true; queue.push([nc, nr]); }
-          }
-        }
+      cells.push([cc, rr]);
+      for (const [nc, nr] of [[cc-1,rr],[cc+1,rr],[cc,rr-1],[cc,rr+1]]) {
+        if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS || used.has(nc + ',' + nr)) continue;
+        const ni = grid[nc][nr];
+        if (ni === si) { used.add(nc + ',' + nr); visited[nc][nr] = true; queue.push([nc, nr]); }
+        else if (SYMS[ni].wild) { used.add(nc + ',' + nr); queue.push([nc, nr]); }
       }
     }
     if (cells.length >= CLUSTER_MIN) {
-      const pay = sym.p[Math.min(cells.length, sym.p.length - 1)] || sym.p[sym.p.length - 1];
-      clusters.push({ symId: sym.id, cells, size: cells.length, pay });
+      const p = SYMS[si].p;
+      clusters.push({ symIdx: si, cells, size: cells.length, pay: p[Math.min(cells.length, p.length - 1)] });
     }
   }
   return clusters;
 }
 
-// Usuń komórki klastra i opuść symbole w dół (gravity)
-function cascade(grid, clusters) {
+function cascade(grid, clusters, inFree) {
   const remove = new Set();
-  clusters.forEach(cl => cl.cells.forEach(([c, r]) => remove.add(`${c},${r}`)));
-  const newGrid = grid.map((col, c) => {
-    const kept = col.filter((_, r) => !remove.has(`${c},${r}`));
-    const added = Array(ROWS - kept.length).fill(null).map(() => rollSym());
+  clusters.forEach(cl => cl.cells.forEach(([c, r]) => remove.add(c + ',' + r)));
+  const fill = inFree ? pickNoScatter : pick;
+  const falling = [];
+  const g = grid.map((col, c) => {
+    const kept = col.filter((_, r) => !remove.has(c + ',' + r));
+    const added = Array.from({ length: ROWS - kept.length }, () => fill());
+    for (let r = 0; r < added.length; r++) falling.push([c, r]);
     return [...added, ...kept];
   });
-  return newGrid;
+  return { grid: g, falling };
 }
 
-function countScatter(grid) {
-  let n = 0;
-  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++)
-    if (SYMS[grid[c][r]].scatter) n++;
-  return n;
-}
-
-// ── Bonus Pick helper ────────────────────────────────────────────────────────
-function genBonusItems(bet) {
-  const prizes = [
-    bet * 5, bet * 10, bet * 20, bet * 50, bet * 100,
-    'fs8', 'fs12', bet * 200,
+// ── Bonus Pick ────────────────────────────────────────────────────
+function makePickBoard() {
+  const items = [
+    { type: 'cash', value: 1 }, { type: 'cash', value: 1 }, { type: 'cash', value: 2 }, { type: 'cash', value: 2 },
+    { type: 'cash', value: 3 }, { type: 'cash', value: 5 }, { type: 'cash', value: 10 }, { type: 'cash', value: 25 },
+    { type: 'fs', value: 5 },
+    { type: 'bomb' }, { type: 'bomb' }, { type: 'bomb' },
   ];
-  const shuffled = prizes.sort(() => Math.random() - 0.5).slice(0, 5);
-  return shuffled.map(p => ({ type: typeof p === 'string' ? 'fs' : 'cash', value: p }));
+  for (let i = items.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; }
+  return items;
+}
+function resolvePick(state, index) {
+  const pk = state.pick;
+  if (!pk || pk.done || index < 0 || index >= pk.items.length || pk.revealed[index]) return null;
+  const item = pk.items[index];
+  pk.revealed[index] = true;
+  let cash = 0;
+  if (item.type === 'cash') { cash = item.value * pk.bet; pk.total += cash; }
+  else if (item.type === 'fs') { pk.fs += item.value; }
+  else if (item.type === 'bomb') { pk.bombs++; }
+  if (pk.bombs >= 3 || pk.items.every((it, i) => pk.revealed[i] || it.type === 'bomb')) pk.done = true;
+  let fsAwarded = 0;
+  if (pk.done && pk.fs > 0) {
+    fsAwarded = pk.fs;
+    state.freeSpins += pk.fs; state.freeBet = pk.bet; state.fsMult = 1; state.fsTotal = pk.fs; state.fsWin = 0;
+  }
+  return { item, cash, fsAwarded };
+}
+function publicPick(pk, reveal) {
+  return { bet: pk.bet, total: pk.total, fs: pk.fs, bombs: pk.bombs, done: pk.done,
+    board: pk.items.map((it, i) => (pk.revealed[i] || reveal) ? { ...it, revealed: !!pk.revealed[i] } : null) };
+}
+
+const def = {
+  game: 'arcane_academy', statsId: 'arcane_academy', event: 'casinoAASpin', resultEvent: 'casinoAAResult',
+  newState: () => ({ freeSpins: 0, freeBet: 0, fsMult: 1, fsTotal: 0, fsWin: 0, pick: null }),
+  isFree: s => s.freeSpins > 0,
+  blocked: s => s.pick && !s.pick.done ? 'Najpierw dokończ Bonus Pick!' : null,
+  spin(state, { bet, paid }) {
+    const inFree = !paid;
+    if (inFree) state.freeSpins--;
+    let grid = Array.from({ length: COLS }, () => Array.from({ length: ROWS }, () => inFree ? pickNoScatter() : pick()));
+    const startGrid = grid.map(c => [...c]);
+    const scatter = E.countSym(grid, i => i === I.tome);
+    let mult = inFree ? state.fsMult : 1;
+    const steps = [];
+    let payout = 0;
+    for (let guard = 0; guard < 50; guard++) {
+      const clusters = findClusters(grid);
+      if (!clusters.length) break;
+      const base = clusters.reduce((s, cl) => s + cl.pay * bet, 0);
+      const win = base * mult;
+      payout += win;
+      const next = cascade(grid, clusters, inFree);
+      steps.push({ clusters: clusters.map(cl => ({ ...cl, win: cl.pay * bet * mult })), mult, win, grid: next.grid, falling: next.falling });
+      grid = next.grid;
+      mult = Math.min(MAX_MULT, mult + 1);
+    }
+    if (inFree) { state.fsMult = mult; state.fsWin += payout; }
+
+    let bonusPick = null;
+    if (!inFree && scatter.n >= 3) {
+      state.pick = { items: makePickBoard(), revealed: [], total: 0, fs: 0, bombs: 0, done: false, bet };
+      bonusPick = publicPick(state.pick, false);
+    }
+    const fsSummary = inFree && state.freeSpins === 0 ? { total: state.fsTotal, win: state.fsWin, mult: state.fsMult } : null;
+    if (fsSummary) state.fsMult = 1;
+    return {
+      startGrid, steps, finalGrid: grid, payout, cascadeCount: steps.length, finalMultiplier: mult,
+      isFree: inFree, freeSpinsRemaining: state.freeSpins, fsMult: state.fsMult, fsSummary,
+      scatter: scatter.cells, bonusPick,
+    };
+  },
+};
+
+// Symulacja bonusu (kalibracja RTP): losowe wybieranie do końca
+function autoBonus(state) {
+  let won = 0;
+  while (state.pick && !state.pick.done) {
+    const free = state.pick.items.map((_, i) => i).filter(i => !state.pick.revealed[i]);
+    const r = resolvePick(state, free[Math.floor(Math.random() * free.length)]);
+    won += r.cash;
+  }
+  state.pick = null;
+  return won;
 }
 
 function registerHandlers(socket, io, casino) {
-  socket.on('casinoAASpin', async (data) => {
-    const { tableId, bet, password } = data;
-    const table = casino.casinoTables[tableId];
-    if (!table || table.game !== 'arcane_academy')
-      return socket.emit('casinoError', { message: 'Zły stół' });
-
-    if (password !== ACCESS_PASSWORD)
-      return socket.emit('casinoError', { message: 'Nieprawidłowe hasło dostępu!' });
-
+  E.register(def, socket, io, casino);
+  socket.on('casinoAAPick', async (data) => {
     const discordUser = socket.getDiscordUser(data);
-    if (!discordUser)
-      return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord!' });
-
-    const state = getState(discordUser.id);
-    const cfg   = table.config;
-    const isFree = state.freeSpins > 0;
-
-    let totBet;
-    if (isFree) {
-      totBet = 0;
-    } else {
-      totBet = Math.round(Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet)));
-      const wallet = await casino.ensureWallet(discordUser);
-      if (wallet.balance < totBet)
-        return socket.emit('casinoError', { message: `Za mało AT$! Masz ${wallet.balance}, potrzebujesz ${totBet}` });
-      await casino.updateBalance(discordUser.id, -totBet);
-      state.betPerLine = totBet;
-    }
-
-    // Kaskady
-    let grid = buildGrid();
-    let totalPayout = 0;
-    let cascadeCount = 0;
-    let multiplier = 1;
-    const cascadeLog = []; // [{clusters, grid, mult, casPayment}]
-    let scatterCount = countScatter(grid);
-
-    while (true) {
-      const clusters = findClusters(grid);
-      if (clusters.length === 0) break;
-      const casePay = clusters.reduce((s, cl) => s + cl.pay * state.betPerLine, 0);
-      const afterMult = Math.round(casePay * multiplier);
-      cascadeLog.push({ clusters: clusters.map(cl => ({ ...cl })), grid: grid.map(c => [...c]), mult: multiplier, casePay, afterMult });
-      totalPayout += afterMult;
-      cascadeCount++;
-      multiplier = Math.min(multiplier + 1, MAX_MULT);
-      grid = cascade(grid, clusters);
-    }
-
-    // Scatter bonus — tylko poza free spinami
-    let bonusItems = null;
-    let freeSpinsAwarded = 0;
-    if (!isFree && scatterCount >= 3) {
-      bonusItems = genBonusItems(state.betPerLine);
-      // Gracz wybierze przez osobny event; tutaj przyznajemy od razu losowo
-      const picks = bonusItems.sort(() => Math.random() - 0.5).slice(0, 3).filter(p => p.type !== 'bomb');
-      for (const p of picks) {
-        if (p.type === 'cash') totalPayout += p.value;
-        else if (p.type === 'fs') {
-          const n = parseInt(String(p.value).replace('fs', '')) || 8;
-          freeSpinsAwarded += n;
-        }
+    if (!discordUser) return;
+    await casino.exclusive(def.game + ':' + discordUser.id, async () => {
+      const state = E.stateFor(def, discordUser.id);
+      if (!state.pick || state.pick.done) return;
+      const r = resolvePick(state, Number(data.index));
+      if (!r) return;
+      if (r.cash > 0) {
+        await casino.updateBalance(discordUser.id, Math.floor(r.cash));
+        await casino.updateSlotStats(discordUser.id, def.game, { won: Math.floor(r.cash), bestWin: Math.floor(r.cash) });
       }
-      if (freeSpinsAwarded > 0) { state.freeSpins = freeSpinsAwarded; state.betPerLine = totBet || state.betPerLine; }
-    }
-
-    let freeSpinsRemaining = 0;
-    if (isFree) { state.freeSpins--; freeSpinsRemaining = state.freeSpins; }
-
-    if (totalPayout > 0) await casino.updateBalance(discordUser.id, totalPayout);
-    await casino.recordGame(discordUser.id);
-    await casino.updateSlotStats(discordUser.id, 'arcane_academy', {
-      spins: 1, spent: isFree ? 0 : totBet, won: totalPayout, bestWin: totalPayout,
+      const balance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
+      const pk = state.pick;
+      socket.emit('casinoAAPickResult', { index: Number(data.index), item: r.item, cash: Math.floor(r.cash), fsAwarded: r.fsAwarded, pick: publicPick(pk, pk.done), balance, freeSpins: state.freeSpins });
+      if (pk.done) state.pick = null;
     });
-
-    const newBalance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
-    const multFinal = (totBet || state.betPerLine) > 0 ? totalPayout / (totBet || state.betPerLine) : 0;
-    const tierObj = getTier(multFinal);
-
-    socket.emit('casinoAAResult', {
-      finalGrid:          grid,
-      cascadeLog,
-      totalPayout,
-      cascadeCount,
-      finalMultiplier:    multiplier,
-      balance:            newBalance,
-      totBet:             isFree ? 0 : totBet,
-      isFree,
-      freeSpinsAwarded,
-      freeSpinsRemaining,
-      scatterCount,
-      bonusItems,
-      mult:               multFinal,
-      tier:               tierObj.tier,
-      label:              tierObj.label,
-      syms:               SYMS.map(s => ({ id: s.id, e: s.e, n: s.n, wild: !!s.wild, scatter: !!s.scatter })),
-    });
+  });
+  // Po reconnect klient może zapytać o niedokończony bonus
+  socket.on('casinoAAGetState', (data) => {
+    const discordUser = socket.getDiscordUser(data);
+    if (!discordUser) return;
+    const state = E.stateFor(def, discordUser.id);
+    socket.emit('casinoAAState', { freeSpins: state.freeSpins, fsMult: state.fsMult, freeBet: state.freeBet, pick: state.pick && !state.pick.done ? publicPick(state.pick, false) : null });
   });
 }
 
-module.exports = { registerHandlers, SYMS };
+const meta = { syms: SYMS.map(s => ({ id: s.id, e: s.e, n: s.n, p: s.p, wild: !!s.wild, scatter: !!s.scatter })), cols: COLS, rows: ROWS, maxMult: MAX_MULT };
+
+module.exports = { registerHandlers, def, meta, autoBonus, SYMS };

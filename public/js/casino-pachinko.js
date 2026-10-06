@@ -1,4 +1,50 @@
-// casino-pachinko.js
+// ── PACHINKO ──────────────────────────────────────────────────
+// Definicje slotów per poziom ryzyka (środek najniższy, boki najwyższe)
+const PACHINKO_RISK_DATA = {
+  low: {
+    rows: 8,
+    slots: [
+      {label:'5×',mult:5},{label:'1.5×',mult:1.5},{label:'0.75×',mult:0.75},
+      {label:'0.5×',mult:0.5},{label:'0.25×',mult:0.25},
+      {label:'0.5×',mult:0.5},{label:'0.75×',mult:0.75},{label:'1.5×',mult:1.5},{label:'5×',mult:5}
+    ]
+  },
+  medium: {
+    rows: 12,
+    slots: [
+      {label:'25×',mult:25},{label:'5×',mult:5},{label:'3×',mult:3},{label:'2×',mult:2},
+      {label:'1×',mult:1},{label:'0.5×',mult:0.5},{label:'0.3×',mult:0.3},{label:'0.1×',mult:0.1},
+      {label:'0.3×',mult:0.3},{label:'0.5×',mult:0.5},{label:'1×',mult:1},{label:'2×',mult:2},
+      {label:'3×',mult:3},{label:'5×',mult:5},{label:'25×',mult:25}
+    ]
+  },
+  high: {
+    rows: 16,
+    slots: [
+      {label:'100×',mult:100},{label:'20×',mult:20},{label:'10×',mult:10},{label:'5×',mult:5},
+      {label:'3×',mult:3},{label:'2×',mult:2},{label:'1×',mult:1},{label:'0.5×',mult:0.5},
+      {label:'0.3×',mult:0.3},{label:'0.2×',mult:0.2},{label:'0.1×',mult:0.1},
+      {label:'0.2×',mult:0.2},{label:'0.3×',mult:0.3},{label:'0.5×',mult:0.5},
+      {label:'1×',mult:1},{label:'2×',mult:2},{label:'3×',mult:3},{label:'5×',mult:5},
+      {label:'10×',mult:10},{label:'20×',mult:20},{label:'100×',mult:100}
+    ]
+  }
+};
+
+let currentPachinkoRisk = 'low';
+// Alias dla wstecznej kompatybilności
+const PACHINKO_SLOTS_DATA = PACHINKO_RISK_DATA.medium.slots;
+const PACHINKO_ROWS = 12;
+const PACHINKO_COLS = 10;
+
+function setPachinkoRisk(risk) {
+  currentPachinkoRisk = risk;
+  document.querySelectorAll('.risk-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.risk === risk);
+  });
+  buildPachinkoBoard();
+  buildPachinkoSlots();
+}
 
 function initPachinkoUI(table) {
   document.getElementById('casino-pachinko-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
@@ -159,13 +205,3 @@ socket.on('casinoPachinkoResult', ({ path, finalSlot, slot, bet, winAmount, net,
   }
   setTimeout(animateStep, 80);
 });
-
-
-// ── CRASH ──────────────────────────────────────────────────────
-let crashMyBet = 0;
-let crashPhase = 'betting';
-let crashAnimFrame = null;
-let crashPoints = [];
-let crashCanvas = null;
-let crashCtx = null;
-

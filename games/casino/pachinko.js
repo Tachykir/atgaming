@@ -1,132 +1,70 @@
 /**
- * PACHINKO — AT Gaming Casino
- * Uproszczone Pachinko: kulek wpada od góry przez pegsy, trafia w sloty
- * Poziomy ryzyka: low (9 pól), medium (15 pól), high (21 pól)
+ * PACHINKO (Plinko) — AT Gaming Casino
+ * Kulka spada przez N rzędów kołków; w każdym rzędzie odbija się w lewo/prawo (50/50).
+ * Pole końcowe = liczba odbić w prawo → rozkład dwumianowy, RTP liczone dokładnie (~96%).
+ * Poziomy ryzyka: low (8 rzędów), medium (12), high (16).
  */
 'use strict';
 
-// Definicje slotów per poziom ryzyka
-// Zasada: najniższe wartości w środku, najwyższe na bokach
-// Low risk: 9 pól
-const SLOTS_LOW = [
-  { label:'5×',   mult:5    },
-  { label:'1.5×', mult:1.5  },
-  { label:'0.75×',mult:0.75 },
-  { label:'0.5×', mult:0.5  },
-  { label:'0.25×',mult:0.25 },
-  { label:'0.5×', mult:0.5  },
-  { label:'0.75×',mult:0.75 },
-  { label:'1.5×', mult:1.5  },
-  { label:'5×',   mult:5    },
-];
-
-// Medium risk: 15 pól
-const SLOTS_MEDIUM = [
-  { label:'25×', mult:25  },
-  { label:'5×',  mult:5   },
-  { label:'3×',  mult:3   },
-  { label:'2×',  mult:2   },
-  { label:'1×',  mult:1   },
-  { label:'0.5×',mult:0.5 },
-  { label:'0.3×',mult:0.3 },
-  { label:'0.1×',mult:0.1 },
-  { label:'0.3×',mult:0.3 },
-  { label:'0.5×',mult:0.5 },
-  { label:'1×',  mult:1   },
-  { label:'2×',  mult:2   },
-  { label:'3×',  mult:3   },
-  { label:'5×',  mult:5   },
-  { label:'25×', mult:25  },
-];
-
-// High risk: 21 pól
-const SLOTS_HIGH = [
-  { label:'100×',mult:100 },
-  { label:'20×', mult:20  },
-  { label:'10×', mult:10  },
-  { label:'5×',  mult:5   },
-  { label:'3×',  mult:3   },
-  { label:'2×',  mult:2   },
-  { label:'1×',  mult:1   },
-  { label:'0.5×',mult:0.5 },
-  { label:'0.3×',mult:0.3 },
-  { label:'0.2×',mult:0.2 },
-  { label:'0.1×',mult:0.1 },
-  { label:'0.2×',mult:0.2 },
-  { label:'0.3×',mult:0.3 },
-  { label:'0.5×',mult:0.5 },
-  { label:'1×',  mult:1   },
-  { label:'2×',  mult:2   },
-  { label:'3×',  mult:3   },
-  { label:'5×',  mult:5   },
-  { label:'10×', mult:10  },
-  { label:'20×', mult:20  },
-  { label:'100×',mult:100 },
-];
-
 const RISK_CONFIGS = {
-  low:    { slots: SLOTS_LOW,    rows: 8,  centerBias: 0.65 },
-  medium: { slots: SLOTS_MEDIUM, rows: 12, centerBias: 0.65 },
-  high:   { slots: SLOTS_HIGH,   rows: 16, centerBias: 0.65 },
+  low:    { rows: 8,  mults: [5.6, 2.1, 1.1, 1, 0.4, 1, 1.1, 2.1, 5.6] },
+  medium: { rows: 12, mults: [33, 11, 4, 2, 1.1, 0.6, 0.17, 0.6, 1.1, 2, 4, 11, 33] },
+  high:   { rows: 16, mults: [1000, 130, 26, 9, 4, 2, 0.16, 0.16, 0.16, 0.16, 0.16, 2, 4, 9, 26, 130, 1000] },
 };
+const MAX_BALLS = 10;
 
-// Dla wstecznej kompatybilności (domyślny stary stół = medium)
-const SLOTS = SLOTS_MEDIUM;
+function rtpOf(cfg) {
+  const n = cfg.rows;
+  const C = k => { let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; };
+  return cfg.mults.reduce((s, m, i) => s + m * C(i) / 2 ** n, 0);
+}
 
-// Generuje ścieżkę kulki (seria L/R per rząd, dla animacji frontend)
-// centerBias: prawdopodobieństwo ruchu w stronę środka (0.5 = brak biasu, 0.65 = 65% w stronę środka)
-function generatePath(rows=12, slotCount=15, centerBias=0.65) {
+function dropBall(rows) {
   const path = [];
-  const center = (slotCount - 1) / 2;
-  let pos = Math.floor(slotCount / 2);
-  for (let r=0; r<rows; r++) {
-    const towardsCenter = pos > center ? -1 : pos < center ? 1 : (Math.random()<0.5 ? -1 : 1);
-    const intendedDir = Math.random() < centerBias ? towardsCenter : -towardsCenter;
-    const prevPos = pos;
-    pos = Math.max(0, Math.min(slotCount-1, pos+intendedDir));
-    const actualDelta = pos - prevPos;
-    const displayDir = actualDelta !== 0 ? (actualDelta > 0 ? 'R' : 'L') : (intendedDir > 0 ? 'R' : 'L');
-    path.push({row:r, pos, dir: displayDir, bounced: actualDelta === 0});
+  let pos = 0;
+  for (let r = 0; r < rows; r++) {
+    const right = Math.random() < 0.5;
+    if (right) pos++;
+    path.push(right ? 'R' : 'L');
   }
-  return { path, finalSlot: pos };
+  return { path, slot: pos };
 }
 
 function registerHandlers(socket, io, casino) {
   socket.on('casinoPachinkoDrop', async (data) => {
-    const { tableId, bet, risk = 'medium' } = data;
-    const table = casino.casinoTables[tableId];
-    if (!table || table.game !== 'pachinko') return socket.emit('casinoError',{message:'Zły stół'});
+    const table = casino.casinoTables[data?.tableId];
+    if (!table || table.game !== 'pachinko') return socket.emit('casinoError', { message: 'Zły stół' });
     const discordUser = socket.getDiscordUser(data);
-    if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
+    if (!discordUser) return socket.emit('casinoError', { message: 'Wymagane logowanie Discord!' });
 
     const cfg = table.config;
-    const maxAllowed = cfg.maxBet || 100000;
-    const betAmt = Math.max(cfg.minBet || 1, Math.min(maxAllowed, Number(bet)||cfg.minBet));
-    const wallet = await casino.ensureWallet(discordUser);
-    if (wallet.balance < betAmt) return socket.emit('casinoError',{message:`Za mało AT$! Masz ${wallet.balance}`});
+    const risk = RISK_CONFIGS[data.risk] ? data.risk : 'medium';
+    const rc = RISK_CONFIGS[risk];
+    const bet = Math.floor(Number(data.bet) || 0);
+    const balls = Math.max(1, Math.min(MAX_BALLS, Math.floor(Number(data.balls) || 1)));
+    if (bet < cfg.minBet || bet > cfg.maxBet)
+      return socket.emit('casinoError', { message: `Stawka musi być w zakresie ${cfg.minBet.toLocaleString('pl-PL')}–${cfg.maxBet.toLocaleString('pl-PL')} AT$` });
 
-    await casino.updateBalance(discordUser.id, -betAmt);
-
-    const riskCfg = RISK_CONFIGS[risk] || RISK_CONFIGS.medium;
-    const centerBias = 0.55 + Math.random() * 0.25; // losowy bias 55–80% w stronę środka
-    const {path, finalSlot} = generatePath(riskCfg.rows, riskCfg.slots.length, centerBias);
-    const slot = riskCfg.slots[finalSlot];
-    const winAmount = Math.floor(betAmt * slot.mult);
-    if (winAmount > 0) await casino.updateBalance(discordUser.id, winAmount);
-    await casino.recordGame(discordUser.id);
-
-    const newBalance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
-
-    socket.emit('casinoPachinkoResult', {
-      path, finalSlot, slot,
-      bet: betAmt, winAmount,
-      net: winAmount - betAmt,
-      balance: newBalance,
-      risk,
-      slots: riskCfg.slots,
-      rows: riskCfg.rows,
+    await casino.exclusive('pachinko:' + discordUser.id, async () => {
+      await casino.ensureWallet(discordUser);
+      const total = bet * balls;
+      if (await casino.debit(discordUser.id, total) === null) return socket.emit('casinoError', { message: 'Za mało AT$!' });
+      const results = [];
+      let winAmount = 0;
+      for (let i = 0; i < balls; i++) {
+        const { path, slot } = dropBall(rc.rows);
+        const mult = rc.mults[slot];
+        const win = Math.floor(bet * mult);
+        winAmount += win;
+        results.push({ path, slot, mult, win });
+      }
+      if (winAmount > 0) await casino.updateBalance(discordUser.id, winAmount);
+      await casino.recordGame(discordUser.id);
+      await casino.updateSlotStats(discordUser.id, 'pachinko', { spins: balls, spent: total, won: winAmount, bestWin: Math.max(...results.map(r => r.win)) });
+      const balance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
+      socket.emit('casinoPachinkoResult', { risk, rows: rc.rows, mults: rc.mults, bet, balls: results, totalBet: total, winAmount, net: winAmount - total, balance });
     });
   });
 }
 
-module.exports = { registerHandlers, SLOTS, SLOTS_LOW, SLOTS_MEDIUM, SLOTS_HIGH, RISK_CONFIGS };
+module.exports = { registerHandlers, RISK_CONFIGS, rtpOf, MAX_BALLS };

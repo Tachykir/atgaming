@@ -1,4 +1,12 @@
-// casino-path.js — Path of Gambling
+// ══ PATH OF GAMBLING — AUTOMAT 5×5 ════════════════════════════
+const PG_COLS = 5, PG_ROWS = 5;
+const PG_LINE_COLORS = ['#E24B4A','#185FA5','#3B6D11','#BA7517','#533AB7','#0F6E56','#993C1D','#D4537E','#639922','#5F5E5A','#a855f7','#06b6d4','#f59e0b','#10b981','#ef4444'];
+let pgSpinning = false, pgAuto = false, pgAutoT = null, pgWinCb = null, pgWinTimer = null;
+let pgBet = 10, pgLines = 50, pgFreeSpins = 0, pgPitMeter = 0, pgFreeMode = null;
+let pgStatSpins = 0, pgStatPaid = 0, pgBestWin = 0, pgStatSpent = 0;
+let pgStickyValdos = [];
+let pgSyms = [], pgLinesDef = [], pgStickyLocks = [];
+let pgTable = null;
 
 function initPathUI(table) {
   pgTable = table;
@@ -181,7 +189,6 @@ function pgPreviewLines() {
 function pgSpin() {
   const winOv = document.getElementById('pg-win-ov');
   if (pgSpinning || !casinoTableId || (winOv && winOv.classList.contains('show'))) return;
-  if (!casinoDiscordId) { showToast('Zaloguj się przez Discord!', 'error'); return; }
   const totBet = pgBet * pgLines;
   const cost   = pgFreeSpins > 0 ? 0 : totBet;
   if (casinoWallet && casinoWallet.balance < cost && pgFreeSpins === 0) { pgSetMsg('Za ma\u0142o AT$!'); return; }
@@ -370,7 +377,3 @@ function pgToggleAuto() {
     setTimeout(run, 300);
   } else { clearTimeout(pgAutoT); b.textContent = 'Auto'; b.classList.remove('on'); }
 }
-
-
-// ══ PANEL GRACZE ONLINE ════════════════════════════════════════
-let _opOpen = false, _opRefreshTimer = null;

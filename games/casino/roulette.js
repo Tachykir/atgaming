@@ -1,203 +1,235 @@
 /**
  * RULETKA EUROPEJSKA — AT Gaming Casino
- * Gracze obstawiają przez betting window (30s), potem obrót koła
+ * Wspólny stół: okno zakładów → obrót koła → rozliczenie → kolejna runda.
+ *
+ * Zakłady są pobierane z portfela w momencie postawienia; przy rozliczeniu
+ * dopisywana jest tylko wygrana (stawka + zysk). Wszystkie zakłady są walidowane
+ * po stronie serwera (typ, wartość, limit stołu).
  */
 'use strict';
 
-// 0-36, europejska
 const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+// Kolejność pól na kole europejskim (zgodnie z ruchem wskazówek zegara od zera)
+const WHEEL_ORDER = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
 
 function getColor(n) {
-  if (n===0) return 'green';
+  if (n === 0) return 'green';
   return RED.has(n) ? 'red' : 'black';
 }
 
+// Pozycja numeru na planszy: kolumna 0-11, rząd 0-2 (rząd 0 = 3,6,9…)
+function boardPos(n) { return { col: Math.floor((n - 1) / 3), row: 2 - ((n - 1) % 3) }; }
+function isValidSplit(a, b) {
+  if (a === b) return false;
+  if (a === 0 || b === 0) return [1, 2, 3].includes(a + b) && Math.min(a, b) === 0;
+  const pa = boardPos(a), pb = boardPos(b);
+  return (pa.col === pb.col && Math.abs(pa.row - pb.row) === 1) || (pa.row === pb.row && Math.abs(pa.col - pb.col) === 1);
+}
+function parseNums(value) {
+  return String(value ?? '').split('-').map(v => Number(v)).filter(v => Number.isInteger(v) && v >= 0 && v <= 36);
+}
+
+// Każdy typ: normalize(value) → kanoniczna wartość albo null (nieprawidłowy zakład)
 const BETS = {
-  straight: { match: (n,v) => n===Number(v),                 payout: 35 },
-  red:      { match: (n)   => RED.has(n),                    payout: 1  },
-  black:    { match: (n)   => n>0 && !RED.has(n),            payout: 1  },
-  even:     { match: (n)   => n>0 && n%2===0,                payout: 1  },
-  odd:      { match: (n)   => n%2===1,                       payout: 1  },
-  low:      { match: (n)   => n>=1&&n<=18,                   payout: 1  },
-  high:     { match: (n)   => n>=19&&n<=36,                  payout: 1  },
-  dozen1:   { match: (n)   => n>=1&&n<=12,                   payout: 2  },
-  dozen2:   { match: (n)   => n>=13&&n<=24,                  payout: 2  },
-  dozen3:   { match: (n)   => n>=25&&n<=36,                  payout: 2  },
-  col1:     { match: (n)   => n%3===1&&n>0,                  payout: 2  },
-  col2:     { match: (n)   => n%3===2&&n>0,                  payout: 2  },
-  col3:     { match: (n)   => n%3===0&&n>0,                  payout: 2  },
-  split:    { match: (n,v) => v.split('-').map(Number).includes(n), payout: 17 },
+  straight: { payout: 35, normalize: v => { const n = parseNums(v); return n.length === 1 ? String(n[0]) : null; }, match: (n, v) => n === Number(v) },
+  split:    { payout: 17, normalize: v => { const n = parseNums(v); return n.length === 2 && isValidSplit(n[0], n[1]) ? n.sort((a, b) => a - b).join('-') : null; }, match: (n, v) => parseNums(v).includes(n) },
+  street:   { payout: 11, normalize: v => { const s = Number(v); return Number.isInteger(s) && s >= 1 && s <= 34 && (s - 1) % 3 === 0 ? String(s) : null; }, match: (n, v) => n >= Number(v) && n <= Number(v) + 2 && n > 0 },
+  corner:   { payout: 8,  normalize: v => { const s = Number(v); return Number.isInteger(s) && s >= 1 && s <= 32 && s % 3 !== 0 ? String(s) : null; }, match: (n, v) => [0, 1, 3, 4].map(d => Number(v) + d).includes(n) },
+  sixline:  { payout: 5,  normalize: v => { const s = Number(v); return Number.isInteger(s) && s >= 1 && s <= 31 && (s - 1) % 3 === 0 ? String(s) : null; }, match: (n, v) => n >= Number(v) && n <= Number(v) + 5 && n > 0 },
+  red:      { payout: 1,  match: n => RED.has(n) },
+  black:    { payout: 1,  match: n => n > 0 && !RED.has(n) },
+  even:     { payout: 1,  match: n => n > 0 && n % 2 === 0 },
+  odd:      { payout: 1,  match: n => n % 2 === 1 },
+  low:      { payout: 1,  match: n => n >= 1 && n <= 18 },
+  high:     { payout: 1,  match: n => n >= 19 && n <= 36 },
+  dozen1:   { payout: 2,  match: n => n >= 1 && n <= 12 },
+  dozen2:   { payout: 2,  match: n => n >= 13 && n <= 24 },
+  dozen3:   { payout: 2,  match: n => n >= 25 && n <= 36 },
+  col1:     { payout: 2,  match: n => n > 0 && n % 3 === 1 },
+  col2:     { payout: 2,  match: n => n > 0 && n % 3 === 2 },
+  col3:     { payout: 2,  match: n => n > 0 && n % 3 === 0 },
 };
 
-const BETTING_TIME = 30000;  // 30s
-const SPIN_TIME    = 6000;   // 6s animacja
+const BETTING_TIME = 20;    // s
+const SPIN_TIME    = 7000;  // ms — musi pasować do animacji koła na froncie
+const RESULT_TIME  = 5000;  // ms
 
-function createGameState() {
+function sumBets(bets) { return (bets || []).reduce((s, b) => s + b.amount, 0); }
+
+function publicState(table) {
+  const gs = table.gameState;
+  if (!gs) return { tableId: table.id, phase: 'idle', players: [], history: table.rouletteHistory || [] };
   return {
-    phase: 'betting',    // betting | spinning | results
-    bets: {},            // discordId -> [{type, value, amount}]
-    result: null,
-    countdown: BETTING_TIME/1000,
-    timer: null,
-    spinTimer: null,
+    tableId:   table.id,
+    phase:     gs.phase,
+    countdown: gs.countdown,
+    bettingTime: BETTING_TIME,
+    spinTime:  SPIN_TIME,
+    result:    gs.phase === 'betting' ? null : gs.result,
+    results:   gs.phase === 'results' ? gs.results : null,
+    history:   table.rouletteHistory || [],
+    minBet:    table.config.minBet,
+    maxBet:    table.config.maxBet,
+    players:   table.players.map(p => {
+      const bets = gs.bets[p.discordId] || [];
+      const res  = gs.phase === 'results' ? (gs.results || []).find(r => r.discordId === p.discordId) : null;
+      return { name: p.name, avatar: p.avatar, discordId: p.discordId, bets, totalBet: sumBets(bets), net: res ? res.net : null, won: res ? res.won : null };
+    }),
   };
 }
 
-function broadcastState(table, io, gs) {
-  const payload = {
-    tableId: table.id,
-    phase:   gs.phase,
-    countdown: gs.countdown,
-    result:  gs.result,
-    players: table.players.map(p=>({
-      name: p.name, avatar: p.avatar, discordId: p.discordId,
-      bets: gs.bets[p.discordId] || [],
-      totalBet: (gs.bets[p.discordId]||[]).reduce((s,b)=>s+b.amount,0),
-    })),
-  };
-  io.to('casino:'+table.id).emit('casinoRouletteState', payload);
+function broadcastState(table, io) {
+  io.to('casino:' + table.id).emit('casinoRouletteState', publicState(table));
+}
+function sendState(table, socket) {
+  socket.emit('casinoRouletteState', publicState(table));
+}
+
+function stopTable(table) {
+  const gs = table.gameState;
+  if (gs) { clearInterval(gs.timer); clearTimeout(gs.spinTimer); }
+  table.status = 'open';
+  table.gameState = null;
 }
 
 function startRound(table, io, casino) {
-  const gs = createGameState();
+  if (table.gameState) { clearInterval(table.gameState.timer); clearTimeout(table.gameState.spinTimer); }
+  const gs = { phase: 'betting', bets: {}, result: null, results: null, countdown: BETTING_TIME, timer: null, spinTimer: null, round: (table.round || 0) + 1 };
   table.gameState = gs;
-  table.status = 'playing';
-  broadcastState(table, io, gs);
+  table.status = 'betting';
+  broadcastState(table, io);
 
-  let cd = BETTING_TIME/1000;
-  const tick = setInterval(()=>{
-    cd--;
-    gs.countdown = cd;
-    broadcastState(table, io, gs);
-    if (cd <= 0) {
-      clearInterval(tick);
+  gs.timer = setInterval(() => {
+    if (table.gameState !== gs) return clearInterval(gs.timer);
+    gs.countdown--;
+    if (gs.countdown <= 0) {
+      clearInterval(gs.timer);
       doSpin(table, io, casino, gs);
+    } else {
+      broadcastState(table, io);
     }
   }, 1000);
-  gs.timer = tick;
 }
 
-async function doSpin(table, io, casino, gs) {
+function doSpin(table, io, casino, gs) {
   gs.phase = 'spinning';
-  const result = Math.floor(Math.random() * 37);  // 0-36
-  gs.result = { number: result, color: getColor(result) };
-  broadcastState(table, io, gs);
+  gs.countdown = 0;
+  table.status = 'spinning';
+  const number = Math.floor(Math.random() * 37);
+  gs.result = { number, color: getColor(number), wheelIndex: WHEEL_ORDER.indexOf(number) };
+  broadcastState(table, io);
 
-  await new Promise(r => setTimeout(r, SPIN_TIME));
-
-  // Rozlicz zakłady
-  gs.phase = 'results';
-  const results = [];
-  for (const [discordId, bets] of Object.entries(gs.bets)) {
-    let net = -bets.reduce((s,b)=>s+b.amount,0);
-    const wins = [];
-    for (const b of bets) {
-      const def = BETS[b.type];
-      if (def && def.match(result, b.value)) {
-        const win = b.amount * (def.payout+1);
-        net += win;
-        wins.push({type:b.type, win});
+  gs.spinTimer = setTimeout(async () => {
+    if (table.gameState !== gs) return;
+    const results = [];
+    for (const [discordId, bets] of Object.entries(gs.bets)) {
+      const staked = sumBets(bets);
+      let won = 0;
+      const wins = [];
+      for (const b of bets) {
+        const def = BETS[b.type];
+        if (def && def.match(number, b.value)) {
+          const w = b.amount * (def.payout + 1);
+          won += w;
+          wins.push({ type: b.type, value: b.value, win: w });
+        }
       }
+      if (won > 0) await casino.updateBalance(discordId, won).catch(() => {});
+      await casino.recordGame(discordId).catch(() => {});
+      const balance = (await casino.getWallet(discordId).catch(() => null))?.balance ?? null;
+      results.push({ discordId, staked, won, net: won - staked, wins, balance });
     }
-    if (net !== 0) await casino.updateBalance(discordId, net).catch(()=>{});
-    await casino.recordGame(discordId).catch(()=>{});
-    results.push({ discordId, net, wins });
-  }
-  gs.results = results;
-  broadcastState(table, io, gs);
+    if (table.gameState !== gs) return;
+    gs.results = results;
+    gs.phase = 'results';
+    table.status = 'results';
+    table.round = gs.round;
+    table.rouletteHistory = [{ number, color: getColor(number) }, ...(table.rouletteHistory || [])].slice(0, 18);
+    broadcastState(table, io);
 
-  table.round++;
-  await new Promise(r => setTimeout(r, 5000));
-
-  // Następna runda jeśli ktoś siedzi
-  gs.bets = {};
-  if (table.players.length > 0) startRound(table, io, casino);
-  else { table.status='open'; table.gameState=null; }
+    gs.spinTimer = setTimeout(() => {
+      if (table.gameState !== gs) return;
+      if (table.players.length > 0) startRound(table, io, casino);
+      else stopTable(table);
+    }, RESULT_TIME);
+  }, SPIN_TIME);
 }
 
 function registerHandlers(socket, io, casino) {
-  // Dołącz do stołu ruletki
   socket.on('casinoRouletteJoin', async (data) => {
-    const { tableId } = data;
-    const table = casino.casinoTables[tableId];
-    if (!table || table.game!=='roulette') return;
+    const table = casino.casinoTables[data?.tableId];
+    if (!table || table.game !== 'roulette') return;
     const discordUser = socket.getDiscordUser(data);
-    if (!discordUser) return socket.emit('casinoError',{message:'Wymagane logowanie Discord!'});
+    if (!discordUser) return socket.emit('casinoError', { message: 'Wymagane logowanie Discord!' });
 
-    const already = table.players.find(p=>p.discordId===discordUser.id);
+    await casino.ensureWallet(discordUser);
+    const already = table.players.find(p => p.discordId === discordUser.id);
     if (!already) {
-      const wallet = await casino.ensureWallet(discordUser);
-      table.players.push({ socketId:socket.id, discordId:discordUser.id, name:discordUser.globalName||discordUser.username, avatar:discordUser.avatar });
+      if (table.players.length >= (table.config.maxPlayers || 20))
+        return socket.emit('casinoError', { message: 'Stół pełny!' });
+      table.players.push({ socketId: socket.id, discordId: discordUser.id, name: discordUser.globalName || discordUser.username, avatar: discordUser.avatar });
     } else {
-      already.socketId = socket.id; // odśwież socket po reconnect
+      already.socketId = socket.id;
     }
-    socket.join('casino:'+tableId);
-    socket.casinoTableId = tableId;
+    socket.join('casino:' + table.id);
+    socket.casinoTableId = table.id;
 
-    if (!table.gameState && table.players.length >= 1) startRound(table, io, casino);
-    else if (table.gameState) {
-      broadcastState(table, io, table.gameState);
-      // Przy reconnect: jeśli gracz miał zakłady i runda jest w toku — poinformuj o stanie
-      const gs = table.gameState;
-      if (gs.bets[discordUser.id]?.length > 0) {
-        socket.emit('casinoRouletteMyBets', {
-          tableId,
-          bets: gs.bets[discordUser.id],
-          total: gs.bets[discordUser.id].reduce((s,b)=>s+b.amount, 0),
-        });
-      }
-    }
+    if (!table.gameState) startRound(table, io, casino);
+    else broadcastState(table, io);
   });
 
-  // Postaw zakład
   socket.on('casinoRouletteBet', async (data) => {
-    const { tableId, type, value, amount } = data;
-    const table = casino.casinoTables[tableId];
-    if (!table || !table.gameState || table.gameState.phase !== 'betting') return;
+    const table = casino.casinoTables[data?.tableId];
+    if (!table || table.game !== 'roulette') return;
+    const gs = table.gameState;
+    if (!gs || gs.phase !== 'betting') return socket.emit('casinoError', { message: 'Zakłady są zamknięte — poczekaj na kolejną rundę' });
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return;
+    if (!table.players.some(p => p.discordId === discordUser.id))
+      return socket.emit('casinoError', { message: 'Musisz dołączyć do stołu, żeby obstawiać!' });
 
-    // Sprawdź czy gracz jest przy stole (nie tylko obserwatorem)
-    const isPlayer = table.players.some(p => p.discordId === discordUser.id);
-    if (!isPlayer) return socket.emit('casinoError', { message: 'Musisz dołączyć do stołu, żeby obstawiać!' });
+    const def = BETS[data.type];
+    if (!def) return socket.emit('casinoError', { message: 'Nieprawidłowy zakład' });
+    const value = def.normalize ? def.normalize(data.value) : null;
+    if (def.normalize && value === null) return socket.emit('casinoError', { message: 'Nieprawidłowe pole zakładu' });
 
     const cfg = table.config;
-    const maxAllowed = cfg.maxBet || 100000;
-    const betAmt = Math.max(cfg.minBet || 1, Math.min(maxAllowed, Number(amount)||cfg.minBet));
-    const wallet = await casino.getWallet(discordUser.id);
-    if (!wallet || wallet.balance < betAmt) return socket.emit('casinoError',{message:'Za mało AT$!'});
+    const amount = Math.floor(Number(data.amount) || 0);
+    if (amount < cfg.minBet) return socket.emit('casinoError', { message: `Minimalny zakład to ${cfg.minBet.toLocaleString('pl-PL')} AT$` });
+    const current = sumBets(gs.bets[discordUser.id]);
+    if (current + amount > cfg.maxBet)
+      return socket.emit('casinoError', { message: `Limit stołu: ${cfg.maxBet.toLocaleString('pl-PL')} AT$ na rundę` });
 
-    // Rezerwacja (zakład jest rozliczany przy spinie)
-    await casino.updateBalance(discordUser.id, -betAmt);
-
-    const gs = table.gameState;
-    if (!gs.bets[discordUser.id]) gs.bets[discordUser.id]=[];
-    gs.bets[discordUser.id].push({type, value, amount:betAmt});
-
-    broadcastState(table, io, gs);
+    const balance = await casino.debit(discordUser.id, amount);
+    if (balance === null) return socket.emit('casinoError', { message: 'Za mało AT$!' });
+    // Runda mogła się zmienić w trakcie await — zwróć środki
+    if (table.gameState !== gs || gs.phase !== 'betting') {
+      await casino.updateBalance(discordUser.id, amount);
+      return socket.emit('casinoError', { message: 'Zakłady zostały zamknięte' });
+    }
+    if (!gs.bets[discordUser.id]) gs.bets[discordUser.id] = [];
+    // Scal z istniejącym zakładem na to samo pole
+    const same = gs.bets[discordUser.id].find(b => b.type === data.type && b.value === value);
+    if (same) same.amount += amount;
+    else gs.bets[discordUser.id].push({ type: data.type, value, amount });
+    socket.emit('casinoRouletteBalance', { balance });
+    broadcastState(table, io);
   });
 
-  // Opuść stół ruletki — zwróć AT$ jeśli gracz miał zakłady w fazie betting
-  socket.on('casinoRouletteLeave', async (data) => {
-    const { tableId } = data;
-    const table = casino.casinoTables[tableId];
-    if (!table) return;
-    const discordUser = socket.getDiscordUser(data);
-    if (!discordUser) return;
-
+  // Zdejmij wszystkie zakłady (tylko w fazie zakładów)
+  socket.on('casinoRouletteClear', async (data) => {
+    const table = casino.casinoTables[data?.tableId];
+    if (!table || table.game !== 'roulette') return;
     const gs = table.gameState;
-    // Zwróć zakłady tylko jeśli runda jest w fazie betting (spin jeszcze nie nastąpił)
-    if (gs && gs.phase === 'betting' && gs.bets[discordUser.id]?.length > 0) {
-      const refund = gs.bets[discordUser.id].reduce((s,b)=>s+b.amount, 0);
-      await casino.updateBalance(discordUser.id, refund).catch(()=>{});
-      delete gs.bets[discordUser.id];
-      broadcastState(table, io, gs);
-    }
-
-    // Usuń gracza ze stołu
-    table.players = table.players.filter(p=>p.discordId!==discordUser.id);
-    socket.leave('casino:'+tableId);
+    const discordUser = socket.getDiscordUser(data);
+    if (!gs || gs.phase !== 'betting' || !discordUser) return;
+    const bets = gs.bets[discordUser.id];
+    if (!bets?.length) return;
+    delete gs.bets[discordUser.id];
+    const balance = await casino.updateBalance(discordUser.id, sumBets(bets));
+    socket.emit('casinoRouletteBalance', { balance });
+    broadcastState(table, io);
   });
 }
 
-module.exports = { registerHandlers, BETS, getColor };
+module.exports = { registerHandlers, sendState, BETS, getColor, WHEEL_ORDER };

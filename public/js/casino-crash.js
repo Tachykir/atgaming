@@ -1,4 +1,10 @@
-// casino-crash.js
+// ── CRASH ──────────────────────────────────────────────────────
+let crashMyBet = 0;
+let crashPhase = 'betting';
+let crashAnimFrame = null;
+let crashPoints = [];
+let crashCanvas = null;
+let crashCtx = null;
 
 function initCrashUI(table) {
   document.getElementById('casino-crash-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
@@ -127,7 +133,3 @@ function casinoCrashBet() {
 function casinoCrashCashOut() {
   socket.emit('casinoCrashCashOut', { tableId: casinoTableId, discordId: casinoDiscordId, socketToken: casinoSocketToken });
 }
-
-// ── COINFLIP ──────────────────────────────────────────────────
-let coinflipSide = 'heads';
-

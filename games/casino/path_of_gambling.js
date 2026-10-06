@@ -1,460 +1,157 @@
 /**
  * PATH OF GAMBLING — AT Gaming Casino
- * 5 bębnów × 5 rzędów, 50 linii wygrywających
+ * 5 bębnów × 5 rzędów, 30 linii.
  *
- * Mechaniki:
- *  - Fracturing Orb  → WILD
- *  - Reflecting Mist → SCATTER (3→8, 4→12, 5→20 free spinów)
- *  - Pit Meter: co 100 spinów → 8 Pit free spinów
- *  - Hinekora's Lock → sticky wild w trybie Pit (w=3 w pit puli)
- *  - Sacred Orb      → SACRED scatter (3→8, 4→10, 5→12 free spinów)
- *                      W trybie Pit: 0.5% szansa/spin → +3 free spiny
- *  - Valdo's Box     → pojawia się tylko w Pit (1% szansa/spin)
- *                      → mnożnik: 2x(90.2%) 3x(6%) 5x(2%) 10x(1%) 20x(0.5%) 50x(0.2%) 100x(0.1%)
+ *  - Fracturing Orb   → WILD
+ *  - Reflecting Mist  → SCATTER: 3/4/5+ → 8/12/20 Free Spinów (wygrane ×2)
+ *  - Sacred Orb       → 3+ → 8/10/12 spinów w trybie Pit
+ *  - Pit Meter        → co 300 płatnych spinów → 8 spinów Pit
+ *  - Tryb Pit: Hinekora's Lock (sticky wild) + Valdo's Box (sticky wild z mnożnikiem;
+ *    mnożniki wszystkich Valdo na planszy sumują się i mnożą wygraną spinu)
+ *  Stawka bonusu z Pit Meter = średnia stawka z nabijania licznika.
+ *  Wypłata = dokładnie to, co widać na planszy. RTP ≈ 95%.
  */
 'use strict';
+const E = require('./slot_engine');
 
 const PIT_THRESHOLD  = 300;
 const PIT_FREE_SPINS = 8;
+const PAY_SCALE = 1.28;
 
-const SYMS = [
-  { id:'mirror',       n:'Mirror of Kalandra',    img:'/images/slots/mirror.png',       w:1,  p:[0,0,50,150,500,2000], color:'#a8d8ff', rarity:'mirror'                       },
-  { id:'divine',       n:'Divine Orb',             img:'/images/slots/Divine.png',        w:2,  p:[0,0,20,60,200,800],   color:'#ffe066', rarity:'divine'                       },
-  { id:'exalted',      n:'Exalted Orb',            img:'/images/slots/exalted.png',       w:3,  p:[0,0,10,30,100,400],   color:'#ffd700', rarity:'exalted'                      },
-  { id:'chaos',        n:'Chaos Orb',              img:'/images/slots/chaos.png',         w:5,  p:[0,0,5,15,50,150],     color:'#e05050', rarity:'rare'                         },
-  { id:'annul',        n:'Orb of Annulment',       img:'/images/slots/annul.png',         w:6,  p:[0,0,3,8,25,80],       color:'#c0c0d0', rarity:'uncommon'                     },
-  { id:'alteration',   n:'Orb of Alteration',      img:'/images/slots/alteration.png',    w:8,  p:[0,0,2,5,15,45],       color:'#4488ff', rarity:'uncommon'                     },
-  { id:'transmutation',n:'Orb of Transmutation',   img:'/images/slots/Transmutation.png', w:6,  p:[0,0,1,3,8,25],        color:'#2266cc', rarity:'common'                       },
-  { id:'scroll',       n:'Scroll of Wisdom',       img:'/images/slots/scroll.png',        w:8,  p:[0,0,1,2,5,15],        color:'#aaaaaa', rarity:'common'                       },
-  // WILD
-  { id:'fracture',     n:'Fracturing Orb',         img:'/images/slots/fracture.png',      w:3,  p:[0,0,15,45,150,600],   color:'#ff9944', rarity:'wild',        wild:true        },
-  // SCATTER — Reflecting Mist (3+/25 ≈ 2%)
-  { id:'mist',         n:'Reflecting Mist',        img:'/images/slots/mist.png',          w:1,  p:[0,0,0,0,0,0],         color:'#aa44ff', rarity:'scatter',     scatter:true     },
-  // SACRED — Sacred Orb (3+/25 ≈ 1.86%, w normalnych spinach)
-  { id:'sacred',       n:'Sacred Orb',             img:'/images/slots/Sacred.png',        w:0.611, p:[0,0,0,0,0,0],      color:'#ffdd44', rarity:'sacred',      sacred:true      },
-  // STICKY WILD — Hinekora's Lock (tylko w pit, w=0 normalnie)
-  { id:'lock',         n:"Hinekora's Lock",        img:'/images/slots/lock.png',          w:0,  p:[0,0,25,75,250,1000],  color:'#cc44aa', rarity:'sticky_wild', wild:true, sticky:true },
-  // VALDO — Valdo's Box (tylko w pit jako osobny roll, nie w bębnie)
-  { id:'valdo',        n:"Valdo's Box",            img:'/images/slots/valdo.png',         w:0,  p:[0,0,0,0,0,0],         color:'#c0a060', rarity:'valdo',       valdo:true, wild:true, sticky:true },
+const raw = [
+  { id:'mirror',        n:'Mirror of Kalandra',  img:'/images/slots/mirror.png',        w:2,   p:[0,0,0,50,250,1000], color:'#a8d8ff' },
+  { id:'divine',        n:'Divine Orb',          img:'/images/slots/Divine.png',        w:3,   p:[0,0,0,25,100,400],  color:'#ffe066' },
+  { id:'exalted',       n:'Exalted Orb',         img:'/images/slots/exalted.png',       w:4,   p:[0,0,0,15,60,200],   color:'#ffd700' },
+  { id:'chaos',         n:'Chaos Orb',           img:'/images/slots/chaos.png',         w:5,   p:[0,0,0,10,30,100],   color:'#e05050' },
+  { id:'annul',         n:'Orb of Annulment',    img:'/images/slots/annul.png',         w:6,   p:[0,0,0,6,20,60],     color:'#c0c0d0' },
+  { id:'alteration',    n:'Orb of Alteration',   img:'/images/slots/alteration.png',    w:6,   p:[0,0,0,5,15,40],     color:'#4488ff' },
+  { id:'transmutation', n:'Orb of Transmutation',img:'/images/slots/Transmutation.png', w:7,   p:[0,0,0,4,10,30],     color:'#2266cc' },
+  { id:'scroll',        n:'Scroll of Wisdom',    img:'/images/slots/scroll.png',        w:7,   p:[0,0,0,3,8,25],      color:'#aaaaaa' },
+  { id:'fracture',      n:'Fracturing Orb',      img:'/images/slots/fracture.png',      w:1.5, p:[0,0,0,40,200,1500], color:'#ff9944', wild:true },
+  { id:'mist',          n:'Reflecting Mist',     img:'/images/slots/mist.png',          w:0.6, p:[0,0,0,0,0,0],       color:'#aa44ff', scatter:true },
+  { id:'sacred',        n:'Sacred Orb',          img:'/images/slots/Sacred.png',        w:0.45, p:[0,0,0,0,0,0],       color:'#ffdd44', sacred:true, blank:true },
+  { id:'lock',          n:"Hinekora's Lock",     img:'/images/slots/lock.png',          w:0,   p:[0,0,0,0,0,0],       color:'#cc44aa', wild:true, sticky:true },
+  { id:'valdo',         n:"Valdo's Box",         img:'/images/slots/valdo.png',         w:0,   p:[0,0,0,0,0,0],       color:'#c0a060', wild:true, sticky:true, valdo:true },
 ];
+// Wild Lock/Valdo nie mają własnej wypłaty — p fracture traktujemy jako wypłatę "samych wildów"
+const SYMS = raw.map(s => ({ ...s, p: s.p.map(v => v * PAY_SCALE) }));
+const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
 
-const IDX_FRACTURE = SYMS.findIndex(s => s.id === 'fracture');
-const IDX_MIST     = SYMS.findIndex(s => s.id === 'mist');
-const IDX_LOCK     = SYMS.findIndex(s => s.id === 'lock');
-const IDX_SACRED   = SYMS.findIndex(s => s.id === 'sacred');
-const IDX_VALDO    = SYMS.findIndex(s => s.id === 'valdo');
+const baseW = SYMS.map(s => s.w);
+const pitW  = baseW.slice(); pitW[I.lock] = 1.0; pitW[I.valdo] = 0.12; pitW[I.mist] = 0; pitW[I.sacred] = 0.4;
+const pickBase = E.makePicker(baseW);
+const pickPit  = E.makePicker(pitW);
 
-const DRUM_W   = SYMS.map(s => s.w);
-const DRUM_TOT = DRUM_W.reduce((a, b) => a + b, 0);
-
-// Pit: Lock w=3, Sacred i Valdo NIE są w bębnie pit (osobne roll'e)
-const PIT_LOCK_WEIGHT  = 3.90;  // ~8% per cell w pit
-const PIT_VALDO_WEIGHT = 0.35;  // ~0.73% per cell w pit
-const PIT_DRUM_TOT     = DRUM_TOT + PIT_LOCK_WEIGHT + PIT_VALDO_WEIGHT;
-
-// Valdo mnożniki i ich wagi (sumują się do 100%)
-const VALDO_MULTIPLIERS = [
-  { mult: 2,   weight: 90.2 },
-  { mult: 3,   weight: 6.0  },
-  { mult: 5,   weight: 2.0  },
-  { mult: 10,  weight: 1.0  },
-  { mult: 20,  weight: 0.5  },
-  { mult: 50,  weight: 0.2  },
-  { mult: 100, weight: 0.1  },
-];
-const VALDO_TOTAL_W = VALDO_MULTIPLIERS.reduce((a, b) => a + b.weight, 0);
-
-function rollValdoMult() {
-  let r = Math.random() * VALDO_TOTAL_W;
-  for (const v of VALDO_MULTIPLIERS) { r -= v.weight; if (r <= 0) return v.mult; }
-  return 2;
-}
-
-
-// ─── LINIE ────────────────────────────────────────────────────────────────────
 const LINES = [
   [2,2,2,2,2],[0,0,0,0,0],[4,4,4,4,4],[1,1,1,1,1],[3,3,3,3,3],
-  [0,1,2,1,0],[4,3,2,3,4],[0,1,2,3,4],[4,3,2,1,0],
-  [1,0,1,0,1],[3,4,3,4,3],[2,1,0,1,2],[2,3,4,3,2],
-  [0,2,4,2,0],[4,2,0,2,4],[1,3,4,3,1],[3,1,0,1,3],
-  [0,0,1,2,2],[2,2,1,0,0],[4,4,3,2,2],[2,2,3,4,4],
-  [0,1,1,1,0],[4,3,3,3,4],[1,1,2,1,1],[3,3,2,3,3],
-  [1,2,3,4,4],[0,1,2,1,2],[2,1,0,1,0],[3,2,1,2,3],[1,0,0,0,1],
-  [0,0,0,1,2],[0,0,1,2,3],[4,4,4,3,2],[4,4,3,2,1],[3,2,1,0,0],
-  [0,2,0,2,0],[4,2,4,2,4],[1,3,1,3,1],[3,1,3,1,3],
-  [0,1,0,1,0],[4,3,4,3,4],[2,0,2,4,2],[2,4,2,0,2],
-  [0,0,2,4,4],[4,4,2,0,0],
-  [0,0,0,0,1],[1,0,0,0,0],[4,4,4,4,3],[3,4,4,4,4],[2,1,2,1,2],
+  [0,1,2,1,0],[4,3,2,3,4],[0,1,2,3,4],[4,3,2,1,0],[1,0,1,0,1],
+  [3,4,3,4,3],[2,1,0,1,2],[2,3,4,3,2],[0,2,4,2,0],[4,2,0,2,4],
+  [1,3,4,3,1],[3,1,0,1,3],[0,0,1,2,2],[2,2,1,0,0],[4,4,3,2,2],
+  [2,2,3,4,4],[0,1,1,1,0],[4,3,3,3,4],[1,1,2,1,1],[3,3,2,3,3],
+  [1,2,3,2,1],[3,2,1,2,3],[1,0,0,0,1],[3,4,4,4,3],[2,1,2,3,2],
 ];
 
-const WIN_TIERS = [
-  { min: 0,    max: 1.5,      tier: 'win',   label: 'Win'                 },
-  { min: 1.5,  max: 5,        tier: 'big',   label: 'Big Win'             },
-  { min: 5,    max: 20,       tier: 'mega',  label: 'Mega Win'            },
-  { min: 20,   max: 50,       tier: 'huge',  label: 'Huge Win'            },
-  { min: 50,   max: 500,      tier: 'giga',  label: 'Giga Win'            },
-  { min: 150,  max: Infinity, tier: 'frito', label: 'Mega Giga Frito Win' },
-];
+const VALDO_MULTS = [[2, 70], [3, 18], [5, 7], [10, 3], [25, 1.5], [100, 0.5]];
+const pickValdo = E.makePicker(VALDO_MULTS.map(v => v[1]));
+const MIST_FS = { 3: 8, 4: 12, 5: 20 };
+const SACRED_FS = { 3: 8, 4: 10, 5: 12 };
+const SCATTER_FS_MULT = 2;
 
-function getTier(mult) {
-  return WIN_TIERS.find(t => mult >= t.min && mult < t.max) || WIN_TIERS[0];
-}
-
-// ─── LOSOWANIE ────────────────────────────────────────────────────────────────
-function drumRnd() {
-  let r = Math.random() * DRUM_TOT;
-  for (let i = 0; i < SYMS.length; i++) { r -= DRUM_W[i]; if (r <= 0) return i; }
-  return 0;
-}
-
-function drumRndPit() {
-  let r = Math.random() * PIT_DRUM_TOT;
-  for (let i = 0; i < SYMS.length; i++) { r -= DRUM_W[i]; if (r <= 0) return i; }
-  // Reszta: Lock lub Valdo
-  r -= PIT_LOCK_WEIGHT;
-  if (r <= 0) return IDX_LOCK;
-  return IDX_VALDO;
-}
-
-function drawOutcome(totBet) {
-  const r = Math.random();
-  // 73.9% — brak wygranej
-  if (r < 0.739)    return { type: 'none',  payout: 0, mult: 0 };
-  // ~22% — Win: 0.3x-1.5x
-  if (r < 0.959)    { const m = 0.3 + Math.random() * 1.2;   return { type: 'win',   payout: Math.round(m * totBet), mult: m }; }
-  // 2% — Big Win: 1.5x-4x
-  if (r < 0.979)    { const m = 1.5 + Math.random() * 2.5;   return { type: 'big',   payout: Math.round(m * totBet), mult: m }; }
-  // 1% — Mega Win: 5x-15x
-  if (r < 0.989)    { const m = 5   + Math.random() * 10;    return { type: 'mega',  payout: Math.round(m * totBet), mult: m }; }
-  // 0.75% — Huge Win: 20x-40x
-  if (r < 0.9965)   { const m = 20  + Math.random() * 20;    return { type: 'huge',  payout: Math.round(m * totBet), mult: m }; }
-  // 0.25% — Giga Win: 50x-100x
-  if (r < 0.999)    { const m = 50  + Math.random() * 50;    return { type: 'giga',  payout: Math.round(m * totBet), mult: m }; }
-  // 0.05% — Mega Giga Frito Win: 150x-400x, max cap 25000x
-  const m = 150 + Math.random() * 250;
-  return { type: 'frito', payout: Math.min(Math.round(m * totBet), 25000 * totBet), mult: Math.min(m, 25000) };
-}
-
-function buildGrid(outcome, pitMode, stickyLocks, stickyValdos) {
-  const rndFn = pitMode ? drumRndPit : drumRnd;
-  const grid  = Array.from({ length: 5 }, () => Array(5).fill(0));
-
+function buildGrid(pit, locks, valdos) {
+  const g = [];
+  const pick = pit ? pickPit : pickBase;
   for (let c = 0; c < 5; c++) {
+    g.push([]);
     for (let r = 0; r < 5; r++) {
-      const locked     = stickyLocks.find(l => l.col === c && l.row === r);
-      const valdoFixed = (stickyValdos || []).find(v => v.col === c && v.row === r);
-      grid[c][r] = locked ? IDX_LOCK : valdoFixed ? IDX_VALDO : rndFn();
+      if (valdos.find(v => v.col === c && v.row === r)) g[c].push(I.valdo);
+      else if (locks.find(l => l.col === c && l.row === r)) g[c].push(I.lock);
+      else g[c].push(pick());
     }
   }
-
-  if (outcome.type === 'none') return grid;
-
-  const m = outcome.mult;
-  let symIdx, streak, useWild;
-  if (outcome.type === 'frito') { symIdx = 0; streak = 5; useWild = true;  }
-  else if (m >= 50)             { symIdx = 0; streak = 5; useWild = false; }
-  else if (m >= 20)             { symIdx = 1; streak = 5; useWild = true;  }
-  else if (m >= 5)              { symIdx = 1; streak = 4; useWild = false; }
-  else if (m >= 1.5)            { symIdx = 2; streak = 4; useWild = false; }
-  else                          { symIdx = 3 + Math.floor(Math.random() * 4); streak = 3; useWild = false; }
-
-  for (let c = 0; c < streak; c++) {
-    if (!stickyLocks.find(l => l.col === c && l.row === LINES[0][c]))
-      grid[c][LINES[0][c]] = symIdx;
-  }
-  if (useWild && streak >= 4) {
-    if (!stickyLocks.find(l => l.col === 2 && l.row === LINES[0][2]))
-      grid[2][LINES[0][2]] = IDX_FRACTURE;
-  }
-  if (m >= 5) {
-    const line2 = LINES[5];
-    const s2    = Math.min(symIdx + 1, 7);
-    const str2  = Math.max(3, streak - 1);
-    for (let c = 0; c < str2; c++) {
-      if (!stickyLocks.find(l => l.col === c && l.row === line2[c]))
-        grid[c][line2[c]] = s2;
-    }
-  }
-  return grid;
+  return g;
 }
 
-function calcLines(grid, betPerLine, activeLines) {
-  const wins = [];
-  for (let li = 0; li < Math.min(activeLines, LINES.length); li++) {
-    const line = LINES[li];
-    let first = -1, streak = 0;
-    for (let c = 0; c < 5; c++) {
-      const si = grid[c][line[c]]; const s = SYMS[si];
-      if (s.scatter) break;
-      if (s.wild)    { streak++; continue; }
-      if (first === -1)      { first = si; streak++; }
-      else if (si === first) { streak++; }
-      else break;
-    }
-    if (first === -1) {
-      if (streak > 0) first = IDX_LOCK; else continue;
-    }
-    const pay = SYMS[first].p[streak] || 0;
-    if (pay > 0) wins.push({ li, line: [...line], streak, symIdx: first, lineWin: pay * betPerLine });
-  }
-  return wins;
-}
+const def = {
+  game: 'path_of_gambling', statsId: 'path_of_gambling', event: 'casinoPathSpin', resultEvent: 'casinoPathResult',
+  newState: () => ({ pit: { points: 0, wager: 0 }, freeSpins: 0, freeBet: 0, freeMode: null, locks: [], valdos: [], fsTotal: 0, fsWin: 0 }),
+  isFree: s => s.freeSpins > 0,
+  async load(state, casino, userId) {
+    const saved = await casino.getSlotStats(userId, 'path_of_gambling');
+    if (saved?.pitMeter > 0 && !state.pit.points) state.pit.points = Math.min(PIT_THRESHOLD - 1, saved.pitMeter);
+  },
+  saveMeter: s => s.pit.points,
+  spin(state, { bet, paid }) {
+    const inFree = !paid;
+    const mode = inFree ? state.freeMode : null;
+    const pitMode = mode === 'pit' || mode === 'sacred';
+    if (inFree) state.freeSpins--;
 
-// ─── STAN GRACZY ──────────────────────────────────────────────────────────────
-// Przeniesienie do Redis zalecane przy multi-instance deploymencie
-const playerState = new Map();
+    const grid = buildGrid(pitMode, state.locks, state.valdos);
+    const lineBet = bet / LINES.length;
 
-function getState(userId) {
-  if (!playerState.has(userId)) {
-    playerState.set(userId, {
-      pitMeter:     0,
-      freeSpins:    0,
-      freeMode:     null,
-      stickyLocks:  [],
-      stickyValdos: [],
-      betPerLine:   0,
-      activeLines:  50,
-      _dbLoaded:    false,
-    });
-  }
-  return playerState.get(userId);
-}
-
-// ─── SOCKET HANDLER ───────────────────────────────────────────────────────────
-function registerHandlers(socket, io, casino) {
-  socket.on('casinoPathSpin', async (data) => {
-    const { tableId, bet, lines = 50 } = data;
-    const table = casino.casinoTables[tableId];
-    if (!table || table.game !== 'path_of_gambling')
-      return socket.emit('casinoError', { message: 'Zły stół' });
-
-    const discordUser = socket.getDiscordUser(data);
-    if (!discordUser)
-      return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord!' });
-
-    const state  = getState(discordUser.id);
-    // Wczytaj pitMeter z DB przy pierwszym spinie w sesji
-    if (!state._dbLoaded) {
-      state._dbLoaded = true;
-      try {
-        const saved = await casino.getSlotStats(discordUser.id, 'path_of_gambling');
-        if (saved && saved.pitMeter > 0 && state.pitMeter === 0) {
-          state.pitMeter = saved.pitMeter;
-        }
-      } catch(e) {}
-    }
-    const isFree = state.freeSpins > 0;
-    const cfg    = table.config;
-
-    // ── Stawka i pobranie AT$ ─────────────────────────────────────────────────
-    let betPerLine, activeLines, totBet;
-    if (isFree) {
-      // FREE SPIN — zachowana stawka, brak pobrania z portfela
-      betPerLine  = state.betPerLine;
-      activeLines = state.activeLines;
-      totBet      = betPerLine * activeLines;
-    } else {
-      // maxBet = totBet (łączny zakład za spin), betPerLine = totBet / linii
-      const reqTotBet = Math.round(Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet)));
-      activeLines = Math.max(1, Math.min(50, Number(lines) || 50));
-      betPerLine  = Math.round(reqTotBet / activeLines);
-      totBet      = betPerLine * activeLines;
-
-      const wallet = await casino.ensureWallet(discordUser);
-      if (wallet.balance < totBet)
-        return socket.emit('casinoError', {
-          message: `Za mało AT$! Masz ${wallet.balance} AT$, potrzebujesz ${totBet} AT$`,
-        });
-      await casino.updateBalance(discordUser.id, -totBet);
-    }
-
-    // ── Spin ─────────────────────────────────────────────────────────────────
-    const pitMode  = (state.freeMode === 'pit' || state.freeMode === 'sacred'); // Sacred = ten sam tryb co Pit (Lock + Valdo)
-    const outcome  = drawOutcome(totBet);
-    const grid     = buildGrid(outcome, pitMode, state.stickyLocks, state.stickyValdos);
-    const winLines = calcLines(grid, betPerLine, activeLines);
-
-    // ── Scatter — Reflecting Mist (tylko poza free spinami) ──────────────────
-    let freeSpinsAwarded = 0;
-    let scatterCount = 0;
-    let sacredCount  = 0;
-    for (let c = 0; c < 5; c++) for (let r = 0; r < 5; r++) {
-      if (SYMS[grid[c][r]].scatter) scatterCount++;
-      if (SYMS[grid[c][r]].sacred)  sacredCount++;
-    }
-
-    // Mist Scatter (normalny spin)
-    if (!isFree && scatterCount >= 3) {
-      freeSpinsAwarded  = scatterCount === 3 ? 8 : scatterCount === 4 ? 12 : 20;
-      state.freeSpins   = freeSpinsAwarded;
-      state.freeMode    = 'scatter';
-      state.betPerLine  = betPerLine;
-      state.activeLines = activeLines;
-      state.stickyLocks = [];
-    }
-
-    // Sacred Orb Scatter — naturalny trigger przez wagę symbolu
-    // p=1.40% per cell → P(≥3/25)=0.50%, P(≥4/25)=0.038%, P(≥5/25)=0.0023%
-    if (!freeSpinsAwarded && sacredCount >= 3) {
-      const sacredBonus = sacredCount === 3 ? 8 : sacredCount === 4 ? 10 : 12;
-      if (!isFree) {
-        freeSpinsAwarded   = sacredBonus;
-        state.freeSpins    = sacredBonus;
-        state.freeMode     = 'sacred';
-        state.betPerLine   = betPerLine;
-        state.activeLines  = activeLines;
-        state.stickyLocks  = [];
-        state.stickyValdos = [];
-      } else {
-        state.freeSpins += sacredBonus;
-        freeSpinsAwarded = sacredBonus;
-      }
-    }
-
-    // ── Pit/Sacred mechaniki (Lock sticky, Valdo box, Sacred +3 spiny) ──────────
-    const newLocks = [];
-    let sacredPitBonus = 0;
-    let valdoMult      = 0;
-
+    // Nowe sticky w trybie Pit
+    const newLocks = [], newValdos = [];
     if (pitMode) {
-      // Sticky Lock — nowe Lock'i
       for (let c = 0; c < 5; c++) for (let r = 0; r < 5; r++) {
-        if (grid[c][r] === IDX_LOCK && !state.stickyLocks.find(l => l.col === c && l.row === r)) {
-          state.stickyLocks.push({ col: c, row: r });
-          newLocks.push({ col: c, row: r });
-        }
-      }
-
-      // Sacred Orb w Pit — 0.5% szansa na +1 free spin per sacred na planszy
-      let sacredOnGrid = 0;
-      for (let c = 0; c < 5; c++) for (let r = 0; r < 5; r++)
-        if (SYMS[grid[c][r]].sacred) sacredOnGrid++;
-      if (sacredOnGrid > 0 && Math.random() < 0.005 * sacredOnGrid) {
-        sacredPitBonus = sacredOnGrid; // 1 spin per sacred
-        state.freeSpins += sacredPitBonus;
-      }
-
-      // Valdo's Box w Pit — pojawia się na bębnie, sticky wild + mnożnik
-      const newValdos = [];
-      for (let c = 0; c < 5; c++) for (let r = 0; r < 5; r++) {
-        if (grid[c][r] === IDX_VALDO) {
-          const existing = state.stickyValdos.find(v => v.col === c && v.row === r);
-          if (!existing) {
-            const m = rollValdoMult();
-            state.stickyValdos.push({ col: c, row: r, mult: m });
-            newValdos.push({ col: c, row: r, mult: m });
-          }
-        }
-      }
-      // Sumuj mnożniki WSZYSTKICH sticky Valdo na planszy
-      if (state.stickyValdos.length > 0) {
-        valdoMult = state.stickyValdos.reduce((sum, v) => sum + v.mult, 0);
+        if (grid[c][r] === I.lock && !state.locks.find(l => l.col === c && l.row === r)) { const l = { col: c, row: r }; state.locks.push(l); newLocks.push(l); }
+        if (grid[c][r] === I.valdo && !state.valdos.find(v => v.col === c && v.row === r)) { const v = { col: c, row: r, mult: VALDO_MULTS[pickValdo()][0] }; state.valdos.push(v); newValdos.push(v); }
       }
     }
+    const valdoMult = state.valdos.reduce((s, v) => s + v.mult, 0);
+    const spinMult = (mode === 'scatter' ? SCATTER_FS_MULT : 1) * (valdoMult > 0 ? valdoMult : 1);
 
-    // ── Wypłata ──────────────────────────────────────────────────────────────
-    // outcome.payout = kontrolowany RTP (drawOutcome)
-    // linesTotal = rzeczywiste wygrane z linii (używane gdy sticky wilds tworzą kombinację)
-    // Jeśli są sticky wilds na planszy → bierz MAX(outcome, linesTotal)
-    // żeby Lock/Valdo zawsze wypłacały gdy tworzą wygrywającą linię
-    const linesTotal  = winLines.reduce((s, w) => s + w.lineWin, 0);
-    const hasStickyWilds = (state.stickyLocks.length > 0 || state.stickyValdos.length > 0);
-    const basePayout  = hasStickyWilds
-      ? Math.max(outcome.payout, linesTotal)
-      : outcome.payout;
-    const payout      = valdoMult > 0 && basePayout > 0
-      ? Math.round(basePayout * valdoMult)
-      : basePayout;
-    if (payout > 0) await casino.updateBalance(discordUser.id, payout);
-    await casino.recordGame(discordUser.id);
-    await casino.updateSlotStats(discordUser.id, 'path_of_gambling', {
-      spins:    1,
-      spent:    isFree ? 0 : totBet,
-      won:      payout,
-      bestWin:  payout,
-      pitMeter: state.pitMeter,
-    });
+    const wins = E.evalLines(grid, LINES, SYMS, lineBet).map(w => ({ ...w, win: w.win * spinMult }));
+    const payout = wins.reduce((s, w) => s + w.win, 0);
 
-    // ── Pit Meter (aktualizuj tylko w normalnych spinach) ─────────────────────
-    // Każdy spin +1 — wygrana NIE resetuje licznika
+    // Scattery
+    const mist = E.countSym(grid, i => i === I.mist);
+    const sacred = E.countSym(grid, i => i === I.sacred);
+    let freeSpinsAwarded = 0, trigger = null;
+    const startBonus = (n, m, b) => {
+      state.freeSpins = n; state.freeMode = m; state.freeBet = b;
+      state.locks = []; state.valdos = []; state.fsTotal = n; state.fsWin = 0;
+      freeSpinsAwarded = n; trigger = m;
+    };
+    if (!inFree) {
+      if (mist.n >= 3) startBonus(MIST_FS[Math.min(5, mist.n)], 'scatter', bet);
+      else if (sacred.n >= 3) startBonus(SACRED_FS[Math.min(5, sacred.n)], 'sacred', bet);
+    } else if (pitMode && sacred.n >= 2) {
+      // Sacred Orb w Pit: +2 spiny
+      state.freeSpins += 2; state.fsTotal += 2; freeSpinsAwarded = 2; trigger = 'retrigger';
+    } else if (mode === 'scatter' && mist.n >= 3) {
+      const add = MIST_FS[Math.min(5, mist.n)]; state.freeSpins += add; state.fsTotal += add; freeSpinsAwarded = add; trigger = 'retrigger';
+    }
+
+    // Pit Meter — tylko płatne spiny
     let pitTriggered = false;
-    if (!isFree) {
-      state.pitMeter++;
-      if (state.pitMeter >= PIT_THRESHOLD) {
-        state.pitMeter    = 0;
-        pitTriggered      = true;
-        state.freeSpins   = PIT_FREE_SPINS;
-        state.freeMode    = 'pit';
-        state.betPerLine  = betPerLine;
-        state.activeLines = activeLines;
-        state.stickyLocks = [];
-        freeSpinsAwarded  = PIT_FREE_SPINS;
+    if (!inFree) {
+      E.meterAdd(state.pit, bet, 1);
+      if (state.pit.points >= PIT_THRESHOLD && !trigger) {
+        const pitBet = E.meterBet(state.pit, bet);
+        E.meterReset(state.pit);
+        startBonus(PIT_FREE_SPINS, 'pit', pitBet);
+        pitTriggered = true;
       }
     }
 
-    // ── Odliczanie free spinów ────────────────────────────────────────────────
-    if (isFree) {
-      state.freeSpins--;
-      if (state.freeSpins <= 0) {
-        state.freeSpins    = 0;
-        state.freeMode     = null;
-        state.stickyLocks  = [];
-        state.stickyValdos = [];
-      }
+    if (inFree) state.fsWin += payout;
+    let fsSummary = null;
+    if (inFree && state.freeSpins === 0) {
+      fsSummary = { total: state.fsTotal, win: state.fsWin, mode };
+      state.freeMode = null; state.locks = []; state.valdos = [];
     }
-    // Zawsze wysyłaj aktualny stan (uwzględnia też Sacred bonus dodany w tym spinie)
-    const freeSpinsRemaining = state.freeSpins;
 
-    // ── Emit ──────────────────────────────────────────────────────────────────
-    const newBalance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
-    const mult       = totBet > 0 ? payout / totBet : 0;
-    const tier       = getTier(mult);
+    return {
+      grid, winLines: wins, payout, isFree: inFree, freeMode: state.freeSpins > 0 ? state.freeMode : null, spinMode: mode,
+      spinMult, valdoMult, freeSpinsAwarded, freeSpinsRemaining: state.freeSpins, trigger, fsSummary,
+      scatter: { mist: mist.cells, sacred: sacred.cells },
+      pitMeter: state.pit.points, pitThreshold: PIT_THRESHOLD, pitTriggered,
+      stickyLocks: [...state.locks], newLocks, stickyValdos: [...state.valdos], newValdos,
+    };
+  },
+};
 
-    socket.emit('casinoPathResult', {
-      grid,
-      winLines,
-      payout,
-      net:               payout - (isFree ? 0 : totBet),
-      balance:           newBalance,
-      bet:               betPerLine,
-      activeLines,
-      totBet:            isFree ? 0 : totBet,
-      mult,
-      tier:              tier.tier,
-      label:             tier.label,
-      // Free spiny
-      isFree,
-      freeSpinsAwarded,
-      freeSpinsRemaining,
-      freeMode:          state.freeMode,
-      // Pit Meter
-      pitMeter:          state.pitMeter,
-      pitThreshold:      PIT_THRESHOLD,
-      pitTriggered,
-      // Sticky Lock + Valdo
-      stickyLocks:       [...state.stickyLocks],
-      newLocks,
-      stickyValdos:      [...state.stickyValdos],
-      newValdos:         typeof newValdos !== 'undefined' ? newValdos : [],
-      // Meta dla frontendu
-      sacredPitBonus,
-      valdoMult,
-      syms: SYMS.map(s => ({
-        img:     s.img,
-        n:       s.n,
-        id:      s.id,
-        color:   s.color,
-        rarity:  s.rarity,
-        wild:    !!s.wild,
-        sticky:  !!s.sticky,
-        scatter: !!s.scatter,
-        sacred:  !!s.sacred,
-        valdo:   !!s.valdo,
-      })),
-      lines: LINES,
-      rows:  5,
-    });
-  });
-}
+function registerHandlers(socket, io, casino) { E.register(def, socket, io, casino); }
+const meta = { syms: SYMS.map(s => ({ id: s.id, n: s.n, img: s.img, color: s.color, p: s.p, wild: !!s.wild, scatter: !!s.scatter, sacred: !!s.sacred, sticky: !!s.sticky, valdo: !!s.valdo })), lines: LINES, rows: 5, cols: 5, pitThreshold: PIT_THRESHOLD, valdoMults: VALDO_MULTS.map(v => v[0]) };
 
-module.exports = { registerHandlers, SYMS, LINES, WIN_TIERS, PIT_THRESHOLD, PIT_FREE_SPINS };
+module.exports = { registerHandlers, def, meta, SYMS, LINES, PIT_THRESHOLD };

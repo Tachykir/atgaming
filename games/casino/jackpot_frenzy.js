@@ -1,468 +1,203 @@
 /**
  * JACKPOT FRENZY — AT Gaming Casino
- * Siatka 5×10 (5 kolumn × 10 rzędów), Cluster Pays
- * Dublet: rozszerza do 10×10
+ * Siatka 5×10, Cluster Pays (min. 5 sąsiadujących), Dublet rozszerza do 10×10.
  *
- * Kociołki:
- *  - Zielony  (MNOŻNIKI):  zbierasz z zielonych coinów → 10 FS + sticky srebrne monety (wildy) → sumowane mnożniki x2-x1000
- *  - Czerwony (JACKPOTY):  zbierasz z czerwonych coinów → 10 FS + sticky złote monety (wildy) → Mini/Minor/Major/Mega/Grand
- *  - Niebieski (DUBLET):   zbierasz z niebieskich coinów → plansza 5×10 → 10×10 + sticky srebrne monety
- *
- * Każdy coin na bębnie daje 2-5 pkt do odpowiedniego kociołka.
- * Kociołek pełny (500 pkt) → aktywuje mini-grę + 20% szansa na włączenie pozostałych.
- * Mini-gry mogą działać jednocześnie. Wygrane sumują się, mnożniki i jackpoty aplikowane po końcu mini-gier.
- *
- * Jackpoty: progresywne + bazowe zależnie od stołu (low/medium/high)
- * Cluster Pays: min. 5 sąsiadujących symboli = wygrana
+ * Kociołki (napełniane coinami z bębnów):
+ *  - Zielony  (MNOŻNIKI): 8 FS + srebrne monety (sticky wild) z wartością ×stawka — wypłacane na koniec
+ *  - Czerwony (JACKPOTY): 8 FS + złote monety (sticky wild) — każda wypłaca jackpot
+ *  - Niebieski (DUBLET):  8 FS na planszy 10×10 + srebrne monety
+ * Pełny kociołek uruchamia mini-grę (+20% szansy na dołączenie pozostałych).
+ * Jackpoty są mnożnikami stawki bonusu i rosną progresywnie z każdym płatnym spinem.
+ * Stawka mini-gry = średnia stawka, za którą napełniono kociołki.
  */
 'use strict';
+const E = require('./slot_engine');
 
-// ─── KONFIGURACJA ─────────────────────────────────────────────────────────────
-const CAULDRON_MAX      = 2000; // punkty do napełnienia kociołka
-const CAULDRON_CHAIN    = 0.20; // 20% szansa na włączenie pozostałych kociołków
-const MINI_FREE_SPINS   = 10;
-const CLUSTER_MIN       = 5;    // minimalna liczba sąsiadów dla wygranej
+const CAULDRON_MAX   = 2000;
+const CAULDRON_CHAIN = 0.20;
+const MINI_FREE_SPINS = 8;
+const CLUSTER_MIN = 5;
+const ROWS = 10, COLS_NORMAL = 5, COLS_DUBLET = 10;
+const PAY_SCALE = 0.80;
 
-const COLS_NORMAL = 5;
-const ROWS        = 10;
-const COLS_DUBLET = 10;
-
-// ─── SYMBOLE ──────────────────────────────────────────────────────────────────
-// Standardowe symbole kasynowe
-const SYMS = [
-  { id:'seven',   n:'7',       e:'', img:'/images/jf/seven.png',  w:2,  p:[0,0,0,0,0,10,20,40,100,200,500] },
-  { id:'bar3',    n:'BAR BAR BAR', e:'', img:'/images/jf/bar3.png', w:3,  p:[0,0,0,0,0,6,12,25,60,120,300] },
-  { id:'bar2',    n:'BAR BAR',     e:'', img:'/images/jf/bar2.png', w:5,  p:[0,0,0,0,0,4,8,15,35,70,150]  },
-  { id:'bar',     n:'BAR',         e:'', img:'/images/jf/bar.png', w:7,  p:[0,0,0,0,0,3,5,10,20,40,80]   },
-  { id:'bell',    n:'Dzwonek',     e:'', img:'/images/jf/bell.png', w:9,  p:[0,0,0,0,0,2,4,7,15,28,55]   },
-  { id:'grape',   n:'Winogrona',   e:'', img:'/images/jf/grape.png', w:11, p:[0,0,0,0,0,2,3,5,10,20,40]   },
-  { id:'orange',  n:'Pomarańcza',  e:'', img:'/images/jf/orange.png', w:13, p:[0,0,0,0,0,1,2,4,8,15,28]    },
-  { id:'cherry',  n:'Wiśnia',      e:'', img:'/images/jf/cherry.png', w:16, p:[0,0,0,0,0,1,2,3,6,10,18]    },
-  // COINY — pojawiają się w normalnych spinach
-  { id:'coin_g',  n:'Zielony Coin',  e:'', img:'/images/jf/coin_g.png', w:4,  coin:'green',  coinVal:[2,3,4,5] },
-  { id:'coin_r',  n:'Czerwony Coin', e:'', img:'/images/jf/coin_r.png', w:4,  coin:'red',    coinVal:[2,3,4,5] },
-  { id:'coin_b',  n:'Niebieski Coin',e:'', img:'/images/jf/coin_b.png', w:4,  coin:'blue',   coinVal:[2,3,4,5] },
-  // BRĄZOWY COIN — wild podczas Dubletu (normalny spin)
-  { id:'coin_br', n:'Brązowy Coin',   e:'', img:'/images/jf/coin_br.png', w:4,  coin:'bronze', coinVal:[2,3,4,5], wild:true },
-  // STICKY MONETY — pojawiają się podczas mini-gier
-  { id:'silver',  n:'Srebrna Moneta', e:'', img:'/images/jf/silver.png', w:0, sticky:true, wild:true, silver:true },
-  { id:'gold',    n:'Złota Moneta',   e:'', img:'/images/jf/gold.png', w:0, sticky:true, wild:true, gold:true   },
+const raw = [
+  { id:'seven',  n:'7',           img:'/images/jf/seven.png',  w:3,  p:[0,0,0,0,0,10,15,25,50,100,250] },
+  { id:'bar3',   n:'BAR BAR BAR', img:'/images/jf/bar3.png',   w:5,  p:[0,0,0,0,0,6,10,15,30,60,150] },
+  { id:'bar2',   n:'BAR BAR',     img:'/images/jf/bar2.png',   w:7,  p:[0,0,0,0,0,4,6,10,20,40,80] },
+  { id:'bar',    n:'BAR',         img:'/images/jf/bar.png',    w:9,  p:[0,0,0,0,0,3,4,6,12,25,50] },
+  { id:'bell',   n:'Dzwonek',     img:'/images/jf/bell.png',   w:11, p:[0,0,0,0,0,2,3,5,8,15,30] },
+  { id:'grape',  n:'Winogrona',   img:'/images/jf/grape.png',  w:12, p:[0,0,0,0,0,1.5,2,4,6,10,20] },
+  { id:'orange', n:'Pomarańcza',  img:'/images/jf/orange.png', w:13, p:[0,0,0,0,0,1,1.5,3,5,8,15] },
+  { id:'cherry', n:'Wiśnia',      img:'/images/jf/cherry.png', w:14, p:[0,0,0,0,0,1,1.5,2,4,6,12] },
+  { id:'coin_g', n:'Zielony Coin',   img:'/images/jf/coin_g.png',  w:3, coin:'green' },
+  { id:'coin_r', n:'Czerwony Coin',  img:'/images/jf/coin_r.png',  w:3, coin:'red' },
+  { id:'coin_b', n:'Niebieski Coin', img:'/images/jf/coin_b.png',  w:3, coin:'blue' },
+  { id:'coin_br',n:'Brązowy Coin',   img:'/images/jf/coin_br.png', w:2, coin:'bronze', wild:true },
+  { id:'silver', n:'Srebrna Moneta', img:'/images/jf/silver.png',  w:0, sticky:true, wild:true, silver:true },
+  { id:'gold',   n:'Złota Moneta',   img:'/images/jf/gold.png',    w:0, sticky:true, wild:true, gold:true },
 ];
+const SYMS = raw.map(s => ({ ...s, p: s.p ? s.p.map(v => v * PAY_SCALE) : null }));
+const IDX = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
+const COIN_PTS = [2, 3, 4, 5];
 
-const IDX = Object.fromEntries(SYMS.map((s,i) => [s.id, i]));
-const DRUM_W   = SYMS.map(s => s.w);
-const DRUM_TOT = DRUM_W.reduce((a,b)=>a+b,0);
-
-// Wagi podczas mini-gry srebrnej (Silver sticky)
-const SILVER_W   = [...DRUM_W]; SILVER_W[IDX.silver] = 6;
-const SILVER_TOT = SILVER_W.reduce((a,b)=>a+b,0);
-
-// Wagi podczas mini-gry złotej (Gold sticky)
-const GOLD_W   = [...DRUM_W]; GOLD_W[IDX.gold] = 6;
-const GOLD_TOT = GOLD_W.reduce((a,b)=>a+b,0);
-
-// ─── JACKPOTY ─────────────────────────────────────────────────────────────────
-const JP_TIERS = ['mini','minor','major','mega','grand'];
-
-// Bazowe jackpoty per tier per stół
-const JP_BASE = {
-  low:    { mini:500,   minor:2000,   major:10000,  mega:50000,   grand:200000  },
-  medium: { mini:2000,  minor:8000,   major:40000,  mega:200000,  grand:1000000 },
-  high:   { mini:10000, minor:40000,  major:200000, mega:1000000, grand:5000000 },
-};
-
-// Progresywne jackpoty — globalnie per stołowy tier
-const progressiveJP = { low:{}, medium:{}, high:{} };
-for (const tier of Object.keys(JP_BASE)) {
-  for (const jp of JP_TIERS) {
-    progressiveJP[tier][jp] = JP_BASE[tier][jp]; // start = bazowe
-  }
+function weightsFor(mini) {
+  const w = SYMS.map(s => s.w);
+  if (mini.multiplier || mini.dublet) w[IDX.silver] = 0.3;
+  if (mini.jackpot) w[IDX.gold] = 0.18;
+  if (mini.multiplier || mini.jackpot || mini.dublet) { w[IDX.coin_g] = 0; w[IDX.coin_r] = 0; w[IDX.coin_b] = 0; w[IDX.coin_br] = 0; }
+  return w;
 }
 
-// Przyrost jackpotów — per spin płatny
-function tickProgressiveJP(tableLevel, totBet) {
-  const jp = progressiveJP[tableLevel];
-  jp.mini  += Math.round(totBet * 0.001);
-  jp.minor += Math.round(totBet * 0.002);
-  jp.major += Math.round(totBet * 0.005);
-  jp.mega  += Math.round(totBet * 0.010);
-  jp.grand += Math.round(totBet * 0.020);
-}
+// ─── JACKPOTY (× stawka) ─────────────────────────────────────────
+const JP_TIERS = ['mini', 'minor', 'major', 'mega', 'grand'];
+const JP_BASE  = { mini: 3, minor: 10, major: 30, mega: 150, grand: 750 };
+const JP_GROW  = { mini: 0.0002, minor: 0.0005, major: 0.0015, mega: 0.005, grand: 0.015 }; // × stawka za płatny spin
+const progressive = { low: { ...JP_BASE }, medium: { ...JP_BASE }, high: { ...JP_BASE } };
+const pickGoldJP = E.makePicker([62, 25, 10, 2.5, 0.5]);
+const SILVER = [[1, 40], [2, 30], [3, 15], [5, 10], [10, 4], [50, 0.8], [200, 0.2]];
+const pickSilver = E.makePicker(SILVER.map(s => s[1]));
 
-function resetJP(tableLevel, jpName) {
-  progressiveJP[tableLevel][jpName] = JP_BASE[tableLevel][jpName];
-}
-
-// Losuj jackpot dla złotej monety
-function rollGoldJP() {
-  const r = Math.random();
-  if (r < 0.001) return 'grand';
-  if (r < 0.005) return 'mega';
-  if (r < 0.02)  return 'major';
-  if (r < 0.08)  return 'minor';
-  return 'mini';
-}
-
-// Losuj mnożnik dla srebrnej monety
-function rollSilverMult() {
-  const r = Math.random();
-  if (r < 0.001) return 1000;
-  if (r < 0.005) return 100;
-  if (r < 0.02)  return 20;
-  if (r < 0.06)  return 10;
-  if (r < 0.15)  return 5;
-  if (r < 0.35)  return 3;
-  return 2;
-}
-
-// ─── CLUSTER PAYS ─────────────────────────────────────────────────────────────
-function getNeighbors(col, row, cols) {
-  const n = [];
-  if (col > 0)      n.push([col-1, row]);
-  if (col < cols-1) n.push([col+1, row]);
-  if (row > 0)      n.push([col, row-1]);
-  if (row < ROWS-1) n.push([col, row+1]);
-  return n;
-}
-
+// ─── CLUSTERY ────────────────────────────────────────────────────
 function findClusters(grid, cols) {
-  // Dla każdej komórki oblicz z góry czy jest wild
-  const isWild = (c, r) => SYMS[grid[c][r]].wild;
-
-  // Visited per-run: wildy mogą być używane przez wiele klastrów (nie konsumujemy ich)
-  // Dlatego visited dla normalnych symboli jest globalne, ale wildy sprawdzamy lokalnie.
-  const visitedNormal = Array.from({length:cols}, ()=>Array(ROWS).fill(false));
+  const visited = Array.from({ length: cols }, () => Array(ROWS).fill(false));
   const clusters = [];
-
-  for (let c=0; c<cols; c++) for (let r=0; r<ROWS; r++) {
-    if (visitedNormal[c][r]) continue;
-    const symIdx = grid[c][r];
-    const sym = SYMS[symIdx];
-
-    // Pomiń koiny (nie-wild), sticky, wildy — nie startują klastrów
-    if ((sym.coin && !sym.wild) || sym.sticky || sym.wild) {
-      visitedNormal[c][r] = true; continue;
-    }
-
-    // BFS od normalnego symbolu.
-    // Wild dołącza do klastra TYLKO jeśli BEZPOŚREDNIO sąsiaduje z co najmniej
-    // jedną komórką tego samego symbolu (nie propaguje dalej przez inne wildy).
-    // Dzięki temu: wild NIE tworzy łańcucha między odległymi skupiskami,
-    // NIE jest kradniony przez inny klaster (każdy klaster ma własny visitedWild).
-    const visitedWild = Array.from({length:cols}, ()=>Array(ROWS).fill(false));
-    const queue = [[c,r]];
-    const cells = [];
-    let realSymCount = 0; // liczba NIE-wildowych komórek w klastrze
-    visitedNormal[c][r] = true;
-
+  const nb = (c, r) => [[c - 1, r], [c + 1, r], [c, r - 1], [c, r + 1]].filter(([x, y]) => x >= 0 && x < cols && y >= 0 && y < ROWS);
+  for (let c = 0; c < cols; c++) for (let r = 0; r < ROWS; r++) {
+    if (visited[c][r]) continue;
+    const symIdx = grid[c][r], sym = SYMS[symIdx];
+    if (!sym.p) continue;
+    // BFS po tym samym symbolu; wildy sąsiadujące z klastrem dołączają (bez propagacji przez wild→wild)
+    const usedWild = new Set();
+    const queue = [[c, r]], cells = [];
+    visited[c][r] = true;
+    let real = 0;
     while (queue.length) {
-      const [cc,rr] = queue.shift();
-      cells.push([cc,rr]);
-      const isCurrentWild = isWild(cc, rr);
-      if (!isCurrentWild) realSymCount++;
-
-      for (const [nc,nr] of getNeighbors(cc,rr,cols)) {
+      const [cc, rr] = queue.shift();
+      cells.push([cc, rr]);
+      const isW = SYMS[grid[cc][rr]].wild;
+      if (!isW) real++;
+      if (isW) continue;
+      for (const [nc, nr] of nb(cc, rr)) {
         const ni = grid[nc][nr];
-        const nsym = SYMS[ni];
-
-        if (ni === symIdx) {
-          // Ten sam symbol — dołącz jeśli nie odwiedzony
-          if (!visitedNormal[nc][nr]) {
-            visitedNormal[nc][nr] = true;
-            queue.push([nc,nr]);
-          }
-        } else if (nsym.wild && !visitedWild[nc][nr]) {
-          // Wild — dołącz TYLKO jeśli BEZPOŚREDNIO sąsiaduje z tym samym symbolem
-          // (sprawdź czy któryś sąsiad wilda == symIdx)
-          // Wild NIE propaguje dalej przez inne wildy — to zapobiega łańcuchom
-          if (!isCurrentWild) {
-            // Wchodzimy w wilda tylko z normalnego symbolu (nie z innego wilda)
-            visitedWild[nc][nr] = true;
-            queue.push([nc,nr]);
-          }
-          // Jeśli currentWild → nie propaguj przez kolejne wildy (brak łańcuchów)
-        }
+        if (ni === symIdx && !visited[nc][nr]) { visited[nc][nr] = true; queue.push([nc, nr]); }
+        else if (SYMS[ni].wild && !usedWild.has(nc + ',' + nr)) { usedWild.add(nc + ',' + nr); queue.push([nc, nr]); }
       }
     }
-
     if (cells.length >= CLUSTER_MIN) {
-      // BUG 3 FIX: pay lookup bazuje na liczbie PRAWDZIWYCH symboli, nie total cells
-      // Wild zastępuje symbol ale nie dodaje do liczby "płacących" komórek
-      const payIdx = Math.min(realSymCount, sym.p.length - 1);
-      const pay = sym.p?.[payIdx] || 0;
-      if (pay > 0) clusters.push({ symIdx, cells, pay });
+      const pay = sym.p[Math.min(cells.length, sym.p.length - 1)] || 0;
+      if (pay > 0) clusters.push({ symIdx, cells, size: cells.length, real, pay });
     }
   }
   return clusters;
 }
 
-// ─── DRUM ──────────────────────────────────────────────────────────────────────
-function drumRnd(weights, total) {
-  let r = Math.random() * total;
-  for (let i=0; i<SYMS.length; i++) { r-=weights[i]; if (r<=0) return i; }
-  return SYMS.length-1;
-}
-
-function buildGrid(cols, state) {
-  const hasSilver = state.miniGames.multiplier || state.miniGames.dublet;
-  const hasGold   = state.miniGames.jackpot;
-
-  let w, tot;
-  if (hasSilver && hasGold) {
-    // BUG 4 FIX: oboje aktywne — użyj wag łączonych żeby obie monety mogły paść
-    const COMBINED_W = [...DRUM_W];
-    COMBINED_W[IDX.silver] = 6;
-    COMBINED_W[IDX.gold]   = 6;
-    w   = COMBINED_W;
-    tot = COMBINED_W.reduce((a,b)=>a+b, 0);
-  } else if (hasSilver) {
-    w   = SILVER_W;
-    tot = SILVER_TOT;
-  } else if (hasGold) {
-    w   = GOLD_W;
-    tot = GOLD_TOT;
-  } else {
-    w   = DRUM_W;
-    tot = DRUM_TOT;
-  }
-
-  const grid = Array.from({length:cols}, ()=>Array(ROWS).fill(0));
-  const stickyAll = [...state.stickyCoins];
-
-  for (let c=0; c<cols; c++) {
-    for (let r=0; r<ROWS; r++) {
-      const sticky = stickyAll.find(s=>s.col===c&&s.row===r);
-      if (sticky) { grid[c][r] = sticky.type==='silver'?IDX.silver:IDX.gold; continue; }
-      grid[c][r] = drumRnd(w, tot);
+const def = {
+  game: 'jackpot_frenzy', statsId: 'jackpot_frenzy', event: 'casinoJFSpin', resultEvent: 'casinoJFResult',
+  newState: () => ({
+    cauldron: { green: 0, red: 0, blue: 0 }, meter: { points: 0, wager: 0 },
+    miniGames: { multiplier: false, jackpot: false, dublet: false },
+    freeSpins: 0, freeBet: 0, level: 'low', sticky: [], miniWinSum: 0,
+  }),
+  isFree: s => s.freeSpins > 0,
+  spin(state, { bet, paid, level }) {
+    const inFree = !paid;
+    if (paid) {
+      state.level = level;
+      const jp = progressive[level];
+      JP_TIERS.forEach(t => jp[t] += JP_GROW[t]);
     }
-  }
-  return grid;
-}
+    const lvl = inFree ? state.level : level;
+    const cols = inFree && state.miniGames.dublet ? COLS_DUBLET : COLS_NORMAL;
+    if (inFree) state.freeSpins--;
 
-// ─── STAN GRACZY ──────────────────────────────────────────────────────────────
-const playerState = new Map();
+    const pick = E.makePicker(weightsFor(inFree ? state.miniGames : {}));
+    const grid = Array.from({ length: cols }, (_, c) => Array.from({ length: ROWS }, (_, r) => {
+      const st = state.sticky.find(s => s.col === c && s.row === r);
+      return st ? (st.type === 'silver' ? IDX.silver : IDX.gold) : pick();
+    }));
 
-function getState(userId) {
-  if (!playerState.has(userId)) {
-    playerState.set(userId, {
-      // Kociołki
-      cauldron: { green:0, red:0, blue:0 },
-      // Aktywne mini-gry
-      miniGames: { multiplier:false, jackpot:false, dublet:false },
-      miniSpins:  0,        // pozostałe spiny mini-gry
-      // Sticky coiny
-      stickyCoins: [],      // [{col,row,type:'silver'|'gold',mult?,jp?}]
-      // Suma wygranych podczas mini-gry
-      miniWinSum:  0,
-      // Czy gramy na podwójnej planszy (dublet)
-      dublet:      false,
-      // Free spin state
-      betPerLine:  0,
-      activeLines: 1,
-      // Poziom stołu
-      tableLevel:  'low',
-    });
-  }
-  return playerState.get(userId);
-}
-
-// ─── SOCKET HANDLER ───────────────────────────────────────────────────────────
-function registerHandlers(socket, io, casino) {
-  socket.on('casinoJFSpin', async (data) => {
-    const { tableId, bet } = data;
-    const table = casino.casinoTables[tableId];
-    if (!table || table.game !== 'jackpot_frenzy')
-      return socket.emit('casinoError', { message: 'Zły stół' });
-
-    const discordUser = socket.getDiscordUser(data);
-    if (!discordUser)
-      return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord!' });
-
-    const state    = getState(discordUser.id);
-    const cfg      = table.config;
-    const isFree   = state.miniSpins > 0;
-    const cols     = state.dublet ? COLS_DUBLET : COLS_NORMAL;
-    const tableLevel = cfg.level || 'low';
-    state.tableLevel = tableLevel;
-
-    // ── Stawka ───────────────────────────────────────────────────────────────
-    let totBet;
-    if (isFree) {
-      totBet = state.betPerLine;
-    } else {
-      totBet = Math.round(Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet)||cfg.minBet)));
-      const wallet = await casino.ensureWallet(discordUser);
-      if (wallet.balance < totBet)
-        return socket.emit('casinoError', { message:`Za mało AT$! Masz ${wallet.balance}, potrzebujesz ${totBet}` });
-      await casino.updateBalance(discordUser.id, -totBet);
-      state.betPerLine = totBet;
-      tickProgressiveJP(tableLevel, totBet);
-    }
-
-    // ── Grid ─────────────────────────────────────────────────────────────────
-    const grid = buildGrid(cols, state);
-
-    // ── Coiny → kociołki (tylko poza mini-grą) ─────────────────────────────
+    // Coiny → kociołki
     const coinEvents = [];
-    if (!isFree) {
-      for (let c=0; c<cols; c++) for (let r=0; r<ROWS; r++) {
-        const sym = SYMS[grid[c][r]];
-        if (!sym.coin) continue;
-        const pts = sym.coinVal[Math.floor(Math.random()*sym.coinVal.length)];
-        // Brązowy coin → kociołek niebieski (Dublet)
-        const color = sym.coin === 'bronze' ? 'blue' : sym.coin;
-        state.cauldron[color] = Math.min(CAULDRON_MAX, state.cauldron[color]+pts);
-        coinEvents.push({col:c, row:r, color, pts, total:state.cauldron[color], isBronze: sym.coin==='bronze'});
+    if (paid) {
+      for (let c = 0; c < cols; c++) for (let r = 0; r < ROWS; r++) {
+        const s = SYMS[grid[c][r]];
+        if (!s.coin) continue;
+        const color = s.coin === 'bronze' ? 'blue' : s.coin;
+        const pts = COIN_PTS[Math.floor(Math.random() * COIN_PTS.length)];
+        state.cauldron[color] = Math.min(CAULDRON_MAX, state.cauldron[color] + pts);
+        E.meterAdd(state.meter, bet, pts);
+        coinEvents.push({ col: c, row: r, color, pts, total: state.cauldron[color], isBronze: s.coin === 'bronze' });
       }
     }
 
-    // ── Kociołki pełne? (tylko poza mini-grą) ───────────────────────────────
-    const triggeredCauldrons = [];
-    if (!isFree) for (const color of ['green','red','blue']) {
-      if (state.cauldron[color] >= CAULDRON_MAX) {
-        state.cauldron[color] = 0;
-        triggeredCauldrons.push(color);
-      }
-    }
-
-    // Chain: 20% szansa na włączenie pozostałych
-    const chainTriggered = [];
-    if (triggeredCauldrons.length > 0) {
-      for (const color of ['green','red','blue']) {
-        if (!triggeredCauldrons.includes(color) && Math.random()<CAULDRON_CHAIN) {
-          state.cauldron[color] = 0;
-          triggeredCauldrons.push(color);
-          chainTriggered.push(color);
-        }
-      }
-    }
-
-    // Aktywuj mini-gry i zlicz ile kociołków triggeruje
-    let newMiniGames = 0;
-    for (const color of triggeredCauldrons) {
-      if (color==='green')  { if (!state.miniGames.multiplier) { state.miniGames.multiplier = true; newMiniGames++; } }
-      if (color==='red')    { if (!state.miniGames.jackpot)    { state.miniGames.jackpot    = true; newMiniGames++; } }
-      if (color==='blue')   { if (!state.miniGames.dublet)     { state.miniGames.dublet     = true; state.dublet=true; newMiniGames++; } }
-    }
-    if (newMiniGames > 0) {
-      if (state.miniSpins === 0) {
-        // Świeży start mini-gry: +10 per kociołek
-        state.miniSpins  = MINI_FREE_SPINS * newMiniGames;
-        state.miniWinSum = 0;
-        state.stickyCoins = [];
-      } else {
-        // Stacking: +10 per nowy kociołek (chain w trakcie istniejącej mini-gry niemożliwy,
-        // ale na wypadek edge-case)
-        state.miniSpins += MINI_FREE_SPINS * newMiniGames;
-      }
-    }
-
-    // ── Nowe sticky coiny ────────────────────────────────────────────────────
+    // Nowe sticky monety w mini-grze
     const newSticky = [];
-    if (isFree) {
-      for (let c=0; c<cols; c++) for (let r=0; r<ROWS; r++) {
-        const sym = SYMS[grid[c][r]];
-        const exists = state.stickyCoins.find(s=>s.col===c&&s.row===r);
-        if (sym.silver && !exists) {
-          const mult = rollSilverMult();
-          const sc = {col:c, row:r, type:'silver', mult};
-          state.stickyCoins.push(sc);
-          newSticky.push(sc);
-        }
-        if (sym.gold && !exists) {
-          const jp = rollGoldJP();
-          const sc = {col:c, row:r, type:'gold', jp};
-          state.stickyCoins.push(sc);
-          newSticky.push(sc);
+    if (inFree) {
+      for (let c = 0; c < cols; c++) for (let r = 0; r < ROWS; r++) {
+        const s = SYMS[grid[c][r]];
+        if ((s.silver || s.gold) && !state.sticky.find(x => x.col === c && x.row === r)) {
+          const sc = s.silver ? { col: c, row: r, type: 'silver', mult: SILVER[pickSilver()][0] } : { col: c, row: r, type: 'gold', jp: JP_TIERS[pickGoldJP()] };
+          state.sticky.push(sc); newSticky.push(sc);
         }
       }
     }
 
-    // ── Cluster pays ─────────────────────────────────────────────────────────
-    const clusters  = findClusters(grid, cols);
-    const lineWins  = clusters.reduce((s,cl)=>s+cl.pay*totBet,0);
+    const clusters = findClusters(grid, cols).map(cl => ({ ...cl, win: cl.pay * bet }));
+    const clusterWin = clusters.reduce((s, cl) => s + cl.win, 0);
 
-    // ── Wypłata ──────────────────────────────────────────────────────────────
-    let payout = lineWins;
-    let finalPayout = 0;
-    let miniEnded = false;
-    let multSum = 0;
-    let jackpotWins = [];
+    // Kociołki pełne → mini-gra
+    const triggeredCauldrons = [], chainTriggered = [];
+    if (paid) {
+      for (const color of ['green', 'red', 'blue']) if (state.cauldron[color] >= CAULDRON_MAX) { state.cauldron[color] = 0; triggeredCauldrons.push(color); }
+      if (triggeredCauldrons.length) for (const color of ['green', 'red', 'blue']) {
+        if (!triggeredCauldrons.includes(color) && Math.random() < CAULDRON_CHAIN) { state.cauldron[color] = 0; triggeredCauldrons.push(color); chainTriggered.push(color); }
+      }
+      if (triggeredCauldrons.length) {
+        state.miniGames = { multiplier: triggeredCauldrons.includes('green'), jackpot: triggeredCauldrons.includes('red'), dublet: triggeredCauldrons.includes('blue') };
+        state.freeSpins = MINI_FREE_SPINS * triggeredCauldrons.length;
+        state.freeBet = E.meterBet(state.meter, bet);
+        E.meterReset(state.meter);
+        state.sticky = []; state.miniWinSum = 0; state.level = level;
+      }
+    }
 
-    if (isFree) {
-      state.miniSpins--;
-      state.miniWinSum += lineWins;
-
-      if (state.miniSpins <= 0) {
-        // Mini-gra skończona — aplikuj mnożniki i jackpoty
+    let payout = paid ? clusterWin : 0;
+    let miniEnded = false, multSum = 0, jackpotWins = [], finalPayout = 0;
+    if (inFree) {
+      state.miniWinSum += clusterWin;
+      if (state.freeSpins <= 0) {
         miniEnded = true;
-
-        // Srebrne monety → sumuj mnożniki
-        if (state.miniGames.multiplier || state.miniGames.dublet) {
-          multSum = state.stickyCoins
-            .filter(s=>s.type==='silver')
-            .reduce((s,c)=>s+c.mult,0);
+        multSum = state.sticky.filter(s => s.type === 'silver').reduce((s, x) => s + x.mult, 0);
+        const jp = progressive[lvl];
+        for (const g of state.sticky.filter(s => s.type === 'gold')) {
+          const amount = Math.floor(jp[g.jp] * bet);
+          jackpotWins.push({ jp: g.jp, amount, col: g.col, row: g.row });
+          jp[g.jp] = JP_BASE[g.jp];
         }
-
-        // Złote monety → jackpoty
-        if (state.miniGames.jackpot) {
-          for (const sc of state.stickyCoins.filter(s=>s.type==='gold')) {
-            const jpAmt = progressiveJP[tableLevel][sc.jp];
-            jackpotWins.push({jp:sc.jp, amount:jpAmt, col:sc.col, row:sc.row});
-            resetJP(tableLevel, sc.jp);
-          }
-        }
-
-        const jpTotal = jackpotWins.reduce((s,j)=>s+j.amount,0);
-        finalPayout = state.miniWinSum * Math.max(1, multSum) + jpTotal;
-
-        // Reset state
-        state.miniGames = {multiplier:false, jackpot:false, dublet:false};
-        state.stickyCoins = [];
-        state.miniWinSum  = 0;
-        state.dublet      = false;
+        finalPayout = Math.floor(state.miniWinSum + multSum * bet) + jackpotWins.reduce((s, j) => s + j.amount, 0);
         payout = finalPayout;
+        state.miniGames = { multiplier: false, jackpot: false, dublet: false };
+        state.sticky = []; state.freeSpins = 0;
       }
     }
 
-    if (payout > 0) await casino.updateBalance(discordUser.id, payout);
-    await casino.recordGame(discordUser.id);
-    await casino.updateSlotStats(discordUser.id, 'jackpot_frenzy', {
-      spins:1, spent:isFree?0:totBet, won:payout, bestWin:payout
-    });
+    const jpView = {};
+    const viewBet = inFree || triggeredCauldrons.length ? state.freeBet : bet;
+    JP_TIERS.forEach(t => jpView[t] = Math.floor(progressive[lvl][t] * viewBet));
 
-    const newBalance = (await casino.getWallet(discordUser.id))?.balance??0;
-    const mult2  = totBet>0?payout/totBet:0;
-    const tier   = mult2>500?'frito':mult2>50?'giga':mult2>20?'huge':mult2>5?'mega':mult2>1.5?'big':mult2>0?'win':'none';
+    return {
+      grid, clusters, payout, cols, isFree: inFree, totBet: viewBet,
+      freeSpinsAwarded: triggeredCauldrons.length ? state.freeSpins : 0,
+      miniSpins: state.freeSpins, miniWinSum: miniEnded ? 0 : state.miniWinSum, miniGames: { ...state.miniGames },
+      dublet: state.miniGames.dublet,
+      cauldron: { ...state.cauldron }, cauldronMax: CAULDRON_MAX, coinEvents, triggeredCauldrons, chainTriggered,
+      stickyCoins: [...state.sticky], newSticky, miniEnded, multSum, jackpotWins, finalPayout,
+      progressiveJP: jpView,
+      syms: SYMS.map(s => ({ id: s.id, n: s.n, e: '', img: s.img, coin: s.coin || null, sticky: !!s.sticky, wild: !!s.wild, silver: !!s.silver, gold: !!s.gold, bronze: s.id === 'coin_br' })),
+    };
+  },
+};
 
-    socket.emit('casinoJFResult', {
-      grid,
-      clusters,
-      payout,
-      balance:     newBalance,
-      totBet,
-      isFree,
-      miniSpins:   state.miniSpins,
-      miniWinSum:  state.miniWinSum,
-      miniGames:   {...state.miniGames},
-      cauldron:    {...state.cauldron},
-      cauldronMax: CAULDRON_MAX,
-      coinEvents,
-      triggeredCauldrons,
-      chainTriggered,
-      stickyCoins: [...state.stickyCoins],
-      newSticky,
-      miniEnded,
-      multSum,
-      jackpotWins,
-      finalPayout,
-      dublet:      state.dublet,
-      cols,
-      syms:        SYMS.map(s=>({id:s.id,n:s.n,e:s.e,img:s.img||null,coin:s.coin||null,sticky:!!s.sticky,wild:!!s.wild,silver:!!s.silver,gold:!!s.gold,bronze:s.id==='coin_br'})),
-      progressiveJP: progressiveJP[tableLevel],
-      tier,
-    });
-  });
-}
+function registerHandlers(socket, io, casino) { E.register(def, socket, io, casino); }
 
-module.exports = { registerHandlers, progressiveJP };
+module.exports = { registerHandlers, def, progressive };

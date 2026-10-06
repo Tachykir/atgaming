@@ -81,6 +81,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── DISCORD ROUTES ────────────────────────────────────────────
 discordAuth.setupRoutes(app);
 
+// Logowanie deweloperskie (lokalne testy bez Discorda) — tylko gdy DEV_LOGIN=1
+if (process.env.DEV_LOGIN === '1') {
+  console.warn('⚠️  DEV_LOGIN=1 — aktywne testowe logowanie /auth/dev-login (NIE włączaj na produkcji!)');
+  app.get('/auth/dev-login', (req, res) => {
+    const name = String(req.query.name || 'Tester').slice(0, 32);
+    const id = 'dev-' + name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    req.session.discordUser = { id, username: name, globalName: name, avatar: 'https://cdn.discordapp.com/embed/avatars/0.png' };
+    res.redirect(`/?discord_login=1&nick=${encodeURIComponent(name)}`);
+  });
+}
+
 // Endpoint zwracający token do autoryzacji socketów
 app.get('/auth/socket-token', (req, res) => {
   const user = req.session?.discordUser;
@@ -169,14 +180,13 @@ casino.init().then(() => {
   });
   casino.scheduleWeeklyTopup(io);
 
-  // Uruchom pętlę Crash dla stałego stołu
-  const crashTable = Object.values(casino.casinoTables).find(t => t.game === 'crash');
-  if (crashTable) {
+  // Uruchom pętlę Crash dla każdego stołu Crash (Low / Medium / High)
+  for (const crashTable of Object.values(casino.casinoTables).filter(t => t.game === 'crash')) {
     crashTable._casino = casino;
     crashTable.gameState = { phase: 'betting', bets: {}, currentMultiplier: 1.00, crashPoint: null, history: [], bettingTimeLeft: 5 };
     casinoCrash.startCrashLoop(crashTable, io, casino);
-    console.log('🚀 Crash loop uruchomiony');
   }
+  console.log('🚀 Crash loop uruchomiony');
 }).catch(err => {
   console.error('Błąd inicjalizacji kasyna:', err);
   process.exit(1);
@@ -438,6 +448,17 @@ app.get('/api/casino/slot-stats/:gameId', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Tabele wypłat / metadane automatów (do ekranów informacji w UI)
+const SLOT_META = {
+  slots: casinoSlots.meta, path_of_gambling: casinoPath.meta, dragon_hoard: casinoDH.meta,
+  arcane_academy: casinoAA.meta, dual_blades: casinoDualBlades.meta, neon_racer: casinoNR.meta,
+};
+app.get('/api/casino/game-meta/:game', (req, res) => {
+  const m = SLOT_META[req.params.game];
+  if (!m) return res.status(404).json({ error: 'Brak danych' });
+  res.json(m);
+});
+
 // Ranking AT$
 app.get('/api/casino/leaderboard', async (req, res) => {
   res.json(await casino.getLeaderboard(50));
@@ -491,6 +512,8 @@ app.delete('/api/casino/tables/:tableId', (req, res) => {
   // FIX #17: Wyczyść timery countdown przed usunięciem stołu
   clearTimeout(casinoPoker.countdownTimers[req.params.tableId]);
   clearTimeout(casinoBJ.countdownTimers[req.params.tableId]);
+  clearTimeout(casinoPoker.turnTimers[req.params.tableId]);
+  clearTimeout(casinoBJ.turnTimers[req.params.tableId]);
   if (casino.deleteTable(req.params.tableId)) { io.emit('casinoTablesUpdated'); res.json({ ok: true }); }
   else res.status(400).json({ error: 'Nie można usunąć stołu z graczami' });
 });
@@ -752,6 +775,7 @@ io.on('connection', (socket) => {
     const { tableId, buyIn } = data;
     const table = casino.casinoTables[tableId];
     if (!table) return socket.emit('casinoError', { message: 'Stół nie istnieje' });
+    if (table.game !== 'poker' && table.game !== 'blackjack') return;
 
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord, żeby grać!' });
@@ -778,12 +802,16 @@ io.on('connection', (socket) => {
     const maxBI = cfg.maxBuyIn || cfg.maxBet * 20;
     const actualBuyIn = Math.max(minBI, Math.min(maxBI, Number(buyIn) || minBI));
 
-    if (wallet.balance < actualBuyIn) {
-      return socket.emit('casinoError', { message: `Za mało AT$! Potrzebujesz ${actualBuyIn} AT$, masz ${wallet.balance}` });
+    // Pobierz buy-in z portfela (atomowo — brak środków = odmowa)
+    const balanceAfter = await casino.debit(discordUser.id, actualBuyIn);
+    if (balanceAfter === null) {
+      return socket.emit('casinoError', { message: `Za mało AT$! Potrzebujesz ${actualBuyIn.toLocaleString('pl-PL')} AT$, masz ${wallet.balance.toLocaleString('pl-PL')}` });
     }
-
-    // Pobierz buy-in z portfela
-    await casino.updateBalance(discordUser.id, -actualBuyIn);
+    // Mogło dojść drugie żądanie join w trakcie await — nie sadzaj dwa razy
+    if (table.players.find(p => p.discordId === discordUser.id) || table.players.length >= table.config.maxPlayers) {
+      await casino.updateBalance(discordUser.id, actualBuyIn);
+      return socket.emit('casinoError', { message: 'Nie udało się dołączyć do stołu' });
+    }
 
     const seatIndex = table.players.length;
     table.players.push({
@@ -802,7 +830,7 @@ io.on('connection', (socket) => {
     socket.emit('casinoJoined', {
       tableId,
       sessionChips: actualBuyIn,
-      walletBalance: wallet.balance - actualBuyIn,
+      walletBalance: balanceAfter,
     });
 
     // Wyemituj nowy stan stołu
@@ -835,7 +863,9 @@ io.on('connection', (socket) => {
     socket.casinoObserving = tableId;
     if (table.game === 'poker')    casinoPoker.emitTableState(table, io);
     else if (table.game === 'blackjack') casinoBJ.emitTableState(table, io);
-    else if (table.game === 'roulette' && table.gameState) io.to('casino:'+tableId).emit('casinoRouletteState', table.gameState);
+    else if (table.game === 'roulette' && table.gameState) casinoRoulette.sendState(table, socket);
+    else if (table.game === 'crash' && table.gameState) casinoCrash.sendState(table, socket);
+    else if (table.game === 'coinflip') casinoCoinflip.sendState(table, socket);
   });
 
   // Utwórz nowy stół (poker lub blackjack)
@@ -918,7 +948,7 @@ io.on('connection', (socket) => {
   });
 
   // Akcje Blackjacka
-  const BJ_EVENTS = ['casinoBJBet','casinoBJHit','casinoBJStand','casinoBJDouble'];
+  const BJ_EVENTS = ['casinoBJBet','casinoBJHit','casinoBJStand','casinoBJDouble','casinoBJSplit'];
   BJ_EVENTS.forEach(event => {
     socket.on(event, (data) => {
       const tId  = data?.tableId || socket.casinoTableId;
@@ -945,97 +975,53 @@ io.on('connection', (socket) => {
   function handleCasinoLeave(socket, tableId) {
     const table = casino.casinoTables[tableId];
     if (!table) return;
-
-    // Usuń z obserwatorów
     table.observers = (table.observers || []).filter(id => id !== socket.id);
+    if (socket.casinoObserving === tableId) socket.casinoObserving = null;
 
     const idx = table.players.findIndex(p => p.socketId === socket.id);
     if (idx === -1) return;
-
     const player = table.players[idx];
 
-    // FIX #5: Zwróć zakłady ruletki jeśli gracz rozłączył się podczas fazy betting
+    // Ruletka: zwróć zakłady postawione w fazie zakładów
     if (table.game === 'roulette' && player.discordId) {
       const gs = table.gameState;
       if (gs && gs.phase === 'betting' && gs.bets[player.discordId]?.length > 0) {
         const refund = gs.bets[player.discordId].reduce((s, b) => s + b.amount, 0);
-        if (refund > 0) {
-          casino.updateBalance(player.discordId, refund).catch(() => {});
-          delete gs.bets[player.discordId];
-        }
+        delete gs.bets[player.discordId];
+        if (refund > 0) casino.updateBalance(player.discordId, refund).catch(() => {});
       }
     }
 
-    // FIX #11: Poker — auto-fold gracza który wychodzi w środku ręki
-    // Bez tego gra się zawiesza gdy aktywny gracz rozłącza się (jego socketId zostaje w actingQueue)
-    if (table.game === 'poker') {
-      const gs = table.gameState;
-      if (gs && table.status === 'playing') {
-        const sid = socket.id;
-        // Oznacz jako sfoldowanego i usuń z kolejki
-        // Wyjątek: all-in gracze nie są foldowani — ich ręka gra się do końca
-        if (gs.folded && !gs.folded[sid] && !gs.allIn?.[sid]) {
-          gs.folded[sid] = true;
-          gs.actingQueue = (gs.actingQueue || []).filter(id => id !== sid);
-          // Jeśli to był aktywny gracz — przekaż ruch następnemu
-          if (gs.actingPlayer === sid) {
-            if (gs.actingQueue.length > 0) {
-              gs.actingPlayer = gs.actingQueue[0];
-            } else {
-              // Wszyscy wyrównali lub wszyscy spasowali — przejdź do następnej fazy
-              // Usuwamy gracza z table.players PRZED wywołaniem nextPhase via emitTableState
-              table.players.splice(idx, 1);
-              socket.leave('casino:' + tableId);
-              socket.casinoTableId = null;
-              if (player.discordId && player.sessionChips > 0) {
-                casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
-              }
-              casinoPoker.handleAction(table, sid, 'casinoPokerFold', {}, io);
-              return;
-            }
-          }
-        }
-      }
-    }
+    // Poker / blackjack: wyjście w trakcie ręki = fold / utrata postawionego zakładu
+    if (table.game === 'poker') casinoPoker.playerLeft(table, socket.id, io);
+    if (table.game === 'blackjack') casinoBJ.playerLeft(table, socket.id, io);
 
-    // FIX #12: Blackjack — advance turn jeśli rozłączający się gracz był aktywnym graczem
-    if (table.game === 'blackjack') {
-      const gs = table.gameState;
-      if (gs && gs.phase === 'playing' && gs.actingPlayer === socket.id) {
-        if (player.discordId && player.sessionChips > 0) {
-          casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
-        }
-        table.players.splice(idx, 1);
-        socket.leave('casino:' + tableId);
-        socket.casinoTableId = null;
-        // advanceTurn robi shift() który usuwa aktywnego gracza z kolejki i przekazuje turę
-        casinoBJ.advanceTurn(table, io);
-        return;
-      }
-    }
-
-    // Oddaj pozostałe żetony do portfela (poker/blackjack)
+    // Zwróć żetony ze stołu do portfela
     if (player.discordId && player.sessionChips > 0) {
       casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
     }
-
     table.players.splice(idx, 1);
     socket.leave('casino:' + tableId);
-    socket.casinoTableId = null;
+    if (socket.casinoTableId === tableId) socket.casinoTableId = null;
 
-    if (table.game==='poker') casinoPoker.emitTableState(table, io);
-    else if (table.game==='blackjack') casinoBJ.emitTableState(table, io);
-
-    // Jeśli za mało graczy → zatrzymaj
-    if (table.game === 'poker' && table.players.length < 2) {
-      clearTimeout(casinoPoker.countdownTimers[tableId]);
-      table.status = 'open';
-      table.gameState = null;
+    if (table.game === 'poker') {
+      if (table.players.length < 2 && table.status !== 'playing' && table.status !== 'showdown') {
+        clearTimeout(casinoPoker.countdownTimers[tableId]);
+        delete casinoPoker.countdownTimers[tableId];
+        table.status = 'open';
+        table.gameState = null;
+      }
       casinoPoker.emitTableState(table, io);
+    } else if (table.game === 'blackjack') {
+      if (table.players.length === 0 && table.gameState?.phase === 'betting') {
+        clearTimeout(casinoBJ.countdownTimers[tableId]);
+        table.status = 'open';
+        table.gameState = null;
+      }
+      casinoBJ.emitTableState(table, io);
     }
 
-    // FIX #4: Ruletka — wyczyść timer odliczania gdy stół opustoszeje
-    // Bez tego setInterval działa w nieskonczonosc i tworzy nowe rundy mimo braku graczy
+    // Ruletka: zatrzymaj pętlę gdy stół opustoszeje
     if (table.game === 'roulette' && table.players.length === 0 && table.gameState) {
       clearInterval(table.gameState.timer);
       clearTimeout(table.gameState.spinTimer);

@@ -1,239 +1,87 @@
 /**
- * AUTOMATY 5-BĘBNOWE — AT Gaming Casino
- * 5 bębnów × 3 rzędy, 50 linii wygrywających
- * RTP ~75% (bez Frito), Frito Win rate 2.5%
+ * LUCKY FRUITS — AT Gaming Casino
+ * 5 bębnów × 3 rzędy, 20 linii, Wild ⭐ (zastępuje), Scatter 💫 (płaci wszędzie).
+ * 3/4/5 scatterów → 10/15/25 Free Spinów z mnożnikiem ×3 (możliwy retrigger).
+ * Wypłata = dokładnie to, co widać na bębnach. RTP ≈ 95% (kalibrowane symulacją).
  */
 'use strict';
+const E = require('./slot_engine');
 
-const SYMS = [
-  { e: '💎', n: 'Diament',    w: 2,  p: [0, 0, 8,  20, 60,  200] },
-  { e: '7️⃣',  n: 'Siódemka',  w: 3,  p: [0, 0, 5,  12, 40,  120] },
-  { e: '🍀', n: 'Koniczyna',  w: 4,  p: [0, 0, 4,  8,  25,  80]  },
-  { e: '🔔', n: 'Dzwonek',    w: 6,  p: [0, 0, 3,  6,  18,  55]  },
-  { e: '🍇', n: 'Winogrona',  w: 8,  p: [0, 0, 2,  4,  12,  35]  },
-  { e: '🍊', n: 'Pomarańcza', w: 9,  p: [0, 0, 2,  3,  8,   22]  },
-  { e: '🍋', n: 'Cytryna',    w: 11, p: [0, 0, 1,  2,  6,   16]  },
-  { e: '🍒', n: 'Wiśnia',     w: 13, p: [0, 1, 1,  2,  4,   10]  },
-  { e: '⭐', n: 'Wild',       w: 3,  p: [0, 0, 10, 30, 100, 300], wild: true    },
-  { e: '💫', n: 'Scatter',    w: 4,  p: [0, 0, 0,  0,  0,   0],  scatter: true },
+const PAY_SCALE = 0.94;
+const raw = [
+  { e: '💎', n: 'Diament',    w: 3,  p: [0,0,0,50,250,1500] },
+  { e: '7️⃣',  n: 'Siódemka',  w: 4,  p: [0,0,0,40,150,750] },
+  { e: '🍀', n: 'Koniczyna',  w: 6,  p: [0,0,0,25,100,400] },
+  { e: '🔔', n: 'Dzwonek',    w: 8,  p: [0,0,0,20,60,200] },
+  { e: '🍇', n: 'Winogrona',  w: 10, p: [0,0,0,15,40,120]  },
+  { e: '🍊', n: 'Pomarańcza', w: 12, p: [0,0,0,10,25,80]  },
+  { e: '🍋', n: 'Cytryna',    w: 13, p: [0,0,0,8,20,60]  },
+  { e: '🍒', n: 'Wiśnia',     w: 14, p: [0,0,0,6,15,50]   },
+  { e: '⭐', n: 'Wild',       w: 3,  p: [0,0,0,60,300,2500], wild: true },
+  { e: '💫', n: 'Scatter',    w: 3,  p: [0,0,0,0,0,0], scatter: true },
 ];
-const DRUM_W   = SYMS.map(s => s.w);
-const DRUM_TOT = DRUM_W.reduce((a, b) => a + b, 0);
+const SYMS = raw.map(s => ({ ...s, p: s.p.map(v => v * PAY_SCALE) }));
+const IDX_SCATTER = SYMS.findIndex(s => s.scatter);
+const pick = E.makePicker(SYMS.map(s => s.w));
 
 const LINES = [
-  [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],
-  [0,1,2,1,0],[2,1,0,1,2],[0,0,1,0,0],[2,2,1,2,2],
-  [0,0,0,0,1],[1,0,0,0,0],[2,2,2,2,1],[1,2,2,2,2],
-  [0,1,0,1,0],[1,0,1,0,1],[1,2,1,2,1],[2,1,2,1,2],
-  [0,1,1,1,0],[2,1,1,1,2],[1,1,0,1,1],[1,1,2,1,1],
-  [0,2,0,2,0],[2,0,2,0,2],[0,2,1,2,0],[2,0,1,0,2],
-  [0,1,2,2,2],[2,1,0,0,0],[0,0,0,1,2],[2,2,2,1,0],
-  [1,0,0,0,1],[1,2,2,2,1],
-  [1,0,1,0,1],[1,2,1,2,1],[0,0,1,2,2],[2,2,1,0,0],
-  [0,1,2,2,1],[2,1,0,0,1],
-  [0,1,0,1,2],[2,1,2,1,0],[1,0,1,2,1],[1,2,1,0,1],
-  [0,0,1,2,1],[2,2,1,0,1],
-  [0,0,0,0,2],[2,2,2,2,0],[0,2,1,0,2],[2,0,1,2,0],
-  [0,1,1,2,1],[2,1,1,0,1],
-  [1,1,0,1,1],[1,1,2,1,1],[0,1,1,1,2],
+  [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],
+  [0,0,1,2,2],[2,2,1,0,0],[1,0,0,0,1],[1,2,2,2,1],[0,1,1,1,0],
+  [2,1,1,1,2],[1,0,1,2,1],[1,2,1,0,1],[0,1,0,1,0],[2,1,2,1,2],
+  [1,1,0,1,1],[1,1,2,1,1],[0,0,2,0,0],[2,2,0,2,2],[0,2,0,2,0],
 ];
+const SCATTER_PAY = { 3: 2, 4: 10, 5: 50 };      // × stawka łączna
+const FREE_SPINS  = { 3: 10, 4: 15, 5: 25 };
+const FS_MULT = 3;
 
-const WIN_TIERS = [
-  { min: 0,    max: 1.5,      tier: 'win',   label: 'Win'                  },
-  { min: 1.5,  max: 5,        tier: 'big',   label: 'Big Win'              },
-  { min: 5,    max: 20,       tier: 'mega',  label: 'Mega Win'             },
-  { min: 20,   max: 50,       tier: 'huge',  label: 'Huge Win'             },
-  { min: 50,   max: 500,      tier: 'giga',  label: 'Giga Win'             },
-  { min: 500,  max: Infinity, tier: 'frito', label: 'Mega Giga Frito Win'  },
-];
-
-function getTier(mult) {
-  return WIN_TIERS.find(t => mult >= t.min && mult < t.max) || WIN_TIERS[0];
-}
-
-function drumRnd() {
-  let r = Math.random() * DRUM_TOT;
-  for (let i = 0; i < SYMS.length; i++) { r -= DRUM_W[i]; if (r <= 0) return i; }
-  return 0;
-}
-
-// Stan free spinów per gracz (Lucky Fruits)
-const luckyFruitState = new Map();
-function getLuckyState(userId) {
-  if (!luckyFruitState.has(userId)) {
-    luckyFruitState.set(userId, { freeSpins: 0, betPerLine: 0, activeLines: 50 });
-  }
-  return luckyFruitState.get(userId);
-}
-
-function drawOutcome(totBet) {
-  const r = Math.random();
-
-  // 73.9% — brak wygranej
-  if (r < 0.739) return { type: 'none', payout: 0, mult: 0 };
-
-  // 20% — Win: 0.3×–1.5×
-  if (r < 0.939) {
-    const m = 0.3 + Math.random() * 1.2;
-    return { type: 'win', payout: Math.round(m * totBet), mult: m };
-  }
-
-  // 3% — Big Win: 1.5×–4×
-  if (r < 0.969) {
-    const m = 1.5 + Math.random() * 2.5;
-    return { type: 'big', payout: Math.round(m * totBet), mult: m };
-  }
-
-  // 1.5% — Mega Win: 5×–15×
-  if (r < 0.984) {
-    const m = 5 + Math.random() * 10;
-    return { type: 'mega', payout: Math.round(m * totBet), mult: m };
-  }
-
-  // 1% — Huge Win: 20×–40×
-  if (r < 0.994) {
-    const m = 20 + Math.random() * 20;
-    return { type: 'huge', payout: Math.round(m * totBet), mult: m };
-  }
-
-  // 0.5% — Giga Win: 50×–100×
-  if (r < 0.999) {
-    const m = 50 + Math.random() * 50;
-    return { type: 'giga', payout: Math.round(m * totBet), mult: m };
-  }
-
-  // 0.1% — Mega Giga Frito Win: 500×–1500×
-  const m = 500 + Math.random() * 1000;
-  return { type: 'frito', payout: Math.round(m * totBet), mult: m };
-}
-
-function buildGrid(outcome) {
-  const grid = Array.from({ length: 5 }, () => Array(3).fill(0));
-  for (let c = 0; c < 5; c++) for (let r = 0; r < 3; r++) grid[c][r] = drumRnd();
-  if (outcome.type === 'none') return grid;
-  const m = outcome.mult;
-  let symIdx, streak, useWild;
-  if (outcome.type === 'frito')      { symIdx = 0; streak = 5; useWild = true;  }
-  else if (m >= 50)                  { symIdx = 0; streak = 5; useWild = false; }
-  else if (m >= 20)                  { symIdx = 1; streak = 5; useWild = true;  }
-  else if (m >= 5)                   { symIdx = 1; streak = 4; useWild = false; }
-  else if (m >= 1.5)                 { symIdx = 2; streak = 4; useWild = false; }
-  else                               { symIdx = 3 + Math.floor(Math.random() * 4); streak = 3; useWild = false; }
-  for (let c = 0; c < streak; c++) grid[c][LINES[0][c]] = symIdx;
-  if (useWild && streak >= 4) grid[2][LINES[0][2]] = 8;
-  if (m >= 5) {
-    const line2 = LINES[3];
-    const s2 = Math.min(symIdx + 1, 7);
-    const str2 = Math.max(3, streak - 1);
-    for (let c = 0; c < str2; c++) grid[c][line2[c]] = s2;
-  }
-  return grid;
-}
-
-function calcLines(grid, betPerLine, activeLines) {
-  const wins = [];
-  for (let li = 0; li < Math.min(activeLines, LINES.length); li++) {
-    const line = LINES[li];
-    let first = -1, streak = 0;
-    for (let c = 0; c < 5; c++) {
-      const si = grid[c][line[c]]; const s = SYMS[si];
-      if (s.scatter) break;
-      if (s.wild)    { streak++; continue; }
-      if (first === -1)      { first = si; streak++; }
-      else if (si === first) { streak++; }
-      else break;
+function buildGrid() {
+  const g = [];
+  for (let c = 0; c < 5; c++) {
+    g.push([]);
+    for (let r = 0; r < 3; r++) {
+      let s = pick();
+      // max 1 scatter na bęben
+      while (s === IDX_SCATTER && g[c].includes(IDX_SCATTER)) s = pick();
+      g[c].push(s);
     }
-    if (first === -1) continue;
-    const pay = SYMS[first].p[streak] || 0;
-    if (pay > 0) wins.push({ li, line: [...line], streak, symIdx: first, lineWin: pay * betPerLine });
   }
-  return wins;
+  return g;
 }
 
-function registerHandlers(socket, io, casino) {
-  socket.on('casinoSlotsSpin', async (data) => {
-    const { tableId, bet, lines = 50 } = data;
-    const table = casino.casinoTables[tableId];
-    if (!table || table.game !== 'slots') return socket.emit('casinoError', { message: 'Zły stół' });
-    const discordUser = socket.getDiscordUser(data);
-    if (!discordUser) return socket.emit('casinoError', { message: 'Musisz być zalogowany przez Discord!' });
+const def = {
+  game: 'slots', statsId: 'slots', event: 'casinoSlotsSpin', resultEvent: 'casinoSlotsResult',
+  newState: () => ({ freeSpins: 0, freeBet: 0, fsTotal: 0, fsWin: 0 }),
+  isFree: s => s.freeSpins > 0,
+  spin(state, { bet, paid }) {
+    const inFree = !paid;
+    if (inFree) state.freeSpins--;
+    const grid = buildGrid();
+    const lineBet = bet / LINES.length;
+    const mult = inFree ? FS_MULT : 1;
+    const wins = E.evalLines(grid, LINES, SYMS, lineBet).map(w => ({ ...w, win: w.win * mult }));
+    const sc = E.countSym(grid, i => i === IDX_SCATTER);
+    const scatterWin = ((SCATTER_PAY[Math.min(sc.n, 5)] || 0) * bet * mult);
+    const payout = wins.reduce((s, w) => s + w.win, 0) + scatterWin;
 
-    const cfg   = table.config;
-    const state = getLuckyState(discordUser.id);
-    const isFree = state.freeSpins > 0;
-
-    let betPerLine, activeLines, totBet;
-    if (isFree) {
-      // FREE SPIN — używamy zapamiętanej stawki, nic nie pobieramy
-      betPerLine  = state.betPerLine;
-      activeLines = state.activeLines;
-      totBet      = betPerLine * activeLines;
-    } else {
-      // maxBet = totBet, betPerLine = totBet / linii
-      const reqTotBet = Math.round(Math.max(cfg.minBet, Math.min(cfg.maxBet, Number(bet) || cfg.minBet)));
-      betPerLine  = Math.round(reqTotBet / (activeLines || 50));
-      activeLines = Math.max(1, Math.min(50, Number(lines) || 50));
-      totBet      = betPerLine * activeLines;
-
-      const wallet = await casino.ensureWallet(discordUser);
-      if (wallet.balance < totBet)
-        return socket.emit('casinoError', { message: `Za mało AT$! Masz ${wallet.balance} AT$, potrzebujesz ${totBet} AT$` });
-      await casino.updateBalance(discordUser.id, -totBet);
-    }
-
-    const outcome  = drawOutcome(totBet);
-    const grid     = buildGrid(outcome);
-    const winLines = calcLines(grid, betPerLine, activeLines);
-
-    // Scatter — przyznaj free spiny tylko poza free spinami
     let freeSpinsAwarded = 0;
-    let scatterCount = 0;
-    for (let c = 0; c < 5; c++) for (let r = 0; r < 3; r++)
-      if (SYMS[grid[c][r]].scatter) scatterCount++;
-
-    if (!isFree && scatterCount >= 3) {
-      freeSpinsAwarded  = scatterCount === 3 ? 8 : scatterCount === 4 ? 12 : 20;
-      state.freeSpins   = freeSpinsAwarded;
-      state.betPerLine  = betPerLine;
-      state.activeLines = activeLines;
+    if (sc.n >= 3) {
+      freeSpinsAwarded = FREE_SPINS[Math.min(sc.n, 5)];
+      if (!inFree) { state.freeBet = bet; state.fsTotal = 0; state.fsWin = 0; }
+      state.freeSpins += freeSpinsAwarded;
+      state.fsTotal += freeSpinsAwarded;
     }
+    if (inFree) state.fsWin += payout;
+    const fsEnded = inFree && state.freeSpins === 0;
+    const fsSummary = fsEnded ? { total: state.fsTotal, win: state.fsWin } : null;
+    return {
+      grid, winLines: wins, scatter: { count: sc.n, cells: sc.cells, win: scatterWin },
+      payout, isFree: inFree, freeMult: mult, freeSpinsAwarded, freeSpinsRemaining: state.freeSpins, fsSummary,
+    };
+  },
+};
 
-    const payout = outcome.payout;
-    if (payout > 0) await casino.updateBalance(discordUser.id, payout);
-    await casino.recordGame(discordUser.id);
-    await casino.updateSlotStats(discordUser.id, 'slots', {
-      spins:   1,
-      spent:   isFree ? 0 : totBet,
-      won:     payout,
-      bestWin: payout,
-    });
+function registerHandlers(socket, io, casino) { E.register(def, socket, io, casino); }
 
-    // Odlicz free spin
-    let freeSpinsRemaining = 0;
-    if (isFree) {
-      state.freeSpins--;
-      freeSpinsRemaining = state.freeSpins;
-    }
+const meta = { syms: SYMS.map(s => ({ e: s.e, n: s.n, p: s.p, wild: !!s.wild, scatter: !!s.scatter })), lines: LINES, rows: 3, cols: 5, scatterPay: SCATTER_PAY, freeSpins: FREE_SPINS, fsMult: FS_MULT };
 
-    const newBalance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
-    const mult       = totBet > 0 ? payout / totBet : 0;
-    const tier       = getTier(mult);
-
-    socket.emit('casinoSlotsResult', {
-      grid, winLines, payout,
-      net:     payout - (isFree ? 0 : totBet),
-      balance: newBalance,
-      bet:     betPerLine,
-      activeLines, totBet: isFree ? 0 : totBet, mult,
-      tier:    tier.tier,
-      label:   tier.label,
-      isFree,
-      freeSpinsAwarded,
-      freeSpinsRemaining,
-      syms:    SYMS.map(s => ({ e: s.e, n: s.n, wild: !!s.wild, scatter: !!s.scatter })),
-      lines:   LINES,
-    });
-  });
-}
-
-module.exports = { registerHandlers, SYMS, LINES, WIN_TIERS };
+module.exports = { registerHandlers, def, meta, SYMS, LINES };

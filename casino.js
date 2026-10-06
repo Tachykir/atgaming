@@ -193,6 +193,39 @@ async function updateBalance(discordId, delta) {
   return w.balance;
 }
 
+// Atomowe pobranie środków: zwraca nowe saldo albo null gdy brak środków.
+// Zastępuje wzorzec "sprawdź saldo → await → odejmij", który przy szybkim klikaniu
+// pozwalał postawić więcej niż się miało (GREATEST(0, …) zerowało dług).
+async function debit(discordId, amount) {
+  amount = Math.floor(Number(amount));
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  delete walletCache[discordId];
+  if (pg) {
+    const r = await pg.query(`
+      UPDATE casino_wallets SET
+        balance    = balance - $2,
+        total_lost = total_lost + $2,
+        last_seen  = NOW()
+      WHERE discord_id=$1 AND balance >= $2 RETURNING balance`, [discordId, amount]);
+    return r.rows[0] ? Number(r.rows[0].balance) : null;
+  }
+  const w = jsonDb.wallets[discordId];
+  if (!w || w.balance < amount) return null;
+  w.balance -= amount;
+  w.totalLost += amount;
+  saveJsonDb();
+  return w.balance;
+}
+
+// Wyłączność per klucz (np. gracz+gra): odrzuca równoległe żądania zamiast je kolejkować.
+const busyKeys = new Set();
+async function exclusive(key, fn) {
+  if (busyKeys.has(key)) return undefined;
+  busyKeys.add(key);
+  try { return await fn(); }
+  finally { busyKeys.delete(key); }
+}
+
 async function recordGame(discordId) {
   if (pg) { await pg.query('UPDATE casino_wallets SET games_played=games_played+1 WHERE discord_id=$1',[discordId]); return; }
   const w = jsonDb.wallets[discordId];
@@ -301,6 +334,12 @@ function deleteTable(tableId) {
   const t = casinoTables[tableId];
   if (!t) return false;
   if (t.players.length > 0) return false; // nie usuwaj zajętego stołu
+  if (t.game === 'coinflip') {
+    const challenges = Object.values(t.gameState?.challenges || {});
+    if (challenges.some(c => c.status === 'flipping')) return false;
+    // Zwróć stawki z otwartych wyzwań
+    challenges.filter(c => c.status === 'open').forEach(c => updateBalance(c.creator.id, c.bet).catch(() => {}));
+  }
   // FIX #19: Wyczyść timer countdown ruletki przed usunięciem stołu
   if (t.gameState?.timer) clearInterval(t.gameState.timer);
   if (t.gameState?.spinTimer) clearTimeout(t.gameState.spinTimer);
@@ -324,7 +363,9 @@ function initTables() {
   createTable({ game:'crash', name:'Crash 🚀 — Low',    config:{ minBet:10,   maxBet:10000 }});
   createTable({ game:'crash', name:'Crash 🚀 — Medium', config:{ minBet:10000, maxBet:1000000 }});
   createTable({ game:'crash', name:'Crash 🚀 — High',   config:{ minBet:1000000, maxBet:10000000 }});
-  // Path of Gambling — 3 warianty stawek
+  // Coinflip — stała arena (PvP + solo vs kasyno)
+  createTable({ game:'coinflip', name:'Coinflip Arena', config:{ minBet:10, maxBet:10000000, maxPlayers:99 }});
+  // Jackpot Frenzy — 3 warianty stawek
   createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99, level:'low'    }});
   createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99, level:'medium' }});
   createTable({ game:'jackpot_frenzy', name:'Jackpot Frenzy — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99, level:'high'   }});
@@ -378,7 +419,7 @@ async function getSlotStats(discordId, gameId) {
       const row = r.rows[0];
       return { spins: Number(row.spins), spent: Number(row.spent), won: Number(row.won), bestWin: Number(row.best_win), pitMeter: Number(row.pit_meter) };
     }
-    return { spins: 0, spent: 0, won: 0, bestWin: 0 };
+    return { spins: 0, spent: 0, won: 0, bestWin: 0, pitMeter: 0 };
   }
   // JSON fallback
   const key = discordId + ':' + gameId;
@@ -417,7 +458,7 @@ async function updateSlotStats(discordId, gameId, { spins = 0, spent = 0, won = 
 }
 
 module.exports = {
-  init, getWallet, ensureWallet, updateBalance, recordGame, getLeaderboard, getAllWallets, adminSetBalance,
+  init, getWallet, ensureWallet, updateBalance, debit, exclusive, recordGame, getLeaderboard, getAllWallets, adminSetBalance,
   getSlotStats, updateSlotStats,
   scheduleWeeklyTopup, runWeeklyTopup,
   casinoTables, createTable, deleteTable, getTablePublic, initTables,

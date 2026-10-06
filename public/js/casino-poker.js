@@ -1,5 +1,4 @@
-// casino-poker.js
-
+// ── RENDER POKER ──────────────────────────────────────────────
 function renderCasinoPokerState(state) {
   const { table, community, pot, phase, actingPlayer, callAmount, currentBet, folded, allIn, smallBlind, bigBlind, showHands, handNames, winners } = state;
   const mySocketId = socket.id;
@@ -91,6 +90,8 @@ function renderCasinoPokerState(state) {
   }
 }
 
+
+// ── AKCJE POKER ───────────────────────────────────────────────
 function casinoPokerAction(type) {
   if (!casinoTableId) return;
   if (type === 'fold')  socket.emit('casinoPokerFold',  { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
@@ -116,18 +117,3 @@ function casinoPokerAllIn() {
   if (!me) return;
   socket.emit('casinoPokerRaise', { tableId: casinoTableId, amount: me.sessionChips + (gs.currentBet?.[socket.id]||0) , discordId: casinoDiscordId, socketToken: casinoSocketToken });
 }
-
-// ── AKCJE BLACKJACK ───────────────────────────────────────────
-function setCasinoBet(amount) {
-  document.getElementById('casino-bj-bet-input').value = amount;
-}
-
-function casinoBJMaxBet() {
-  const gs = casinoTableData;
-  if (!gs) return;
-  const me = gs.table.players.find(p => p.socketId === socket.id);
-  if (!me) return;
-  const maxBet = Math.min(gs.table.config.maxBet, me.sessionChips);
-  document.getElementById('casino-bj-bet-input').value = maxBet;
-}
-

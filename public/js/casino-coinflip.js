@@ -1,4 +1,5 @@
-// casino-coinflip.js
+// ── COINFLIP ──────────────────────────────────────────────────
+let coinflipSide = 'heads';
 
 function initCoinflipUI(table) {
   document.getElementById('casino-coinflip-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
@@ -91,14 +92,3 @@ function casinoCoinflipCancel(challengeId) {
 socket.on('casinoCoinflipCancelled', ({ challengeId, refund }) => {
   showToast(`↩️ Wyzwanie anulowane, zwrócono ${refund.toLocaleString('pl-PL')} AT$`, 'success');
 });
-
-// ══ PATH OF GAMBLING — AUTOMAT 5×5 ════════════════════════════
-const PG_COLS = 5, PG_ROWS = 5;
-const PG_LINE_COLORS = ['#E24B4A','#185FA5','#3B6D11','#BA7517','#533AB7','#0F6E56','#993C1D','#D4537E','#639922','#5F5E5A','#a855f7','#06b6d4','#f59e0b','#10b981','#ef4444'];
-let pgSpinning = false, pgAuto = false, pgAutoT = null, pgWinCb = null, pgWinTimer = null;
-let pgBet = 10, pgLines = 50, pgFreeSpins = 0, pgPitMeter = 0, pgFreeMode = null;
-let pgStatSpins = 0, pgStatPaid = 0, pgBestWin = 0, pgStatSpent = 0;
-let pgStickyValdos = [];
-let pgSyms = [], pgLinesDef = [], pgStickyLocks = [];
-let pgTable = null;
-

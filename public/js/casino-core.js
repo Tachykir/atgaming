@@ -1,4 +1,43 @@
-// casino-core.js — kasyno: portfel, lobby, tabele, wspólne eventy
+// ══════════════════════════════════════════════════════════════
+//  KASYNO AT$ — JAVASCRIPT
+// ══════════════════════════════════════════════════════════════
+
+let casinoWallet     = null;   // { balance, globalName, ... }
+let casinoDiscordId  = null;
+let casinoSocketToken = null; // token do autoryzacji socketów kasyna
+let casinoTableId    = null;   // aktywny stół
+let casinoMyHand     = [];
+let casinoTableData  = null;   // ostatni stan stołu
+let casinoCdMax      = 20;     // max sekund countdown
+let casinoIsObserver = false;
+
+// ── LOBBY ─────────────────────────────────────────────────────
+async function loadCasinoLobby() {
+  // 1. Portfel
+  try {
+    const res = await fetch('/api/casino/wallet');
+    if (res.ok) {
+      const d = await res.json();
+      casinoWallet    = d.wallet;
+      casinoDiscordId = d.discordId;
+      renderCasinoWallet();
+    } else {
+      renderCasinoNoDiscord();
+    }
+  } catch(e) { renderCasinoNoDiscord(); }
+
+  // 2. Ranking
+  try {
+    const lb = await (await fetch('/api/casino/leaderboard')).json();
+    renderCasinoLB(lb);
+  } catch(e) {}
+
+  // 3. Stoły
+  try {
+    const tables = await (await fetch('/api/casino/tables')).json();
+    renderCasinoTables(tables);
+  } catch(e) {}
+}
 
 function renderCasinoWallet() {
   // Sync casinoDiscordId z discordUser jeśli jeszcze nie ustawione
@@ -87,6 +126,7 @@ function renderCasinoTables(tables) {
   const crash     = tables.filter(t => t.game === 'crash');
   const coinflip  = tables.filter(t => t.game === 'coinflip');
   const path      = tables.filter(t => t.game === 'path_of_gambling');
+  const jf        = tables.filter(t => t.game === 'jackpot_frenzy');
   const dh        = tables.filter(t => t.game === 'dragon_hoard');
   const aa        = tables.filter(t => t.game === 'arcane_academy');
   const db        = tables.filter(t => t.game === 'dual_blades');
@@ -101,7 +141,6 @@ function renderCasinoTables(tables) {
   if (el('casino-crash-tables'))    el('casino-crash-tables').innerHTML    = crash.map(t=>renderTableCard(t)).join('');
   if (el('casino-coinflip-tables')) el('casino-coinflip-tables').innerHTML = coinflip.map(t=>renderTableCard(t)).join('');
   if (el('casino-path-tables'))     el('casino-path-tables').innerHTML     = path.map(t=>renderTableCard(t)).join('');
-  const jf = tables.filter(t=>t.game==='jackpot_frenzy');
   if (el('casino-jf-tables'))       el('casino-jf-tables').innerHTML       = jf.map(t=>renderTableCard(t)).join('');
   if (el('casino-dh-tables'))       el('casino-dh-tables').innerHTML       = dh.map(t=>renderTableCard(t)).join('');
   if (el('casino-aa-tables'))       el('casino-aa-tables').innerHTML       = aa.map(t=>renderTableCard(t)).join('');
@@ -291,6 +330,7 @@ async function openCasinoTable(tableId) {
   if (game === 'pachinko') initPachinkoUI(table);
   if (game === 'crash') initCrashUI(table);
   if (game === 'coinflip') initCoinflipUI(table);
+  // Nowe automaty — z hasłem 12345 wymaganym w spin
   if (game === 'dragon_hoard')   initDHUI(table);
   if (game === 'arcane_academy') initAAUI(table);
   if (game === 'dual_blades')    initDBUI(table);
@@ -317,7 +357,8 @@ function leaveCasinoTable() {
   loadCasinoLobby();
 }
 
-// ── AUTOMAT 5-BĘBNOWY (SLOTS) ──────────────────────────────────
+
+// ── SOCKET EVENTS KASYNA ──────────────────────────────────────
 socket.on('casinoJoined', ({ tableId, sessionChips, walletBalance }) => {
   showCasinoNotif(`✅ Dołączyłeś! Żetony: ${sessionChips.toLocaleString('pl-PL')} AT$`, 'cn-success');
   if (casinoWallet) casinoWallet.balance = walletBalance;
@@ -376,4 +417,29 @@ socket.on('weeklyTopup', ({ message }) => {
   if (casinoWallet) loadCasinoLobby(); // odśwież saldo
 });
 
-// ── RENDER POKER ──────────────────────────────────────────────
+// ── Przyciski szybkiego wyboru stawki (żetony) ─────────────────
+function fmtChip(v) {
+  if (v >= 1e6) return (v / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + 'M';
+  if (v >= 1e3) return (v / 1e3).toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + 'k';
+  return String(v);
+}
+function renderChipBtns(containerId, values, inputId, onSelect) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const colors = ['c1', 'c5', 'c25', 'c100', 'c500'];
+  container.innerHTML = '';
+  values.forEach((v, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'casino-chip-btn ' + colors[i % colors.length];
+    b.textContent = fmtChip(v);
+    b.onclick = () => {
+      const inp = document.getElementById(inputId);
+      if (inp) inp.value = v;
+      container.querySelectorAll('.casino-chip-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      if (onSelect) onSelect(v);
+    };
+    container.appendChild(b);
+  });
+}

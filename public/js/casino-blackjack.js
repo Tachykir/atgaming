@@ -1,5 +1,4 @@
-// casino-blackjack.js
-
+// ── RENDER BLACKJACK ──────────────────────────────────────────
 function renderCasinoBJState(state) {
   const { table, phase, dealerHand, dealerValue, bets, hands, results, actingPlayer } = state;
   const mySocketId = socket.id;
@@ -102,7 +101,21 @@ function renderCasinoBJState(state) {
   }
 }
 
-// ── AKCJE POKER ───────────────────────────────────────────────
+
+// ── AKCJE BLACKJACK ───────────────────────────────────────────
+function setCasinoBet(amount) {
+  document.getElementById('casino-bj-bet-input').value = amount;
+}
+
+function casinoBJMaxBet() {
+  const gs = casinoTableData;
+  if (!gs) return;
+  const me = gs.table.players.find(p => p.socketId === socket.id);
+  if (!me) return;
+  const maxBet = Math.min(gs.table.config.maxBet, me.sessionChips);
+  document.getElementById('casino-bj-bet-input').value = maxBet;
+}
+
 function casinoBJPlaceBet() {
   const amount = parseInt(document.getElementById('casino-bj-bet-input')?.value);
   if (!amount) return showToast('Podaj kwotę zakładu!', 'error');
@@ -116,5 +129,3 @@ function casinoBJAction(type) {
   else if (type==='stand')  socket.emit('casinoBJStand',  { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
   else if (type==='double') socket.emit('casinoBJDouble', { tableId: casinoTableId , discordId: casinoDiscordId, socketToken: casinoSocketToken });
 }
-
-
