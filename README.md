@@ -8,6 +8,48 @@ Platforma gier multiplayer (Wisielec, Quiz) z Socket.io.
 
 ---
 
+## 🎰 Kasyno AT$
+
+Wirtualna waluta AT$ (start 100 000, cotygodniowe doładowanie), logowanie przez Discord.
+
+| Gra | Typ | Opis |
+|---|---|---|
+| Lucky Fruits | automat 5×3 | 20 linii, Wild, Scatter → Free Spiny ×3 |
+| Path of Gambling | automat 5×5 | 30 linii, Pit Meter, sticky Lock / Valdo z mnożnikami |
+| Jackpot Frenzy | cluster 5×10 | kociołki, mini-gry, progresywne jackpoty (× stawka) |
+| Dragon Hoard | automat 4×5 | rozszerzający się Wild, Hold & Win, Grand ×1000 |
+| Arcane Academy | cluster 7×7 | kaskady z mnożnikiem do ×10, interaktywny Bonus Pick |
+| Dual Blades | 2 × 3×3 | Shadow Blade, Sync Bonus ×2, Sync Meter |
+| Neon Racer | automat 5×3 | wygrane w obie strony, Speed Meter → Turbo ×3 |
+| Crash | multiplayer | auto cash-out, P(≥x)=0,96/x |
+| Ruletka | multiplayer | europejska, split/street/corner/six line |
+| Pachinko | Plinko | 3 poziomy ryzyka, do 10 kulek |
+| Coinflip | PvP / solo | wyzwania między graczami, solo ×1,96 |
+| Texas Hold'em | stół | side-poty, timer tury, min-raise |
+| Blackjack | stół | split, double, S17, BJ 3:2 |
+
+**Zasady techniczne**
+- Wypłata automatów to dokładnie to, co widać na planszy (ewaluacja linii / klastrów po stronie serwera).
+- RTP automatów ≈ 95%, Pachinko ≈ 96%, Crash 96% — skalibrowane symulacjami Monte Carlo
+  (`games/casino/slot_engine.js → simulate()`).
+- Wszystkie stawki pobierane są atomowo (`casino.debit`) — brak możliwości zejścia poniżej zera.
+- Bonusy typu „licznik” (Pit Meter, kociołki, Speed/Sync Meter) grają za średnią stawkę z nabijania.
+
+**Struktura kodu kasyna**
+```
+casino.js                     # portfele, stoły, statystyki (PostgreSQL / JSON)
+games/casino/slot_engine.js   # wspólny silnik automatów (stawki, wypłaty, symulacja RTP)
+games/casino/*.js             # logika poszczególnych gier
+public/css/casino.css         # wygląd kasyna
+public/js/casino-core.js      # lobby, helpery UI, wejście/wyjście ze stołów
+public/js/casino-slotkit.js   # wspólny komponent UI automatów
+public/js/casino-*.js         # interfejsy poszczególnych gier
+```
+
+Testy lokalne bez Discorda: uruchom z `DEV_LOGIN=1` i wejdź na `http://localhost:3000/auth/dev-login?name=Tester`.
+
+---
+
 ## 🚀 Uruchomienie lokalnie
 
 ```bash

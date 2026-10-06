@@ -1,286 +1,136 @@
-// casino-aa.js — Arcane Academy (Cascading Reels + Multiplier Trail)
-'use strict';
+// ══════════════════════════════════════════════════════════════
+//  ARCANE ACADEMY — 7×7, klastry, kaskady z rosnącym mnożnikiem, Bonus Pick
+// ══════════════════════════════════════════════════════════════
+const AA_SYMS = ['🔮', '🦅', '🪄', '🎩', '⚗️', '⭐', '🍃', '💫', '📚'];
+const AA = { ORB: 7, TOME: 8 };
+const AA_POOL = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 8];
+let aaKit = null, aaPick = null, aaMult = 1;
 
-const AA_ACCESS = '12345';
-const AA_COLS=10, AA_ROWS=10;
-const AA_BET_STEPS=[10,20,50,100,200,500,1000,2000,5000,10000,50000,100000,500000,1000000];
-
-let aaTable=null, aaBetIdx=0, aaSpinning=false, aaAuto=false, aaAutoT=null;
-let aaFreeSpins=0, aaSyms=[], aaUnlocked=false;
-let aaStatSpins=0, aaStatPaid=0, aaBestWin=0, aaStatSpent=0;
-let aaCurrentGrid=null;
+function aaTrailHTML() {
+  return `<div class="sk-meter"><div class="sk-meter-top"><span>✨ Mnożnik kaskad</span><b data-aa="multv">×1</b></div>
+    <div class="cx-row" style="gap:4px" data-aa="trail">${Array.from({ length: 10 }, (_, i) => `<div data-m="${i + 1}" style="flex:1;text-align:center;padding:4px 0;border-radius:8px;font:800 11px 'DM Mono',monospace;background:rgba(255,255,255,.05);color:rgba(255,255,255,.35);transition:.25s">×${i + 1}</div>`).join('')}</div></div>`;
+}
+function aaSetMult(m) {
+  aaMult = m;
+  if (!aaKit) return;
+  aaKit.root.querySelector('[data-aa="multv"]').textContent = '×' + m;
+  aaKit.root.querySelectorAll('[data-aa="trail"] > div').forEach(d => {
+    const on = Number(d.dataset.m) <= m, cur = Number(d.dataset.m) === m;
+    d.style.background = cur ? 'linear-gradient(180deg,#c3b0ff,#6a45f0)' : on ? 'rgba(167,139,250,.35)' : 'rgba(255,255,255,.05)';
+    d.style.color = on ? '#fff' : 'rgba(255,255,255,.35)';
+    d.style.transform = cur ? 'scale(1.12)' : '';
+  });
+}
 
 function initAAUI(table) {
-  aaTable=table;
-  const minBet=table.config.minBet||10;
-  aaBetIdx=AA_BET_STEPS.findIndex(v=>v>=minBet); if(aaBetIdx<0)aaBetIdx=0;
-  aaFreeSpins=0; aaSpinning=false; aaAuto=false; aaUnlocked=false; aaCurrentGrid=null;
-  aaStatSpins=0; aaStatPaid=0; aaBestWin=0; aaStatSpent=0;
-  const nameEl=document.getElementById('aa-name'); if(nameEl)nameEl.textContent=table.name;
-  const pw=document.getElementById('aa-pw-overlay'); if(pw)pw.style.display='flex';
-  const inp=document.getElementById('aa-pw-input'); if(inp){inp.value='';inp.classList.remove('error');setTimeout(()=>inp.focus(),100);}
-  aaUpdateBalance(); aaBuildGrid(); aaUpdateBetUI(); aaUpdateStats();
-  aaSetMsg('Podaj hasło aby grać'); aaSetCascadeInfo('','');
-  const wl=document.getElementById('aa-win-log'); if(wl)wl.innerHTML='';
-  const ab=document.getElementById('aa-auto-btn'); if(ab){ab.classList.remove('on');ab.textContent='Auto';}
-  aaRenderFSBar();
-  const ov=document.getElementById('aa-win-ov'); if(ov)ov.classList.remove('show');
-  if(casinoDiscordId) loadSlotStats('arcane_academy','aa');
-}
-
-function aaCheckPw() {
-  const inp=document.getElementById('aa-pw-input'); if(!inp)return;
-  if(inp.value===AA_ACCESS){
-    const ov=document.getElementById('aa-pw-overlay'); if(ov)ov.style.display='none';
-    aaUnlocked=true; aaSetMsg('Ustaw zakład i naciśnij Spin 🔮');
-  } else {
-    inp.classList.remove('error'); void inp.offsetWidth; inp.classList.add('error');
-    inp.value=''; inp.placeholder='Błędne hasło!';
-    setTimeout(()=>{inp.placeholder='•••••';inp.focus();},1500);
-  }
-}
-
-function aaUpdateBalance(){const el=document.getElementById('aa-balance');if(el&&casinoWallet)el.textContent=casinoWallet.balance.toLocaleString('pl-PL')+' AT$';}
-function aaGetBet(){return AA_BET_STEPS[Math.min(aaBetIdx,AA_BET_STEPS.length-1)];}
-function aaChBet(dir,mode){if(mode==='max')aaBetIdx=AA_BET_STEPS.length-1;else aaBetIdx=Math.max(0,Math.min(AA_BET_STEPS.length-1,aaBetIdx+dir));aaUpdateBetUI();}
-function aaUpdateBetUI(){const bet=aaGetBet();const bv=document.getElementById('aa-bet-val');if(bv)bv.textContent=bet.toLocaleString('pl-PL')+' AT$';}
-
-function aaBuildGrid(){
-  const grid=document.getElementById('aa-reels-grid'); if(!grid)return;
-  grid.innerHTML=''; grid.style.cssText='display:grid;grid-template-columns:repeat(10,1fr);gap:3px;';
-  for(let c=0;c<AA_COLS;c++){
-    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;gap:3px;';
-    for(let r=0;r<AA_ROWS;r++){
-      const cell=document.createElement('div'); cell.className='s5-cell'; cell.id=`aac${c}_${r}`;
-      cell.style.cssText='height:38px;font-size:16px;display:flex;align-items:center;justify-content:center;border-radius:6px;'; cell.textContent='🔮'; col.appendChild(cell);
-    }
-    grid.appendChild(col);
-  }
-}
-
-function aaRenderGrid(grid,syms,clusterCells,animate){
-  if(syms&&syms.length)aaSyms=syms;
-  const highlight=new Set((clusterCells||[]).map(([c,r])=>`${c},${r}`));
-  for(let c=0;c<AA_COLS;c++) for(let r=0;r<AA_ROWS;r++){
-    const el=document.getElementById(`aac${c}_${r}`); if(!el)continue;
-    const s=aaSyms[grid[c][r]]; if(!s)continue;
-    const inCluster=highlight.has(`${c},${r}`);
-    el.className='s5-cell'+(s.wild?' wild':s.scatter?' scatter':inCluster?' win':'');
-    el.innerHTML=s.e||'?'; el.style.height='38px'; el.style.fontSize='16px';
-    el.style.boxShadow=inCluster?'0 0 12px rgba(168,85,247,.8)':'';
-    if(animate&&!inCluster){el.style.animation='';void el.offsetWidth;el.classList.add('aa-cascade-pop');}
-    else if(animate&&inCluster){/* highlight stays */}
-  }
-}
-
-// Animacja znikania komórek klastra
-function aaAnimateDisappear(cells, callback){
-  cells.forEach(([c,r])=>{
-    const el=document.getElementById(`aac${c}_${r}`); if(!el)return;
-    el.classList.add('aa-disappearing');
+  aaPick = null; aaMult = 1;
+  aaKit = new SlotKit({
+    screenId: 'casino-aa', game: 'arcane_academy', title: 'Arcane Academy', icon: '🔮', subtitle: '7×7 · Cluster Pays · Kaskady',
+    theme: { a: '#a78bfa', b: '#4fe3ff' },
+    cols: 7, rows: 7, event: 'casinoAASpin', boardMaxWidth: '560px',
+    randomSym: () => AA_POOL[Math.floor(Math.random() * AA_POOL.length)],
+    symHTML: i => ({ html: `<span class="sk-emo">${AA_SYMS[i]}</span>`, cls: i === AA.ORB ? 'wild' : i === AA.TOME ? 'scatter' : '' }),
+    features: aaTrailHTML,
+    stagger: 70,
+    canSpin: () => !aaPick,
+    payDivisor: () => 1,
+    rules: [
+      'Cluster Pays: 5+ takich samych symboli stykających się bokami = wygrana. 💫 Orb (Wild) dołącza do każdego klastra.',
+      'Wygrane klastry znikają, nowe symbole spadają z góry. Każda kolejna kaskada zwiększa mnożnik: ×1 → ×2 → … → ×10.',
+      '📚 3+ Tomów w spinie otwiera BONUS PICK: odkrywaj księgi z nagrodami (AT$ lub 5 Free Spinów). 3 bomby kończą bonus.',
+      'W Free Spinach mnożnik kaskad NIE resetuje się — rośnie przez cały bonus.',
+      'Wypłaty w tabeli to × stawki łącznej za klaster danej wielkości.',
+      'RTP ≈ 95%.',
+    ],
+    async present(res, kit) {
+      aaSetMult(res.isFree ? (res.steps[0]?.mult || aaMult) : 1);
+      await kit.stop(res.startGrid);
+      for (const st of res.steps) {
+        aaSetMult(st.mult);
+        const cells = st.clusters.flatMap(cl => cl.cells);
+        kit.highlight(cells);
+        cxSound.play('win');
+        kit.msg(`Kaskada ×${st.mult}: <span class="amt">+${cxFmt(st.win)} AT$</span>`, st.mult > 2 ? 'big' : 'win');
+        await kit.wait(kit.turbo ? 350 : 750);
+        kit.clearWins();
+        await kit.cascade(cells, st.grid, st.falling);
+      }
+      if (res.steps.length) aaSetMult(res.finalMultiplier);
+      if (res.steps.length > 1) { res._msgSet = true; kit.msg(`${res.cascadeCount} kaskad! Razem: <span class="amt">+${cxFmt(res.payout)} AT$</span>`, 'big'); }
+      if (res.scatter?.length >= 3 && res.bonusPick) { kit.highlight(res.scatter, 'main', false); cxSound.play('feature'); }
+      kit.banner(res.freeSpinsRemaining > 0 ? `📚 FREE SPINS: <b>${res.freeSpinsRemaining}</b> · mnożnik zostaje: <b>×${res.fsMult}</b>` : '', 'purple');
+      if (!res.isFree && !res.freeSpinsRemaining) setTimeout(() => !aaKit?.spinning && aaSetMult(1), 1500);
+      if (res.fsSummary) res.fsSummary.title = `📚 Free Spiny (×${res.fsSummary.mult})`;
+    },
+    async afterResult(res, kit) {
+      if (res.bonusPick) { await kit.wait(600); aaOpenPick(res.bonusPick); }
+    },
+    freeBetOf: res => res.bet,
   });
-  setTimeout(callback, 220);
+  aaKit.mount(table);
+  socket.emit('casinoAAGetState', cxAuth());
 }
 
-// Animacja spadających symboli
-// Nowe symbole opadają po kaskadzie — grawitacja per kolumna i wiersz
-function aaAnimateFall(newGrid, syms){
-  if(syms&&syms.length)aaSyms=syms;
-  for(let c=0;c<AA_COLS;c++) for(let r=0;r<AA_ROWS;r++){
-    const el=document.getElementById(`aac${c}_${r}`); if(!el)continue;
-    const s=aaSyms[newGrid[c][r]]; if(!s)continue;
-    el.className='s5-cell'+(s.wild?' wild':s.scatter?' scatter':'');
-    el.innerHTML=s.e||'?'; el.style.height='38px'; el.style.fontSize='16px';
-    el.style.boxShadow='';
-    // Opóźnienie: kolumna * 40ms + wiersz * 30ms — spada z góry kolumna po kolumnie
-    const delay = c * 40 + r * 30;
-    el.style.opacity='0'; el.style.transform='translateY(-24px)'; el.style.transition='none';
-    setTimeout(()=>{
-      el.style.transition='transform 0.2s cubic-bezier(.25,.46,.45,.94), opacity 0.15s ease';
-      el.style.opacity='1'; el.style.transform='translateY(0)';
-      setTimeout(()=>{ el.style.transition=''; el.style.transform=''; el.style.opacity=''; }, 220);
-    }, delay);
+function aaOpenPick(pick) {
+  aaPick = pick;
+  cxSound.play('feature');
+  const books = pick.board.map((it, i) => `<button class="aa-book" data-i="${i}" style="aspect-ratio:3/4;border-radius:14px;border:2px solid rgba(167,139,250,.5);background:linear-gradient(160deg,#3b2a7a,#170f36);font-size:34px;cursor:pointer;transition:.2s;color:#fff;font-weight:800">📕</button>`).join('');
+  const m = cxModal(`<h3>📚 BONUS PICK</h3><p class="cx-rules">Wybieraj księgi. Nagrody to wielokrotność stawki <b>${cxFmt(pick.bet)} AT$</b> lub Free Spiny. <b>3 bomby</b> kończą bonus.</p>
+    <div class="cx-row" style="justify-content:space-between;margin:10px 0"><span class="cx-pill">Wygrane: <b data-aa="ptotal" style="color:var(--cx-gold)">${cxFmt(pick.total)} AT$</b></span><span class="cx-pill">Free Spiny: <b data-aa="pfs">${pick.fs}</b></span><span class="cx-pill">Bomby: <b data-aa="pbombs">${'💣'.repeat(pick.bombs) || '0'}</b> / 3</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px" data-aa="books">${books}</div>`);
+  m.el.querySelector('.cx-modal-close').style.display = 'none';
+  m.el.onclick = null;
+  m.el.querySelector('[data-aa="books"]').onclick = e => {
+    const b = e.target.closest('.aa-book');
+    if (!b || b.disabled || !aaPick || aaPick.busy) return;
+    aaPick.busy = true;
+    b.style.transform = 'rotateY(90deg)';
+    socket.emit('casinoAAPick', cxAuth({ index: Number(b.dataset.i) }));
+  };
+  aaPick.modal = m;
+}
+function aaBookFace(it) {
+  if (!it) return '📕';
+  if (it.type === 'bomb') return '💣';
+  if (it.type === 'fs') return `<span style="font-size:16px">🎁<br>+${it.value} FS</span>`;
+  return `<span style="font-size:16px;color:var(--cx-gold)">×${it.value}</span>`;
+}
+socket.on('casinoAAPickResult', d => {
+  if (!aaPick || !aaKit) return;
+  const m = aaPick.modal;
+  const b = m.el.querySelector(`.aa-book[data-i="${d.index}"]`);
+  aaPick.busy = false;
+  if (b) {
+    b.disabled = true;
+    b.innerHTML = aaBookFace(d.item);
+    b.style.transform = '';
+    b.style.background = d.item.type === 'bomb' ? 'linear-gradient(160deg,#5a0f26,#2a0612)' : 'linear-gradient(160deg,#3d2a08,#1a1204)';
+    b.style.borderColor = d.item.type === 'bomb' ? '#ff5c7a' : '#ffd36b';
   }
-}
-
-// ── ANIMACJA OPADANIA (zamiast spinning) ─────────────────────────
-// Symbole wpadają z góry kolumna po kolumnie, każdy wiersz z opóźnieniem
-const AA_DROP_SYMS = ['🔮','💫','📚','⭐','🪄','⚗️','🍃','💡'];
-
-function aaAnimateDrop(onDone) {
-  const totalCols = AA_COLS;
-  let finished = 0;
-
-  for (let c = 0; c < totalCols; c++) {
-    const colDelay = c * 55; // każda kolumna startuje 55ms później
-    for (let r = 0; r < AA_ROWS; r++) {
-      const el = document.getElementById(`aac${c}_${r}`);
-      if (!el) continue;
-      const rowDelay = colDelay + r * 40; // każdy wiersz w kolumnie 40ms później
-      el.className = 's5-cell';
-      el.style.boxShadow = '';
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(-32px)';
-      el.style.transition = 'none';
-      el.textContent = AA_DROP_SYMS[Math.floor(Math.random() * AA_DROP_SYMS.length)];
-
-      setTimeout(() => {
-        el.style.transition = 'transform 0.22s cubic-bezier(.25,.46,.45,.94), opacity 0.18s ease';
-        el.style.opacity = '1';
-        el.style.transform = 'translateY(0)';
-
-        // Po ostatnim symbolu całej siatki — wywołaj callback
-        if (c === totalCols - 1 && r === AA_ROWS - 1) {
-          setTimeout(() => {
-            // Reset transitiona żeby nie przeszkadzał dalej
-            for (let cc = 0; cc < AA_COLS; cc++) for (let rr = 0; rr < AA_ROWS; rr++) {
-              const e = document.getElementById(`aac${cc}_${rr}`);
-              if (e) { e.style.transition = ''; e.style.transform = ''; e.style.opacity = ''; }
-            }
-            if (onDone) onDone();
-          }, 250);
-        }
-      }, rowDelay);
-    }
+  cxSound.play(d.item.type === 'bomb' ? 'lose' : 'chip');
+  if (d.cash) cxFloat(d.cash, b);
+  m.el.querySelector('[data-aa="ptotal"]').textContent = cxFmt(d.pick.total) + ' AT$';
+  m.el.querySelector('[data-aa="pfs"]').textContent = d.pick.fs;
+  m.el.querySelector('[data-aa="pbombs"]').textContent = '💣'.repeat(d.pick.bombs) || '0';
+  cxSetBalance(d.balance);
+  aaKit.stats.won += d.cash; aaKit.session.won += d.cash; aaKit.renderStats();
+  if (d.pick.done) {
+    d.pick.board.forEach((it, i) => { const bb = m.el.querySelector(`.aa-book[data-i="${i}"]`); if (bb && !bb.disabled) { bb.disabled = true; bb.innerHTML = aaBookFace(it); bb.style.opacity = '.45'; } });
+    setTimeout(async () => {
+      m.close();
+      const pick = aaPick; aaPick = null;
+      if (d.pick.total > 0) await cxBigWin({ amount: d.pick.total, bet: d.pick.bet, tier: d.pick.total >= d.pick.bet * 25 ? 'huge' : 'mega', title: '📚 BONUS PICK' });
+      if (d.fsAwarded) {
+        aaKit.free = d.freeSpins; aaKit.freeBet = d.pick.bet; aaKit.updateBet();
+        aaKit.banner(`📚 FREE SPINS: <b>${d.freeSpins}</b> · mnożnik zostaje między spinami`, 'purple');
+        setTimeout(() => aaKit && !aaKit.spinning && aaKit.spin(), 900);
+      }
+    }, 1600);
   }
-}
-
-function aaStopAnim(){
-  for(let c=0;c<AA_COLS;c++) for(let r=0;r<AA_ROWS;r++){
-    const el=document.getElementById(`aac${c}_${r}`); if(el&&el._int){clearInterval(el._int);el._int=null;}
-  }
-}
-
-function aaRenderFSBar(){
-  const bar=document.getElementById('aa-fs-bar'); if(!bar)return;
-  bar.style.display=aaFreeSpins>0?'flex':'none';
-  const cnt=document.getElementById('aa-fs-count'); if(cnt)cnt.textContent=aaFreeSpins;
-}
-function aaSetCascadeInfo(mult,extra){
-  const mb=document.getElementById('aa-cascade-mult'); if(mb)mb.textContent=mult?`×${mult} Mnożnik`:'';
-  const inf=document.getElementById('aa-cascade-info'); if(inf)inf.textContent=extra||'';
-}
-function aaShowWin(payout,mult,label,tier){
-  const ov=document.getElementById('aa-win-ov'); if(!ov)return;
-  ov.className='s5-win-ov show s5-ov-'+tier;
-  const t=document.getElementById('aa-win-title'); if(t)t.textContent=label;
-  const a=document.getElementById('aa-win-amt');   if(a)a.textContent='+'+payout.toLocaleString('pl-PL')+' AT$';
-  const m=document.getElementById('aa-win-mult');  if(m)m.textContent=(mult||0).toFixed(1)+'× zakładu';
-  setTimeout(()=>{ if(ov.classList.contains('show'))aaDismissWin(); },tier==='frito'?7000:tier==='giga'?5000:3500);
-}
-function aaDismissWin(){const ov=document.getElementById('aa-win-ov');if(ov)ov.classList.remove('show');}
-function aaUpdateStats(){
-  const si=id=>document.getElementById(id);
-  if(si('aa-stat-spins'))  si('aa-stat-spins').textContent=aaStatSpins.toLocaleString('pl-PL');
-  if(si('aa-stat-paid'))   si('aa-stat-paid').textContent=aaStatPaid.toLocaleString('pl-PL')+' AT$';
-  if(si('aa-stat-best'))   si('aa-stat-best').textContent=aaBestWin>0?aaBestWin.toLocaleString('pl-PL')+' AT$':'—';
-  if(si('aa-stat-spent'))  si('aa-stat-spent').textContent=aaStatSpent.toLocaleString('pl-PL')+' AT$';
-  updateProfitDisplay('aa-stat-profit',aaStatSpent,aaStatPaid);
-}
-function aaSetMsg(txt,cls){const m=document.getElementById('aa-msg');if(m){m.textContent=txt;m.className='s5-msg'+(cls?' '+cls:'');}}
-function aaAddWinLog(payout,tier,extra){
-  const lg=document.getElementById('aa-win-log'); if(!lg)return;
-  const d=document.createElement('div'); d.className='s5-win-log-item '+(tier||'win');
-  d.textContent=(extra?extra+' ':'')+( payout>0?'+'+payout.toLocaleString('pl-PL')+' AT$':'');
-  lg.insertBefore(d,lg.firstChild); if(lg.children.length>25)lg.removeChild(lg.lastChild);
-}
-
-function aaSpin(){
-  if(aaSpinning)return;
-  if(!aaUnlocked){aaSetMsg('Podaj hasło dostępu!');return;}
-  if(!casinoDiscordId){showToast('Zaloguj się przez Discord!','error');return;}
-  if(!casinoTableId)return;
-  const bet=aaGetBet();
-  if(aaFreeSpins===0&&casinoWallet&&casinoWallet.balance<bet){aaSetMsg('Za mało AT$!');return;}
-  aaSpinning=true; aaSetCascadeInfo('','');
-  const btn=document.getElementById('aa-spin-btn'); if(btn){btn.disabled=true;btn.textContent='⏳';}
-  // Animacja opadania — emit dopiero po jej zakończeniu
-  aaAnimateDrop(() => {
-    socket.emit('casinoAASpin',{tableId:casinoTableId,bet,socketToken:casinoSocketToken,discordId:casinoDiscordId,password:AA_ACCESS});
-  });
-}
-function aaToggleAuto(){
-  aaAuto=!aaAuto; const b=document.getElementById('aa-auto-btn');
-  if(b){b.textContent=aaAuto?'■ Stop':'Auto';b.classList.toggle('on',aaAuto);}
-  if(aaAuto&&!aaSpinning)aaSpin();
-}
-
-socket.on('casinoAAResult',function(data){
-  // Nie ma już interwałów do zatrzymania — animateDrop nie używa setInterval
-  const{finalGrid,cascadeLog,totalPayout,cascadeCount,finalMultiplier,balance,totBet,isFree,
-    freeSpinsAwarded,freeSpinsRemaining,tier,label,syms,mult}=data;
-  if(syms)aaSyms=syms;
-  aaFreeSpins=freeSpinsRemaining||0;
-
-  // ── Sekwencja animacji kaskad ──────────────────────────────────
-  // Każdy krok: pokaż klastry (highlight) → znikanie → opadanie nowej siatki
-  let stepDelay=0;
-  const CASCADE_STEP = 950; // ms na jedną kaskadę
-
-  if(cascadeLog && cascadeLog.length > 0){
-    // Krok 0: pokaż pierwszą siatkę (już opadała w aaSpin → aaAnimateDrop)
-    // Tylko renderuj bez dodatkowej animacji
-    setTimeout(()=>{
-      aaRenderGrid(cascadeLog[0].grid, syms, [], false);
-    }, 0);
-
-    cascadeLog.forEach((step, i) => {
-      const allCells = step.clusters.reduce((acc,cl)=>acc.concat(cl.cells),[]);
-
-      // 1. Pokaż podświetlenie klastrów
-      setTimeout(()=>{
-        aaRenderGrid(step.grid, syms, allCells, false);
-        aaSetCascadeInfo(step.mult, `Kaskada ${i+1} — +${step.afterMult.toLocaleString('pl-PL')} AT$`);
-        aaSetMsg(`Kaskada ${i+1}  ×${step.mult} — +${step.afterMult.toLocaleString('pl-PL')} AT$`);
-        aaAddWinLog(step.afterMult, 'win', `×${step.mult}`);
-      }, stepDelay + 200);
-
-      // 2. Animacja znikania klastrów
-      setTimeout(()=>{
-        aaAnimateDisappear(allCells, ()=>{});
-      }, stepDelay + 550);
-
-      // 3. Nowe symbole opadają — używamy aaAnimateFall (grawitacja per kolumna)
-      const nextGrid = (i+1 < cascadeLog.length) ? cascadeLog[i+1].grid : finalGrid;
-      setTimeout(()=>{
-        aaAnimateFall(nextGrid, syms);
-      }, stepDelay + 780);
-
-      stepDelay += CASCADE_STEP;
-    });
-  } else {
-    // Brak kaskad — finalGrid już pokazany przez aaAnimateDrop, tylko wyrenderuj
-    setTimeout(()=>{ aaRenderGrid(finalGrid, syms, [], false); }, 0);
-  }
-
-  // ── Finał po wszystkich kaskadach ─────────────────────────────
-  const finDelay = stepDelay + 300;
-  setTimeout(()=>{
-    aaRenderGrid(finalGrid, syms, [], false);
-    aaRenderFSBar(); aaSetCascadeInfo('','');
-
-    if(totalPayout > 0){
-      const cascadeInfo = cascadeCount>1 ? ` (${cascadeCount} kaskad ×${finalMultiplier})` : '';
-      aaSetMsg(`🎉 ${label||'Win'}${cascadeInfo} — +${totalPayout.toLocaleString('pl-PL')} AT$`, 'big');
-      if(cascadeCount>1) aaAddWinLog(totalPayout, tier, `(${cascadeCount}× kaskad)`);
-      if(tier==='mega'||tier==='huge'||tier==='giga'||tier==='frito')
-        aaShowWin(totalPayout, mult||0, label||'Win', tier);
-      s5Fireworks(tier);
-      addRecentWin('aa-recent-list', totalPayout, tier);
-    } else {
-      aaSetMsg(isFree ? `Free Spin — zostało: ${aaFreeSpins}` : 'Postaw zakład i zakręć!');
-    }
-    if(freeSpinsAwarded > 0) aaSetMsg(`📚 ${freeSpinsAwarded} Free Spins!`, 'big');
-
-    aaStatSpins++; aaStatPaid+=totalPayout;
-    if(totalPayout > aaBestWin) aaBestWin=totalPayout;
-    aaStatSpent += isFree ? 0 : totBet;
-    if(casinoWallet) casinoWallet.balance=balance;
-    aaUpdateBalance(); aaUpdateStats();
-
-    aaSpinning=false;
-    const btn=document.getElementById('aa-spin-btn');
-    if(btn){btn.disabled=false; btn.textContent='🔮 SPIN';}
-    if(aaAuto && aaUnlocked) aaAutoT=setTimeout(aaSpin, 1300);
-  }, finDelay);
 });
+socket.on('casinoAAState', s => {
+  if (!aaKit) return;
+  if (s.pick) aaOpenPick(s.pick);
+  if (s.freeSpins > 0) { aaKit.free = s.freeSpins; aaKit.freeBet = s.freeBet; aaSetMult(s.fsMult || 1); aaKit.updateBet(); aaKit.banner(`📚 FREE SPINS: <b>${s.freeSpins}</b>`, 'purple'); }
+});
+skBindResult('casinoAAResult', () => aaKit);

@@ -1,207 +1,191 @@
-// ── PACHINKO ──────────────────────────────────────────────────
-// Definicje slotów per poziom ryzyka (środek najniższy, boki najwyższe)
-const PACHINKO_RISK_DATA = {
-  low: {
-    rows: 8,
-    slots: [
-      {label:'5×',mult:5},{label:'1.5×',mult:1.5},{label:'0.75×',mult:0.75},
-      {label:'0.5×',mult:0.5},{label:'0.25×',mult:0.25},
-      {label:'0.5×',mult:0.5},{label:'0.75×',mult:0.75},{label:'1.5×',mult:1.5},{label:'5×',mult:5}
-    ]
-  },
-  medium: {
-    rows: 12,
-    slots: [
-      {label:'25×',mult:25},{label:'5×',mult:5},{label:'3×',mult:3},{label:'2×',mult:2},
-      {label:'1×',mult:1},{label:'0.5×',mult:0.5},{label:'0.3×',mult:0.3},{label:'0.1×',mult:0.1},
-      {label:'0.3×',mult:0.3},{label:'0.5×',mult:0.5},{label:'1×',mult:1},{label:'2×',mult:2},
-      {label:'3×',mult:3},{label:'5×',mult:5},{label:'25×',mult:25}
-    ]
-  },
-  high: {
-    rows: 16,
-    slots: [
-      {label:'100×',mult:100},{label:'20×',mult:20},{label:'10×',mult:10},{label:'5×',mult:5},
-      {label:'3×',mult:3},{label:'2×',mult:2},{label:'1×',mult:1},{label:'0.5×',mult:0.5},
-      {label:'0.3×',mult:0.3},{label:'0.2×',mult:0.2},{label:'0.1×',mult:0.1},
-      {label:'0.2×',mult:0.2},{label:'0.3×',mult:0.3},{label:'0.5×',mult:0.5},
-      {label:'1×',mult:1},{label:'2×',mult:2},{label:'3×',mult:3},{label:'5×',mult:5},
-      {label:'10×',mult:10},{label:'20×',mult:20},{label:'100×',mult:100}
-    ]
-  }
+// ══════════════════════════════════════════════════════════════
+//  PACHINKO (Plinko) — canvas, 3 poziomy ryzyka, do 10 kulek naraz
+// ══════════════════════════════════════════════════════════════
+const PK_CFG = {
+  low:    { rows: 8,  mults: [5.6, 2.1, 1.1, 1, 0.4, 1, 1.1, 2.1, 5.6] },
+  medium: { rows: 12, mults: [33, 11, 4, 2, 1.1, 0.6, 0.17, 0.6, 1.1, 2, 4, 11, 33] },
+  high:   { rows: 16, mults: [1000, 130, 26, 9, 4, 2, 0.16, 0.16, 0.16, 0.16, 0.16, 2, 4, 9, 26, 130, 1000] },
 };
-
-let currentPachinkoRisk = 'low';
-// Alias dla wstecznej kompatybilności
-const PACHINKO_SLOTS_DATA = PACHINKO_RISK_DATA.medium.slots;
-const PACHINKO_ROWS = 12;
-const PACHINKO_COLS = 10;
-
-function setPachinkoRisk(risk) {
-  currentPachinkoRisk = risk;
-  document.querySelectorAll('.risk-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.risk === risk);
-  });
-  buildPachinkoBoard();
-  buildPachinkoSlots();
-}
+let pk = null;
 
 function initPachinkoUI(table) {
-  document.getElementById('casino-pachinko-balance').textContent = casinoWallet ? casinoWallet.balance.toLocaleString('pl-PL') + ' AT$' : '—';
-  const chips = [table.config.minBet, table.config.minBet*5, table.config.minBet*20, 1000, 5000, 10000].filter(c=>c<=100000);
-  renderChipBtns('pachinko-chip-btns', [...new Set(chips)], 'pachinko-bet-input');
-  document.getElementById('pachinko-bet-input').value = table.config.minBet;
-  document.getElementById('pachinko-result-msg').textContent = '';
-  currentPachinkoRisk = 'low';
-  document.querySelectorAll('.risk-btn').forEach(b => b.classList.toggle('active', b.dataset.risk === 'low'));
-  buildPachinkoBoard();
-  buildPachinkoSlots();
+  if (pk?.raf) cancelAnimationFrame(pk.raf);
+  const chips = cxChipValues(table.config.minBet, table.config.maxBet, 6);
+  let risk = 'medium';
+  try { risk = localStorage.getItem('pk_risk') || 'medium'; } catch (e) {}
+  pk = { table, risk, bet: chips[0], balls: 1, flying: [], flash: {}, last: [], raf: null, busy: false, auto: false };
+  const scr = cxScreen('casino-pachinko');
+  scr.innerHTML = `<div class="cx-shell">
+    ${cxTopbar({ icon: '🎯', title: table.name, sub: 'Plinko · RTP ≈ 96%', info: 'pkInfo()' })}
+    <div class="pk-wrap">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="cx-panel"><h4>Ryzyko</h4><div class="pk-risk">
+          <button class="cx-btn sm green" data-r="low" onclick="pkSetRisk('low')">Niskie</button>
+          <button class="cx-btn sm gold" data-r="medium" onclick="pkSetRisk('medium')">Średnie</button>
+          <button class="cx-btn sm red" data-r="high" onclick="pkSetRisk('high')">Wysokie</button></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px" id="pk-riskdesc"></div></div>
+        <div class="cx-panel"><h4>Stawka za kulkę</h4>
+          <div class="cx-row"><input class="cx-input cx-grow" id="pk-bet" type="number" value="${pk.bet}" min="${table.config.minBet}" max="${table.config.maxBet}"></div>
+          <div id="pk-chips" style="margin-top:10px"></div></div>
+        <div class="cx-panel"><h4>Liczba kulek</h4><div class="cx-row" id="pk-balls">${[1, 3, 5, 10].map(n => `<button class="cx-btn sm${n === 1 ? ' purple' : ''}" data-b="${n}" onclick="pkSetBalls(${n})">${n}</button>`).join('')}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:8px">Łącznie: <b id="pk-total" class="cx-mono" style="color:var(--cx-gold)"></b></div></div>
+        <button class="cx-btn gold lg" id="pk-drop" onclick="pkDrop()">🎯 Upuść kulki</button>
+        <button class="cx-btn sm" id="pk-auto" onclick="pkToggleAuto()">🔁 Auto</button>
+        <div class="cx-panel"><h4>Ostatnie</h4><div class="pk-last" id="pk-last"><span style="color:var(--muted)">—</span></div></div>
+      </div>
+      <div class="pk-stage"><canvas id="pk-canvas"></canvas></div>
+    </div>
+  </div>`;
+  cxChips('pk-chips', chips, v => { document.getElementById('pk-bet').value = v; pkUpdateTotal(); }, pk.bet);
+  document.getElementById('pk-bet').oninput = pkUpdateTotal;
+  pkSetRisk(risk);
+  pkResize();
+  pkLoop();
+}
+function pkInfo() {
+  cxModal(`<h3>🎯 Pachinko</h3><div class="cx-rules"><ul>
+    <li>Kulka spada przez rzędy kołków i w każdym odbija się w lewo lub prawo (50/50). Pole, w które wpadnie, mnoży stawkę.</li>
+    <li>Ryzyko niskie: 8 rzędów, mnożniki 0,4×–5,6×. Średnie: 12 rzędów, 0,17×–33×. Wysokie: 16 rzędów, 0,16×–1000×.</li>
+    <li>Możesz zrzucić do 10 kulek naraz — każda gra osobno.</li>
+    <li>RTP ≈ 96% na każdym poziomie ryzyka.</li></ul></div>`);
+}
+function pkSetRisk(r) {
+  if (pk.flying.length) return;
+  pk.risk = r;
+  try { localStorage.setItem('pk_risk', r); } catch (e) {}
+  document.querySelectorAll('.pk-risk button').forEach(b => b.classList.toggle('active', b.dataset.r === r));
+  const c = PK_CFG[r];
+  document.getElementById('pk-riskdesc').textContent = `${c.rows} rzędów · mnożniki ${Math.min(...c.mults)}× – ${Math.max(...c.mults)}×`;
+  pkResize();
+}
+function pkSetBalls(n) {
+  pk.balls = n;
+  document.querySelectorAll('#pk-balls button').forEach(b => b.classList.toggle('purple', Number(b.dataset.b) === n));
+  pkUpdateTotal();
+}
+function pkUpdateTotal() { const b = Number(document.getElementById('pk-bet').value) || 0; document.getElementById('pk-total').textContent = cxFmt(b * pk.balls) + ' AT$'; }
+function pkToggleAuto() {
+  pk.auto = !pk.auto;
+  document.getElementById('pk-auto').className = 'cx-btn sm' + (pk.auto ? ' red' : '');
+  document.getElementById('pk-auto').textContent = pk.auto ? '⏹ Stop auto' : '🔁 Auto';
+  if (pk.auto && !pk.busy) pkDrop();
+}
+function pkDrop() {
+  if (pk.busy) return;
+  const bet = Math.floor(Number(document.getElementById('pk-bet').value) || 0);
+  const cfg = pk.table.config;
+  if (bet < cfg.minBet || bet > cfg.maxBet) return cxToast(`Stawka: ${cxShort(cfg.minBet)}–${cxShort(cfg.maxBet)} AT$`, 'error');
+  if (cxBalance() < bet * pk.balls) { pk.auto && pkToggleAuto(); return cxToast('Za mało AT$!', 'error'); }
+  pk.busy = true;
+  document.getElementById('pk-drop').disabled = true;
+  cxSetBalance(cxBalance() - bet * pk.balls, false);
+  socket.emit('casinoPachinkoDrop', cxAuth({ bet, risk: pk.risk, balls: pk.balls }));
+  setTimeout(() => { if (pk?.busy && !pk.flying.length) { pk.busy = false; document.getElementById('pk-drop').disabled = false; } }, 8000);
 }
 
-function buildPachinkoBoard() {
-  const board = document.getElementById('pachinko-board');
-  if (!board) return;
-  // Usuń stare pegi (zachowaj kulki!)
-  board.querySelectorAll('.pachinko-peg').forEach(p=>p.remove());
-  const riskCfg = PACHINKO_RISK_DATA[currentPachinkoRisk];
-  const rows = riskCfg.rows;
-  const slots = riskCfg.slots;
-  const cols = Math.ceil(slots.length / 2) + 2;
-  const boardW = 360;
-  const boardH = 400;
-  for (let row=0; row<rows; row++) {
-    const pegsInRow = row%2===0 ? cols : cols-1;
-    const offset = row%2===0 ? 0 : (boardW/(cols-1))/2;
-    for (let col=0; col<pegsInRow; col++) {
-      const peg = document.createElement('div');
-      peg.className = 'pachinko-peg';
-      peg.style.left = (offset + col * boardW/(cols-1) - 5) + 'px';
-      peg.style.top  = (20 + row * ((boardH-40)/rows) - 5) + 'px';
-      board.appendChild(peg);
-    }
-  }
-}
-
-function buildPachinkoSlots() {
-  const row = document.getElementById('pachinko-slots-row');
-  if (!row) return;
-  const slots = PACHINKO_RISK_DATA[currentPachinkoRisk].slots;
-  const n = slots.length;
-  row.innerHTML = slots.map((s, i) => {
-    // Kolorowanie wg wartości: środek niski, boki wysokie
-    let cls = '';
-    const distFromEdge = Math.min(i, n-1-i);
-    const pct = distFromEdge / Math.floor(n/2);
-    if (s.mult >= 10) cls = 'big-win';
-    else if (s.mult >= 2) cls = 'mid-win';
-    else if (s.mult >= 1) cls = 'low-win';
-    return `<div class="pachinko-slot ${cls}" id="pslot-${i}" title="${s.mult}×">${s.label}</div>`;
-  }).join('');
-}
-
-async function casinoPachinkoDrop() {
-  if (!casinoTableId) return;
-  const bet = parseInt(document.getElementById('pachinko-bet-input').value) || 0;
-  if (!bet) return showToast('Ustaw kwotę zakładu!','error');
-  document.getElementById('pachinko-drop-btn').disabled = true;
-  setTimeout(() => { document.getElementById('pachinko-drop-btn').disabled = false; }, 400);
-  socket.emit('casinoPachinkoDrop', { tableId: casinoTableId, bet, risk: currentPachinkoRisk, discordId: casinoDiscordId, socketToken: casinoSocketToken });
-}
-
-socket.on('casinoPachinkoResult', ({ path, finalSlot, slot, bet, winAmount, net, balance, risk, slots: slotsFromServer, rows }) => {
-  // Odblokuj przycisk
-  const btn = document.getElementById('pachinko-drop-btn');
-  if (btn) btn.disabled = false;
-
-  const board = document.getElementById('pachinko-board');
-  if (!board) return;
-
-  // Użyj slotów z serwera jeśli dostarczone, inaczej lokalne
-  const activeSlots = slotsFromServer || PACHINKO_RISK_DATA[risk || currentPachinkoRisk].slots;
-  const activeRows = rows || PACHINKO_RISK_DATA[risk || currentPachinkoRisk].rows;
-
-  // Stwórz nową kulkę (nie usuwamy poprzednich - będą się animować i same znikną)
-  const ball = document.createElement('div');
-  ball.className = 'pachinko-ball';
-  board.appendChild(ball);
-
-  const boardH = board.offsetHeight || 400;
-  const boardW = board.offsetWidth || 360;
-  const slotW  = boardW / activeSlots.length;
-  const stepDelay = 180;
-
-  ball.style.left = (boardW/2 - 9) + 'px';
-  ball.style.top  = '-10px';
-
-  function spawnTrail(x, y) {
-    const t = document.createElement('div');
-    t.className = 'pachinko-trail';
-    t.style.left = (x+3) + 'px'; t.style.top = (y+3) + 'px';
-    board.appendChild(t);
-    setTimeout(() => t.remove(), 400);
-  }
-
-  function highlightPeg(x, y) {
-    const pegs = board.querySelectorAll('.pachinko-peg');
-    let best = null, bestDist = 999;
-    pegs.forEach(peg => {
-      const px = parseFloat(peg.style.left), py = parseFloat(peg.style.top);
-      const dist = Math.abs(px-x) + Math.abs(py-y);
-      if (dist < bestDist) { bestDist = dist; best = peg; }
-    });
-    if (best && bestDist < 40) {
-      best.classList.add('hit');
-      setTimeout(() => best.classList.remove('hit'), 300);
-    }
-  }
-
-  let step = 0;
-  function animateStep() {
-    if (step >= path.length) {
-      const finalX = finalSlot * slotW + slotW/2 - 9;
-      const finalY = boardH - 22;
-      spawnTrail(finalX, finalY);
-      ball.style.transition = `left ${stepDelay*0.8}ms ease, top ${stepDelay*0.8}ms ease`;
-      ball.style.left = finalX + 'px';
-      ball.style.top  = finalY + 'px';
-      ball.classList.add('bounce');
-
-      setTimeout(() => {
-        // Animacja znikania kulki
-        ball.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-        ball.style.opacity = '0';
-        ball.style.transform = 'scale(0.2)';
-        setTimeout(() => ball.remove(), 400);
-
-        // Podświetl slot
-        const slotEl = document.getElementById(`pslot-${finalSlot}`);
-        if (slotEl) {
-          slotEl.classList.add('active');
-          setTimeout(() => slotEl.classList.remove('active'), 2000);
-        }
-        const msgEl = document.getElementById('pachinko-result-msg');
-        if (winAmount > 0) {
-          msgEl.innerHTML = `<span style="color:#ffd200" class="result-pop">🎉 ${slot.label} → +${winAmount.toLocaleString('pl-PL')} AT$!</span>`;
-          spawnCoinFloat(winAmount);
-        } else {
-          msgEl.innerHTML = `<span style="color:var(--error)" class="result-pop">📉 ${slot.label} → ${winAmount.toLocaleString('pl-PL')} AT$</span>`;
-        }
-        document.getElementById('casino-pachinko-balance').textContent = balance.toLocaleString('pl-PL') + ' AT$';
-        if (casinoWallet) casinoWallet.balance = balance;
-      }, stepDelay + 200);
-      return;
-    }
-    const p = path[step];
-    const bx = p.pos * slotW + slotW/2 - 9;
-    const by = 20 + step * ((boardH-40) / activeRows);
-    spawnTrail(bx, by);
-    highlightPeg(bx, by);
-    ball.style.transition = `left ${stepDelay*0.9}ms cubic-bezier(.25,.46,.45,.94), top ${stepDelay*0.9}ms ease`;
-    ball.style.left = bx + 'px';
-    ball.style.top  = by + 'px';
-    ball.classList.remove('bounce'); void ball.offsetWidth; ball.classList.add('bounce');
-    step++;
-    setTimeout(animateStep, stepDelay);
-  }
-  setTimeout(animateStep, 80);
+socket.on('casinoPachinkoResult', d => {
+  if (!pk) return;
+  const cfg = PK_CFG[d.risk];
+  pk.pending = { left: d.balls.length, balance: d.balance, total: d.winAmount, totalBet: d.totalBet };
+  d.balls.forEach((b, i) => setTimeout(() => {
+    if (!pk) return;
+    pk.flying.push({ path: b.path, slot: b.slot, mult: b.mult, win: b.win, rows: cfg.rows, t0: performance.now(), dur: cfg.rows * (pk.balls > 3 ? 95 : 120) + 200, jitter: (Math.random() - .5) * .3 });
+  }, i * 220));
 });
+socket.on('casinoError', () => { if (pk?.busy && !pk.flying.length) { pk.busy = false; const b = document.getElementById('pk-drop'); if (b) b.disabled = false; } });
+
+function pkLanded(ball) {
+  pk.flash[ball.slot] = performance.now();
+  cxSound.play(ball.mult >= 2 ? 'win' : 'tick');
+  cxSetBalance(cxBalance() + ball.win, ball.win > 0);
+  pk.last.unshift(ball.mult);
+  pk.last = pk.last.slice(0, 16);
+  document.getElementById('pk-last').innerHTML = pk.last.map(m => `<span class="${m >= 2 ? 'cx-pos' : m < 1 ? 'cx-neg' : ''}">${m}×</span>`).join('');
+  if (ball.mult >= 26) cxBigWin({ amount: ball.win, bet: ball.win / ball.mult, tier: ball.mult >= 100 ? 'giga' : 'huge', title: `🎯 ${ball.mult}×` });
+  pk.pending.left--;
+  if (pk.pending.left <= 0) {
+    cxSetBalance(pk.pending.balance, false);
+    pk.busy = false;
+    const btn = document.getElementById('pk-drop'); if (btn) btn.disabled = false;
+    if (pk.auto) setTimeout(() => pk?.auto && pkDrop(), 500);
+  }
+}
+
+function pkResize() {
+  const cv = document.getElementById('pk-canvas');
+  if (!cv) return;
+  const w = cv.parentElement.getBoundingClientRect().width;
+  if (!w) return;
+  const h = Math.min(window.innerHeight * .72, w * 0.95);
+  cv.style.height = h + 'px';
+  cv.width = w * devicePixelRatio; cv.height = h * devicePixelRatio;
+}
+window.addEventListener('resize', () => { if (pk) pkResize(); });
+
+function pkGeom() {
+  const cv = document.getElementById('pk-canvas');
+  const cfg = PK_CFG[pk.risk];
+  const W = cv.width, H = cv.height, R = cfg.rows;
+  const s = Math.min(W / (R + 3), (H * .86) / (R + 1));
+  const top = H * .06 + s * .4;
+  return { W, H, R, s, C: W / 2, top, rowY: r => top + r * s, binY: top + R * s + s * .1 };
+}
+function pkPosX(g, row, pos) { return g.C + (pos - row / 2) * g.s; }
+
+function pkLoop() {
+  const cv = document.getElementById('pk-canvas');
+  if (!cv || !pk) return;
+  if (cv.clientWidth && Math.abs(cv.width - cv.clientWidth * devicePixelRatio) > 2) pkResize();
+  if (!cv.width) { pk.raf = requestAnimationFrame(pkLoop); return; }
+  const ctx = cv.getContext('2d');
+  const g = pkGeom(), cfg = PK_CFG[pk.risk], now = performance.now();
+  ctx.clearRect(0, 0, g.W, g.H);
+  // kołki
+  for (let r = 0; r < g.R; r++) for (let k = 0; k < r + 3; k++) {
+    const x = g.C + (k - (r + 2) / 2) * g.s, y = g.rowY(r);
+    ctx.beginPath(); ctx.arc(x, y, Math.max(2, g.s * .09), 0, Math.PI * 2);
+    ctx.fillStyle = '#d9d4ff'; ctx.shadowColor = 'rgba(167,139,250,.8)'; ctx.shadowBlur = 6; ctx.fill(); ctx.shadowBlur = 0;
+  }
+  // przegródki z mnożnikami
+  const n = cfg.mults.length;
+  for (let i = 0; i < n; i++) {
+    const x = g.C + (i - g.R / 2) * g.s, w = g.s * .9, h = g.s * .7;
+    const m = cfg.mults[i];
+    const t = Math.min(1, Math.abs(i - (n - 1) / 2) / ((n - 1) / 2));
+    const col = `hsl(${(1 - t) * 50 + t * -10}, 90%, ${45 + t * 10}%)`;
+    const fl = pk.flash[i] ? Math.max(0, 1 - (now - pk.flash[i]) / 500) : 0;
+    ctx.save(); ctx.translate(x, g.binY + h / 2 + fl * -6);
+    ctx.fillStyle = col; ctx.globalAlpha = .85 + fl * .15;
+    const rr = 6 * devicePixelRatio;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-w / 2, -h / 2, w, h, rr) : ctx.rect(-w / 2, -h / 2, w, h); ctx.fill();
+    ctx.globalAlpha = 1; ctx.fillStyle = '#1a0d00'; ctx.font = `800 ${Math.max(8, g.s * (m >= 100 ? .26 : .3))}px Syne, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(m + (m >= 100 ? '' : '×'), 0, 1);
+    ctx.restore();
+  }
+  // kulki
+  pk.flying = pk.flying.filter(b => {
+    const p = (now - b.t0) / b.dur;
+    const steps = b.rows + 1;
+    const f = Math.min(p * steps, steps);
+    const seg = Math.floor(f), fr = f - seg;
+    // pozycje: przed rzędem 0 (start), po kolejnych rzędach
+    const posAt = k => { let pos = 0; for (let i = 0; i < k; i++) if (b.path[i] === 'R') pos++; return pos; };
+    let x, y;
+    if (seg === 0) { x = g.C + b.jitter * g.s * .2; y = g.top - g.s * .9 + fr * g.s * .9 - g.s * .15; }
+    else {
+      const r0 = seg - 1, r1 = Math.min(seg, b.rows);
+      const x0 = pkPosX(g, r0, posAt(r0)), x1 = r1 === b.rows ? g.C + (posAt(b.rows) - b.rows / 2) * g.s : pkPosX(g, r1, posAt(r1));
+      const y0 = g.rowY(r0) - g.s * .15, y1 = r1 === b.rows ? g.binY + g.s * .2 : g.rowY(r1) - g.s * .15;
+      x = x0 + (x1 - x0) * fr;
+      y = y0 + (y1 - y0) * (fr * fr) - Math.sin(fr * Math.PI) * g.s * .35;
+    }
+    ctx.beginPath(); ctx.arc(x, y, g.s * .16, 0, Math.PI * 2);
+    const bg = ctx.createRadialGradient(x - 2, y - 2, 1, x, y, g.s * .16);
+    bg.addColorStop(0, '#fff6d5'); bg.addColorStop(1, '#f5a623');
+    ctx.fillStyle = bg; ctx.shadowColor = '#ffd36b'; ctx.shadowBlur = 14; ctx.fill(); ctx.shadowBlur = 0;
+    if (p >= 1) { pkLanded(b); return false; }
+    return true;
+  });
+  pk.raf = requestAnimationFrame(pkLoop);
+}
+document.addEventListener('cx-leave', e => { if (e.detail.game === 'pachinko' && pk) { cancelAnimationFrame(pk.raf); pk = null; } });

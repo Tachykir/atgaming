@@ -43,6 +43,10 @@ const def = {
   newState: () => ({ speed: { points: 0, wager: 0 }, freeSpins: 0, freeBet: 0, mode: null, fsTotal: 0, fsWin: 0 }),
   isFree: s => s.freeSpins > 0,
   saveMeter: s => Math.floor(s.speed.points),
+  async load(state, casino, userId) {
+    const saved = await casino.getSlotStats(userId, 'neon_racer');
+    if (saved?.pitMeter > 0 && !state.speed.points) { state.speed.points = Math.min(99, saved.pitMeter); state.speed.restored = true; }
+  },
   spin(state, { bet, paid }) {
     const inFree = !paid;
     const mode = inFree ? state.mode : null;

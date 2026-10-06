@@ -77,7 +77,7 @@ const def = {
   isFree: s => s.freeSpins > 0,
   async load(state, casino, userId) {
     const saved = await casino.getSlotStats(userId, 'path_of_gambling');
-    if (saved?.pitMeter > 0 && !state.pit.points) state.pit.points = Math.min(PIT_THRESHOLD - 1, saved.pitMeter);
+    if (saved?.pitMeter > 0 && !state.pit.points) { state.pit.points = Math.min(PIT_THRESHOLD - 1, saved.pitMeter); state.pit.restored = true; }
   },
   saveMeter: s => s.pit.points,
   spin(state, { bet, paid }) {

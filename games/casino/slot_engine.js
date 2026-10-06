@@ -45,11 +45,13 @@ function makePicker(weights) {
 // Średnia ważona stawka do funkcji typu "licznik" (pit meter, kociołki, speed meter).
 // Zapobiega nabijaniu licznika na minimalnej stawce i odbieraniu bonusu na maksymalnej.
 function meterAdd(meter, bet, points) {
+  // Licznik odtworzony z bazy (bez historii stawek) — przyjmij bieżącą stawkę dla zapisanych punktów
+  if (meter.restored) { meter.wager = (meter.points || 0) * bet; meter.restored = false; }
   meter.points = (meter.points || 0) + points;
   meter.wager = (meter.wager || 0) + bet * points;
 }
 function meterBet(meter, fallback) {
-  return meter.points > 0 ? Math.max(1, Math.round(meter.wager / meter.points)) : fallback;
+  return meter.points > 0 && meter.wager > 0 ? Math.max(1, Math.round(meter.wager / meter.points)) : fallback;
 }
 function meterReset(meter) { meter.points = 0; meter.wager = 0; }
 

@@ -340,3 +340,16 @@ function jfShowReveal(multSum,jackpotWins,finalPayout) {
 function jfCloseReveal() {
   var ov=document.getElementById('jf-reveal-overlay'); if(ov) ov.classList.remove('show');
 }
+
+function jfShowInfo() {
+  cxModal(`<h3>🏆 Jackpot Frenzy</h3><div class="cx-rules"><ul>
+    <li>Cluster Pays: 5+ takich samych symboli stykających się bokami = wygrana (× stawki, rośnie z wielkością klastra).</li>
+    <li>Coiny na planszy napełniają kociołki: 🍀 zielony, 💰 czerwony, 💎 niebieski (brązowy coin to Wild i też napełnia niebieski).</li>
+    <li>Pełny kociołek = 8 darmowych spinów mini-gry (+20% szansy, że dołączą pozostałe kociołki):
+      <ul><li>🍀 <b>Mnożniki</b> — srebrne monety (sticky Wild) z wartością ×1–×200 stawki, wypłacane na koniec.</li>
+      <li>💰 <b>Jackpoty</b> — złote monety (sticky Wild), każda wypłaca jackpot Mini/Minor/Major/Mega/Grand.</li>
+      <li>💎 <b>Dublet</b> — plansza powiększa się do 10×10 + srebrne monety.</li></ul></li>
+    <li>Jackpoty to mnożniki stawki mini-gry (Mini ×3, Minor ×10, Major ×30, Mega ×150, Grand ×750) i rosną progresywnie z każdym płatnym spinem przy stole.</li>
+    <li>Stawka mini-gry = średnia stawka, z jaką napełniałeś kociołki.</li>
+    <li>RTP ≈ 95%.</li></ul></div>`);
+}
