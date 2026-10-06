@@ -2,6 +2,7 @@
 //  DRAGON HOARD — 4×5, 20 linii, rozszerzający się Smok, Hold & Win
 // ══════════════════════════════════════════════════════════════
 const DH_SYMS = ['👑', '⚔️', '🛡️', '🧪', '📜', '🪙', '🐉', '🔥', '💎', ''];
+const DH_COLORS = ['#ffd36b', '#9fb3c8', '#4f8cff', '#3ff2a3', '#d9b38c', '#ffb300', '#ff5a1f', '#ff3b3b', '#4fe3ff', '#333'];
 const DH = { DRAGON: 6, FIRE: 7, GEM: 8, EMPTY: 9 };
 const DH_POOL = [0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 7, 8, 8];
 const DH_LINES = [
@@ -28,7 +29,7 @@ function initDHUI(table) {
     theme: { a: '#ff8a3d', b: '#ffd36b' },
     cols: 4, rows: 5, event: 'casinoDHSpin', lineCount: 20, boardMaxWidth: '440px',
     randomSym: () => dhState.hold ? DH.EMPTY : DH_POOL[Math.floor(Math.random() * DH_POOL.length)],
-    symHTML: i => ({ html: i === DH.EMPTY ? '' : `<span class="sk-emo">${DH_SYMS[i]}</span>`, cls: i === DH.DRAGON ? 'wild' : i === DH.FIRE ? 'scatter' : i === DH.GEM ? 'special' : '' }),
+    symHTML: i => ({ noTile: i === DH.EMPTY, color: DH_COLORS[i], html: i === DH.EMPTY ? '' : `<span class="sk-emo">${DH_SYMS[i]}</span>`, cls: i === DH.DRAGON ? 'wild' : i === DH.FIRE ? 'scatter' : i === DH.GEM ? 'special' : '' }),
     decorate(el, c, r, si) {
       if (si === DH.GEM) {
         const g = dhState.gems.find(g => g.col === c && g.row === r);
@@ -85,13 +86,14 @@ function initDHUI(table) {
       // Rozszerzanie smoków
       for (let c = 0; c < 4; c++) if (res.grid[c].includes(DH.DRAGON)) { kit.expandCol(c, DH.DRAGON); cxSound.play('chip'); await kit.wait(kit.turbo ? 60 : 180); }
       kit.showLineWins(res.winLines, DH_LINES);
-      if (res.freeSpinsAwarded) { kit.highlight(res.scatter, 'main', false); cxSound.play('feature'); kit.msg(`🔥 <b>+${res.freeSpinsAwarded} Free Spinów</b> (wygrane ×2)`, 'feature'); res._msgSet = res.payout === 0; await kit.wait(1100); }
+      if (res.freeSpinsAwarded) { kit.highlight(res.scatter, 'main', false); await kit.wait(600); await kit.splash(`${res.freeSpinsAwarded} FREE SPINS`, 'Wygrane ×2', '🔥', '#ff8a3d'); kit.msg(`🔥 <b>+${res.freeSpinsAwarded} Free Spinów</b> (wygrane ×2)`, 'feature'); res._msgSet = res.payout === 0; }
       if (res.holdTriggered) {
         cxSound.play('feature');
         kit.highlight(res.gems.map(g => [g.col, g.row]), 'main', false);
+        await kit.wait(700);
+        await kit.splash('HOLD & WIN', `${res.gems.length} gemów zostaje · 3 respiny`, '💎', '#4fe3ff');
         kit.msg(`💎 ${res.gems.length} gemów — <b>HOLD & WIN!</b>`, 'feature');
         res._msgSet = res.payout === 0;
-        await kit.wait(1500);
         dhState.hold = true;
         const g = Array.from({ length: 4 }, (_, c) => Array.from({ length: 5 }, (_, r) => res.gems.find(x => x.col === c && x.row === r) ? DH.GEM : DH.EMPTY));
         kit.clearWins();

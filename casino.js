@@ -394,6 +394,16 @@ function initTables() {
   createTable({ game:'neon_racer', name:'Neon Racer — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
   createTable({ game:'neon_racer', name:'Neon Racer — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
   createTable({ game:'neon_racer', name:'Neon Racer — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
+  // Nowe automaty
+  createTable({ game:'candy_tumble', name:'Candy Tumble — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
+  createTable({ game:'candy_tumble', name:'Candy Tumble — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
+  createTable({ game:'candy_tumble', name:'Candy Tumble — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
+  createTable({ game:'book_pharaoh', name:'Księga Faraona — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
+  createTable({ game:'book_pharaoh', name:'Księga Faraona — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
+  createTable({ game:'book_pharaoh', name:'Księga Faraona — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
+  createTable({ game:'hot_777', name:'Hot 777 — Low',    config:{ minBet:10,      maxBet:10000,    maxPlayers:99 }});
+  createTable({ game:'hot_777', name:'Hot 777 — Medium', config:{ minBet:10000,   maxBet:1000000,  maxPlayers:99 }});
+  createTable({ game:'hot_777', name:'Hot 777 — High',   config:{ minBet:1000000, maxBet:10000000, maxPlayers:99 }});
   console.log(`🃏 Zainicjowano ${Object.keys(casinoTables).length} stołów kasyna`);
 }
 

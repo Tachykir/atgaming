@@ -41,7 +41,9 @@ class SlotKit {
       ${cxTopbar({ icon: g.icon, title: table.name, sub: g.subtitle || '', info: 'skActive && skActive.showInfo()' })}
       <div class="sk-wrap">
         <div class="sk-main">
-          <div class="sk-machine" style="--sk-a:${g.theme?.a || '#ffd36b'};--sk-b:${g.theme?.b || '#8b6cff'}">
+          <div class="sk-machine" data-sk="machine" style="--sk-a:${g.theme?.a || '#ffd36b'};--sk-b:${g.theme?.b || '#8b6cff'}">
+            <canvas class="sk-fx" data-sk="fx"></canvas>
+            <div class="sk-marquee"><div class="sk-bulbs"></div><div class="sk-logo">${g.icon} ${cxEsc(g.title)}</div><div class="sk-bulbs"></div></div>
             <div class="sk-feature-row" data-sk="features"></div>
             <div data-sk="banner"></div>
             <div data-sk="boards"></div>
@@ -125,8 +127,12 @@ class SlotKit {
     const s = this.o.symHTML(symIdx, key);
     return typeof s === 'string' ? { html: s, cls: '' } : s;
   }
+  cellInner(s) {
+    if (this.o.tiles === false || s.noTile) return s.html;
+    return `<div class="sk-tile${s.tile ? ' ' + s.tile : ''}" style="--c:${s.color || this.o.tileColor || '#6b5bd6'}">${s.html}</div>`;
+  }
   fillStrip(strip, items, key) {
-    strip.innerHTML = items.map(si => { const s = this.cellHTML(si, key); return `<div class="sk-cell ${s.cls || ''}">${s.html}</div>`; }).join('');
+    strip.innerHTML = items.map(si => { const s = this.cellHTML(si, key); return `<div class="sk-cell ${s.cls || ''}">${this.cellInner(s)}</div>`; }).join('');
   }
   setGrid(grid, key = 'main') {
     const b = this.board(key);
@@ -148,10 +154,11 @@ class SlotKit {
   }
 
   // ── Animacja bębnów ───────────────────────────────────────
-  startSpin(keys) {
+  startSpin(keys, only) {
     for (const b of this.boards) {
       if (keys && !keys.includes(b.key)) continue;
       for (let c = 0; c < b.cols; c++) {
+        if (only && !only.includes(c)) continue;
         const col = this.colEl(c, b.key);
         col.classList.remove('expanded');
         const strip = col.firstChild;
@@ -166,7 +173,7 @@ class SlotKit {
     }
   }
   // Zatrzymaj bęben(y) na podanej siatce; zwraca Promise po ostatnim
-  stop(grid, key = 'main', { stagger, extraDelay = 0 } = {}) {
+  stop(grid, key = 'main', { stagger, extraDelay = 0, only } = {}) {
     const b = this.board(key);
     this.grids[b.key] = grid;
     const st = stagger ?? (this.turbo ? 50 : this.o.stagger);
@@ -174,9 +181,12 @@ class SlotKit {
     const ant = this.o.anticipate ? this.o.anticipate(grid, b.key) : null;
     const promises = [];
     let t = base;
+    const antOn = ant !== null && ant !== undefined && !this.turbo;
     for (let c = 0; c < b.cols; c++) {
-      if (ant !== null && ant !== undefined && c >= ant && !this.turbo) t += 650;
+      if (only && !only.includes(c)) continue;
+      if (antOn && c >= ant) t += 650;
       const delay = t;
+      if (antOn && c === ant) setTimeout(() => { for (let k = ant; k < b.cols; k++) this.colEl(k, b.key)?.classList.add('anticip'); cxSound.play('feature'); }, delay - 650);
       promises.push(new Promise(res => setTimeout(() => {
         const col = this.colEl(c, b.key);
         const strip = col.firstChild;
@@ -193,6 +203,7 @@ class SlotKit {
         strip.style.transform = 'translateY(0)';
         setTimeout(() => {
           strip.style.transition = 'none'; strip.style.transform = 'none';
+          col.classList.remove('anticip');
           this.fillStrip(strip, grid[c], b.key);
           [...strip.children].forEach((el, r) => { el.classList.add('land'); if (this.o.decorate) this.o.decorate(el, c, r, grid[c][r], b.key, this); });
           cxSound.play('stop');
@@ -215,7 +226,8 @@ class SlotKit {
         if (!el) return;
         const s = this.cellHTML(grid[c][r], b.key);
         el.className = 'sk-cell land ' + (s.cls || '');
-        el.innerHTML = s.html;
+        el.innerHTML = this.cellInner(s);
+        this.burstCell(c, r, b.key, 10);
         if (this.o.decorate) this.o.decorate(el, c, r, grid[c][r], b.key, this);
         if (i === cells.length - 1) setTimeout(res, 300);
       }, i * (this.turbo ? 30 : each)));
@@ -245,18 +257,70 @@ class SlotKit {
 
   // ── Wygrane ──────────────────────────────────────────────
   clearWins() {
+    clearInterval(this.cycleT); clearTimeout(this.cycleStart);
+    this.$('machine')?.classList.remove('win', 'bigwin');
     for (const b of this.boards) {
       b.el.classList.remove('dim');
       b.el.querySelectorAll('.sk-cell.hit').forEach(e => e.classList.remove('hit'));
       b.el.querySelector('.sk-svg').innerHTML = '';
     }
   }
-  highlight(cells, key = 'main', dim = true) {
+  highlight(cells, key = 'main', dim = true, burst = true) {
     const b = this.board(key);
     if (dim) b.el.classList.add('dim');
-    cells.forEach(([c, r]) => this.cell(c, r, key)?.classList.add('hit'));
+    const seen = new Set();
+    cells.forEach(([c, r]) => {
+      this.cell(c, r, key)?.classList.add('hit');
+      if (burst && !seen.has(c + ',' + r) && seen.size < 30) { seen.add(c + ',' + r); this.burstCell(c, r, key, cells.length > 12 ? 5 : 9); }
+    });
   }
-  drawLine(cells, color, key = 'main') {
+  // ── Cząsteczki ───────────────────────────────────────────
+  symColor(c, r, key) {
+    const g = this.grids[this.board(key).key];
+    if (!g) return '#ffd36b';
+    const s = this.cellHTML(g[c][r], key);
+    return s.color || this.o.theme?.a || '#ffd36b';
+  }
+  burstCell(c, r, key = 'main', n = 9) {
+    const el = this.cell(c, r, key), m = this.$('machine');
+    if (!el || !m) return;
+    const er = el.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    this.burst(er.left - mr.left + er.width / 2, er.top - mr.top + er.height / 2, this.symColor(c, r, key), n, er.width / 3);
+  }
+  burst(x, y, color, n = 10, spread = 20) {
+    if (!this.fx) this.fx = { parts: [], raf: null };
+    const cv = this.$('fx');
+    if (!cv) return;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 1.5 + Math.random() * 4;
+      this.fx.parts.push({ x: x + Math.cos(a) * spread * .3, y: y + Math.sin(a) * spread * .3, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2, life: 1, decay: .012 + Math.random() * .02, size: 2 + Math.random() * 3.5, color: Math.random() < .35 ? '#fff' : color, star: Math.random() < .3 });
+    }
+    if (!this.fx.raf) this.fxLoop();
+  }
+  fxLoop() {
+    const cv = this.$('fx');
+    if (!cv || skActive !== this) { this.fx.raf = null; this.fx.parts = []; return; }
+    const r = cv.getBoundingClientRect(), d = devicePixelRatio;
+    if (cv.width !== Math.round(r.width * d)) { cv.width = r.width * d; cv.height = r.height * d; }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.clearRect(0, 0, r.width, r.height);
+    ctx.globalCompositeOperation = 'lighter';
+    this.fx.parts = this.fx.parts.filter(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += .12; p.vx *= .985; p.life -= p.decay;
+      if (p.life <= 0) return false;
+      ctx.globalAlpha = Math.min(1, p.life * 1.4);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 10;
+      if (p.star) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.life * 6); ctx.fillRect(-p.size, -p.size * .25, p.size * 2, p.size * .5); ctx.fillRect(-p.size * .25, -p.size, p.size * .5, p.size * 2); ctx.restore(); }
+      else { ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill(); }
+      return true;
+    });
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    if (this.fx.parts.length) this.fx.raf = requestAnimationFrame(() => this.fxLoop());
+    else { ctx.clearRect(0, 0, r.width, r.height); this.fx.raf = null; }
+  }
+  drawLine(cells, color, key = 'main', label) {
     const b = this.board(key);
     const svg = b.el.querySelector('.sk-svg');
     const br = b.el.getBoundingClientRect();
@@ -272,6 +336,33 @@ class SlotKit {
     pl.setAttribute('stroke', color);
     pl.style.color = color;
     svg.appendChild(pl);
+    if (label && pts.length) {
+      const mid = pts[Math.floor(pts.length / 2)].split(',').map(Number);
+      const tx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      tx.setAttribute('x', mid[0]); tx.setAttribute('y', mid[1] - 4); tx.setAttribute('text-anchor', 'middle');
+      tx.textContent = label;
+      svg.appendChild(tx);
+    }
+  }
+  // Po pokazaniu wszystkich wygranych — pokazuj je po kolei z kwotą
+  cycleWins(wins, key = 'main') {
+    clearInterval(this.cycleT); clearTimeout(this.cycleStart);
+    if (!wins?.length || this.turbo) return;
+    const b = this.board(key);
+    let i = 0;
+    const show = () => {
+      if (skActive !== this || this.spinning) return clearInterval(this.cycleT);
+      const w = wins[i % wins.length]; i++;
+      b.el.querySelector('.sk-svg').innerHTML = '';
+      b.el.querySelectorAll('.sk-cell.hit').forEach(e => e.classList.remove('hit'));
+      b.el.classList.add('dim');
+      w.cells.forEach(([c, r]) => this.cell(c, r, key)?.classList.add('hit'));
+      const cells = w.cells.slice().sort((a, b) => a[0] - b[0]);
+      const label = '+' + cxFmt(w.win);
+      if (w.li !== undefined) this.drawLine(cells.length > 1 ? cells : cells.concat(cells), SK_LINE_COLORS[w.li % SK_LINE_COLORS.length], key, label);
+      else { const [c, r] = w.cells[Math.floor(w.cells.length / 2)]; this.drawLine([[c, r], [c, r]], 'transparent', key, label); }
+    };
+    this.cycleStart = setTimeout(() => { show(); this.cycleT = setInterval(show, 1300); }, 1600);
   }
   // Standard dla gier liniowych: podświetl wszystkie, narysuj linie
   showLineWins(wins, lines, key = 'main') {
@@ -283,12 +374,29 @@ class SlotKit {
       this.drawLine(cells.length > 1 ? cells : cells.concat(cells), SK_LINE_COLORS[w.li % SK_LINE_COLORS.length], key);
     });
     this.highlight(all, key);
+    if (wins.length > 1 || (wins[0] && wins[0].li !== undefined)) this.cycleWins(wins, key);
   }
 
   // ── Komunikaty / banery ──────────────────────────────────
   msg(html, cls = '') { const m = this.$('msg'); m.className = 'sk-msgbar' + (cls ? ' ' + cls : ''); m.innerHTML = html; }
   banner(html, cls = '') { this.$('banner').innerHTML = html ? `<div class="sk-banner ${cls}" style="margin-bottom:10px">${html}</div>` : ''; }
   wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+  // Licznik wygranej w pasku komunikatu
+  countMsg(prefix, amount, cls, suffix = '') {
+    this.msg(`${prefix} <span class="amt">+0 AT$</span> ${suffix}`, cls);
+    const m = this.$('msg'); m.classList.remove('pop'); void m.offsetWidth; m.classList.add('pop');
+    const el = m.querySelector('.amt');
+    const dur = Math.min(1600, 350 + Math.log10(Math.max(10, amount)) * 220);
+    const t0 = performance.now();
+    const step = now => {
+      const p = Math.min(1, (now - t0) / dur);
+      if (!el.isConnected) return;
+      el.textContent = '+' + cxFmt(amount * (1 - Math.pow(1 - p, 3))) + ' AT$';
+      if (p < 1) { if (Math.random() < .25) cxSound.play('tick'); requestAnimationFrame(step); }
+    };
+    requestAnimationFrame(step);
+  }
+  splash(title, sub, icon, color) { return cxSplash({ title, sub, icon, color: color || this.o.theme?.a }); }
 
   // ── Stawka ───────────────────────────────────────────────
   get bet() { return this.steps[this.betIdx]; }
@@ -385,8 +493,11 @@ class SlotKit {
     // Wiadomość o wygranej / duża wygrana
     const big = CX_TIER_ORDER.indexOf(res.tier) >= CX_TIER_ORDER.indexOf('mega');
     if (res.payout > 0) {
-      if (!res._msgSet) this.msg(`${res.label || 'Wygrana'}: <span class="amt">+${cxFmt(res.payout)} AT$</span> <span style="opacity:.6">(${res.mult.toLocaleString('pl-PL', { maximumFractionDigits: 2 })}×)</span>`, CX_TIER_ORDER.indexOf(res.tier) >= 2 ? 'big' : 'win');
-      cxSound.play(big ? 'bigwin' : 'win');
+      if (!res._msgSet) this.countMsg(`${res.label || 'Wygrana'}:`, res.payout, CX_TIER_ORDER.indexOf(res.tier) >= 2 ? 'big' : 'win', `<span style="opacity:.6">(${res.mult.toLocaleString('pl-PL', { maximumFractionDigits: 2 })}×)</span>`);
+      const mach = this.$('machine');
+      mach.classList.add(CX_TIER_ORDER.indexOf(res.tier) >= 2 ? 'bigwin' : 'win');
+      if (CX_TIER_ORDER.indexOf(res.tier) >= 2) { mach.classList.remove('shake'); void mach.offsetWidth; mach.classList.add('shake'); const r = mach.getBoundingClientRect(); for (let i = 0; i < 5; i++) setTimeout(() => this.burst(r.width * (.2 + Math.random() * .6), r.height * (.3 + Math.random() * .4), ['#ffd36b', '#ff6f8a', '#3ff2a3', '#8b6cff'][i % 4], 26, 40), i * 120); }
+      if (!big) cxSound.play('win');
       if (big) await cxBigWin({ amount: res.payout, bet: res.bet, tier: res.tier, label: res.label });
     } else if (!res._msgSet) {
       this.msg(this.free > 0 ? `🎁 Pozostało darmowych spinów: <b>${this.free}</b>` : 'Brak wygranej — spróbuj jeszcze raz');
@@ -445,7 +556,7 @@ class SlotKit {
       const idx = meta.syms.indexOf(s);
       const ico = this.o.symHTML(idx, 'main');
       const html = typeof ico === 'string' ? ico : ico.html;
-      const rows = s.p.map((v, n) => v > 0 ? `<li>${n}× → <b>${(v / (this.o.payDivisor ? this.o.payDivisor(meta) : lines)).toLocaleString('pl-PL', { maximumFractionDigits: 2 })}×</b></li>` : '').filter(Boolean).reverse().join('');
+      const rows = s.p.map((v, n) => v > 0 ? `<li>${this.o.payLabels ? this.o.payLabels[n] : n + '×'} → <b>${(v / (this.o.payDivisor ? this.o.payDivisor(meta) : lines)).toLocaleString('pl-PL', { maximumFractionDigits: 2 })}×</b></li>` : '').filter(Boolean).reverse().join('');
       return `<div class="cx-pay"><div class="ico">${html}</div><div><div style="font-size:11px;font-weight:700">${cxEsc(s.n)}${s.wild ? ' · WILD' : ''}</div><ul>${rows}</ul></div></div>`;
     }).join('');
     cxModal(`<h3>${this.o.icon} ${cxEsc(this.o.title)}</h3>

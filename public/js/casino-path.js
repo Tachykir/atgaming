@@ -3,6 +3,7 @@
 // ══════════════════════════════════════════════════════════════
 const PG_IMG = ['mirror', 'Divine', 'exalted', 'chaos', 'annul', 'alteration', 'Transmutation', 'scroll', 'fracture', 'mist', 'Sacred', 'lock', 'valdo'];
 const PG_NAMES = ['Mirror of Kalandra', 'Divine Orb', 'Exalted Orb', 'Chaos Orb', 'Orb of Annulment', 'Orb of Alteration', 'Orb of Transmutation', 'Scroll of Wisdom', 'Fracturing Orb', 'Reflecting Mist', 'Sacred Orb', "Hinekora's Lock", "Valdo's Box"];
+const PG_COLORS = ['#a8d8ff', '#ffe066', '#ffd700', '#e05050', '#c0c0d0', '#4488ff', '#2266cc', '#aaaaaa', '#ff9944', '#aa44ff', '#ffdd44', '#cc44aa', '#c0a060'];
 const PG = { WILD: 8, MIST: 9, SACRED: 10, LOCK: 11, VALDO: 12 };
 const PG_POOL = [0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 9, 10];
 const PG_LINES = [
@@ -40,7 +41,7 @@ function initPathUI(table) {
     theme: { a: '#ffb347', b: '#c084fc' },
     cols: 5, rows: 5, event: 'casinoPathSpin', lineCount: 30, boardMaxWidth: '560px',
     randomSym: () => PG_POOL[Math.floor(Math.random() * PG_POOL.length)],
-    symHTML: i => ({ html: `<img src="/images/slots/${PG_IMG[i]}.png" alt="${PG_NAMES[i]}" draggable="false">`, cls: i === PG.WILD ? 'wild' : i === PG.MIST ? 'scatter' : i === PG.SACRED ? 'special' : '' }),
+    symHTML: i => ({ color: PG_COLORS[i], html: `<img src="/images/slots/${PG_IMG[i]}.png" alt="${PG_NAMES[i]}" draggable="false">`, cls: i === PG.WILD ? 'wild' : i === PG.MIST ? 'scatter' : i === PG.SACRED ? 'special' : '' }),
     decorate(el, c, r, si) {
       if (si === PG.LOCK || si === PG.VALDO) el.classList.add('sticky');
       if (si === PG.VALDO) {
@@ -82,9 +83,11 @@ function initPathUI(table) {
       if (res.freeSpinsAwarded) {
         cxSound.play('feature');
         const names = { pit: '🕳️ PIT MODE', sacred: '✨ SACRED ORB', scatter: '🌫️ REFLECTING MIST', retrigger: '🔁 RETRIGGER' };
+        const subs = { pit: "Hinekora's Lock i Valdo's Box w grze!", sacred: 'Tryb Pit z Lockami i Valdo', scatter: 'Wszystkie wygrane ×2', retrigger: 'Dodatkowe spiny!' };
+        await kit.wait(600);
+        await kit.splash(`${names[res.trigger] || 'BONUS'}`, `+${res.freeSpinsAwarded} spinów · ${subs[res.trigger] || ''}`, res.trigger === 'pit' ? '🕳️' : res.trigger === 'sacred' ? '✨' : '🌫️', '#ffb347');
         kit.msg(`${names[res.trigger] || 'BONUS'}! <b>+${res.freeSpinsAwarded} spinów</b>`, 'feature');
         res._msgSet = res.payout === 0;
-        await kit.wait(1300);
       }
       pgState.mode = res.freeMode;
       pgBanner(res.freeSpinsRemaining);

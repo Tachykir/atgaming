@@ -3,6 +3,7 @@
 // ══════════════════════════════════════════════════════════════
 const DB_SYMS = ['🗡️', '⚔️', '✴️', '🎭', '💨', '🪙', '🌑', '🌒'];
 const DB = { SHADOW: 6, ECLIPSE: 7 };
+const DB_COLORS = ['#c9d6ff', '#ff6f8a', '#ff9f43', '#c084fc', '#9fb3c8', '#ffd36b', '#60a5fa', '#7a5cff'];
 const DB_POOL = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 7];
 const DB_LINES = [[1,1,1],[0,0,0],[2,2,2],[0,1,2],[2,1,0]];
 let dbKit = null;
@@ -20,7 +21,7 @@ function initDBUI(table) {
     midHTML: '<div data-db="mid" style="font-size:30px">⚔️</div><div data-db="midtxt" style="font-size:11px;color:var(--muted)">SYNC</div>',
     event: 'casinoDBSpin', lineCount: 10, fontSize: 'clamp(26px, 5vw, 52px)',
     randomSym: () => DB_POOL[Math.floor(Math.random() * DB_POOL.length)],
-    symHTML: i => ({ html: `<span class="sk-emo">${DB_SYMS[i]}</span>`, cls: i === DB.SHADOW ? 'wild' : i === DB.ECLIPSE ? 'scatter' : '' }),
+    symHTML: i => ({ color: DB_COLORS[i], html: `<span class="sk-emo">${DB_SYMS[i]}</span>`, cls: i === DB.SHADOW ? 'wild' : i === DB.ECLIPSE ? 'scatter' : '' }),
     features: () => dbSyncHTML(0, 5),
     payDivisor: () => 10,
     rules: [
@@ -50,9 +51,10 @@ function initDBUI(table) {
       if (res.freeSpinsAwarded) {
         if (res.scatter?.count >= 3) { kit.highlight(res.scatter.left, 'L', false); kit.highlight(res.scatter.right, 'R', false); }
         cxSound.play('feature');
+        await kit.wait(600);
+        await kit.splash(`${res.freeSpinsAwarded} FREE SPINS`, (res.syncFSAwarded && res.scatter?.count < 3 ? 'Sync Meter pełny! ' : '') + 'Sync Bonus ×3', '🌒', '#60a5fa');
         kit.msg(`${res.syncFSAwarded && !res.scatter?.count ? '⚡ Sync Meter pełny!' : '🌒 Eclipse!'} <b>+${res.freeSpinsAwarded} Free Spinów</b>`, 'feature');
         res._msgSet = res.payout === 0 || res._msgSet;
-        await kit.wait(1200);
       }
       kit.banner(res.freeSpinsRemaining > 0 ? `🌒 FREE SPINS: <b>${res.freeSpinsRemaining}</b> · Sync ×3` : '', 'purple');
     },

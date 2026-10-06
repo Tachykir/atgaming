@@ -21,6 +21,9 @@ Wirtualna waluta AT$ (start 100 000, cotygodniowe doładowanie), logowanie przez
 | Arcane Academy | cluster 7×7 | kaskady z mnożnikiem do ×10, interaktywny Bonus Pick |
 | Dual Blades | 2 × 3×3 | Shadow Blade, Sync Bonus ×2, Sync Meter |
 | Neon Racer | automat 5×3 | wygrane w obie strony, Speed Meter → Turbo ×3 |
+| Candy Tumble | pay anywhere 6×5 | 8+ symboli gdziekolwiek, kaskady, bomby ×2–×100 w Free Spinach |
+| Księga Faraona | automat 5×3 | 10 linii, Księga = Wild+Scatter, rozszerzający się symbol w Free Spinach |
+| Hot 777 | klasyk 3×3 | 5 linii, Fire Respin, koło mnożników ×2–×10 |
 | Crash | multiplayer | auto cash-out, P(≥x)=0,96/x |
 | Ruletka | multiplayer | europejska, split/street/corner/six line |
 | Pachinko | Plinko | 3 poziomy ryzyka, do 10 kulek |

@@ -3,6 +3,7 @@
 // ══════════════════════════════════════════════════════════════
 const NR_SYMS = ['🏎️', '🏆', '⛑️', '🛞', '⛽', '🏁', '🪙', '💡', '💨'];
 const NR = { LIGHTS: 7, NITRO: 8 };
+const NR_COLORS = ['#ff4d6d', '#ffd36b', '#4fc3ff', '#9fb3c8', '#ff9f43', '#e8e8f0', '#ffb300', '#34f5c5', '#7aa7ff'];
 const NR_POOL = [0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 8];
 const NR_LINES = [
   [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],
@@ -28,7 +29,7 @@ function initNRUI(table) {
     theme: { a: '#34f5c5', b: '#f472b6' },
     cols: 5, rows: 3, event: 'casinoNRSpin', lineCount: 20, boardMaxWidth: '640px',
     randomSym: () => NR_POOL[Math.floor(Math.random() * NR_POOL.length)],
-    symHTML: i => ({ html: `<span class="sk-emo">${NR_SYMS[i]}</span>`, cls: i === NR.LIGHTS ? 'wild' : i === NR.NITRO ? 'scatter' : '' }),
+    symHTML: i => ({ color: NR_COLORS[i], html: `<span class="sk-emo">${NR_SYMS[i]}</span>`, cls: i === NR.LIGHTS ? 'wild' : i === NR.NITRO ? 'scatter' : '' }),
     features: () => nrSpeedHTML(0),
     onStats: s => { if (s.pitMeter > 0) nrSetSpeed(Math.min(100, s.pitMeter)); },
     anticipate: grid => {
@@ -52,16 +53,18 @@ function initNRUI(table) {
       if (res.turboTriggered) {
         cxSound.play('feature');
         nrSetSpeed(100);
+        await kit.wait(500);
+        await kit.splash('TURBO!', '6 darmowych spinów · mnożnik ×3', '🚀', '#34f5c5');
         kit.msg('🚀 <b>TURBO!</b> 6 darmowych spinów z mnożnikiem ×3', 'feature');
         res._msgSet = res.payout === 0 || res._msgSet;
-        await kit.wait(1400);
         nrSetSpeed(0);
       } else if (res.freeSpinsAwarded) {
         kit.highlight(res.scatter, 'main', false);
         cxSound.play('feature');
+        await kit.wait(500);
+        await kit.splash(`${res.freeSpinsAwarded} FREE SPINS`, 'Nitro! Wygrane ×2', '💨', '#34f5c5');
         kit.msg(`💨 NITRO! <b>+${res.freeSpinsAwarded} Free Spinów</b> (×2)`, 'feature');
         res._msgSet = res.payout === 0 || res._msgSet;
-        await kit.wait(1200);
       }
       const mode = res.freeMode;
       kit.banner(res.freeSpinsRemaining > 0 ? (mode === 'turbo' ? `🚀 TURBO — pozostało <b>${res.freeSpinsRemaining}</b> · ×3` : `💨 FREE SPINS: <b>${res.freeSpinsRemaining}</b> · ×2`) : '', mode === 'turbo' ? 'red' : '');

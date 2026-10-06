@@ -19,6 +19,9 @@ const casinoDH         = require('./games/casino/dragon_hoard');
 const casinoAA         = require('./games/casino/arcane_academy');
 const casinoDualBlades = require('./games/casino/dual_blades');
 const casinoNR         = require('./games/casino/neon_racer');
+const casinoCT         = require('./games/casino/candy_tumble');
+const casinoBP         = require('./games/casino/book_pharaoh');
+const casinoH7         = require('./games/casino/hot_777');
 
 // Ładuj .env jeśli istnieje
 try {
@@ -452,6 +455,7 @@ app.get('/api/casino/slot-stats/:gameId', async (req, res) => {
 const SLOT_META = {
   slots: casinoSlots.meta, path_of_gambling: casinoPath.meta, dragon_hoard: casinoDH.meta,
   arcane_academy: casinoAA.meta, dual_blades: casinoDualBlades.meta, neon_racer: casinoNR.meta,
+  candy_tumble: casinoCT.meta, book_pharaoh: casinoBP.meta, hot_777: casinoH7.meta,
 };
 app.get('/api/casino/game-meta/:game', (req, res) => {
   const m = SLOT_META[req.params.game];
@@ -970,6 +974,9 @@ io.on('connection', (socket) => {
   casinoAA.registerHandlers(socket, io, casino);
   casinoDualBlades.registerHandlers(socket, io, casino);
   casinoNR.registerHandlers(socket, io, casino);
+  casinoCT.registerHandlers(socket, io, casino);
+  casinoBP.registerHandlers(socket, io, casino);
+  casinoH7.registerHandlers(socket, io, casino);
 
   // ── Pomocnik opuszczania stołu ──
   function handleCasinoLeave(socket, tableId) {

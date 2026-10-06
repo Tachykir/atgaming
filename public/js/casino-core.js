@@ -22,6 +22,9 @@ const CX_GAMES = [
   { id: 'arcane_academy',   name: 'Arcane Academy',   cat: 'slots', icon: '🔮', g1: '#1f1450', g2: '#0b0820', ga: '#a78bfa', tags: ['Kaskady', 'Mnożnik do ×10', 'Bonus Pick'], isNew: true, desc: 'Klastry znikają, symbole spadają, a mnożnik rośnie z każdą kaskadą. Księgi otwierają Bonus Pick.' },
   { id: 'dual_blades',      name: 'Dual Blades',      cat: 'slots', icon: '⚔️', g1: '#10203d', g2: '#060b16', ga: '#60a5fa', tags: ['2 plansze', 'Sync ×2'], isNew: true, desc: 'Dwie plansze naraz. Shadow Blade przenosi wilda na drugą stronę, a podwójna wygrana daje Sync ×2.' },
   { id: 'neon_racer',       name: 'Neon Racer',       cat: 'slots', icon: '🏎️', g1: '#0b3329', g2: '#04140f', ga: '#34f5c5', tags: ['Both Ways', 'Turbo ×3'], isNew: true, desc: 'Wygrane w obie strony, rozszerzające się reflektory i Speed Meter odpalający Turbo ×3.' },
+  { id: 'candy_tumble',     name: 'Candy Tumble',     cat: 'slots', icon: '🍭', g1: '#4a1040', g2: '#1c0618', ga: '#ff7ad9', tags: ['Pay Anywhere', 'Bomby ×100'], isNew: true, hot: true, desc: 'Słodycze spadają kaskadami — 8+ takich samych gdziekolwiek wygrywa. W Free Spinach bomby mnożą wygrane nawet ×100.' },
+  { id: 'book_pharaoh',     name: 'Księga Faraona',   cat: 'slots', icon: '📖', g1: '#3d2a08', g2: '#140d02', ga: '#ffd36b', tags: ['10 linii', 'Rozszerzający symbol'], isNew: true, desc: 'Klasyk z Egiptu. Księga to Wild i Scatter, a w Free Spinach wybrany symbol rozszerza się na całe bębny.' },
+  { id: 'hot_777',          name: 'Hot 777',          cat: 'slots', icon: '🔥', g1: '#40100a', g2: '#170503', ga: '#ff5a3b', tags: ['3×3', 'Fire Respin', 'Koło ×10'], isNew: true, desc: 'Ognisty klasyk 3×3. Dwa pełne bębny odpalają Fire Respin, a pełny ekran kręci kołem mnożników do ×10.' },
   { id: 'crash',            name: 'Crash',            cat: 'quick', icon: '🚀', g1: '#1d1240', g2: '#090616', ga: '#8b6cff', tags: ['Multiplayer', 'Auto cash-out'], hot: true, desc: 'Rakieta leci, mnożnik rośnie. Wypłać zanim wybuchnie — albo ustaw automatyczny cash-out.' },
   { id: 'roulette',         name: 'Ruletka',          cat: 'quick', icon: '🎡', g1: '#0e3a26', g2: '#05160e', ga: '#3ff2a3', tags: ['Europejska', 'Multiplayer'], desc: 'Klasyczna ruletka z jednym zerem. Stawiaj żetony na planszy razem z innymi graczami.' },
   { id: 'pachinko',         name: 'Pachinko',         cat: 'quick', icon: '🎯', g1: '#2a1040', g2: '#0e0618', ga: '#f472b6', tags: ['Plinko', 'do ×1000'], desc: 'Kulka odbija się od kołków i ląduje w mnożniku. Trzy poziomy ryzyka, do 10 kulek naraz.' },
@@ -106,38 +109,119 @@ function cxCoinRain(n = 30, emojis = ['🪙', '💰', '✨']) {
   }
 }
 
-// Duża wygrana — nakładka z odliczaniem kwoty. Zwraca Promise (po zamknięciu).
+// Duża wygrana — nakładka z eskalacją (Big → Mega → Huge → Giga → Frito),
+// licznikiem kwoty i fontanną monet. Zwraca Promise (po zamknięciu).
 const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito'];
+const CX_LADDER = [[0, 'BIG WIN', 'mega'], [15, 'MEGA WIN', 'mega'], [40, 'HUGE WIN', 'huge'], [100, 'GIGA WIN', 'giga'], [300, 'MEGA GIGA FRITO WIN', 'frito']];
+function cxCoinFountain(canvas, getIntensity) {
+  const ctx = canvas.getContext('2d');
+  const coins = [];
+  let raf, alive = true;
+  const resize = () => { canvas.width = innerWidth * devicePixelRatio; canvas.height = innerHeight * devicePixelRatio; };
+  resize();
+  const loop = () => {
+    if (!alive) return;
+    const W = canvas.width, H = canvas.height, d = devicePixelRatio;
+    const k = getIntensity();
+    for (let i = 0; i < k; i++) {
+      const fromSide = Math.random() < .3;
+      coins.push({ x: fromSide ? (Math.random() < .5 ? 0 : W) : W / 2 + (Math.random() - .5) * W * .2, y: H + 20 * d,
+        vx: 0,
+        vy: -(Math.random() * 14 + 16) * d, r: (10 + Math.random() * 10) * d, spin: Math.random() * 6, vs: .15 + Math.random() * .25, gem: Math.random() < .12 });
+      const c = coins[coins.length - 1];
+      c.vx = c.x === 0 ? (4 + Math.random() * 6) * d : c.x === W ? -(4 + Math.random() * 6) * d : (Math.random() - .5) * 14 * d;
+    }
+    ctx.clearRect(0, 0, W, H);
+    for (let i = coins.length - 1; i >= 0; i--) {
+      const c = coins[i];
+      c.x += c.vx; c.y += c.vy; c.vy += .45 * d; c.spin += c.vs;
+      if (c.y > H + 60 * d) { coins.splice(i, 1); continue; }
+      const sx = Math.abs(Math.cos(c.spin));
+      ctx.save(); ctx.translate(c.x, c.y); ctx.scale(Math.max(.12, sx), 1);
+      if (c.gem) {
+        ctx.rotate(.785); const g = ctx.createLinearGradient(-c.r, -c.r, c.r, c.r);
+        g.addColorStop(0, '#e9fff4'); g.addColorStop(.5, '#3ff2a3'); g.addColorStop(1, '#0a6a3e');
+        ctx.fillStyle = g; ctx.fillRect(-c.r * .7, -c.r * .7, c.r * 1.4, c.r * 1.4);
+      } else {
+        const g = ctx.createRadialGradient(-c.r * .3, -c.r * .3, c.r * .1, 0, 0, c.r);
+        g.addColorStop(0, '#fff6d0'); g.addColorStop(.45, '#ffd36b'); g.addColorStop(.85, '#e09500'); g.addColorStop(1, '#8a5200');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, c.r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(122,70,0,.7)'; ctx.lineWidth = c.r * .14; ctx.beginPath(); ctx.arc(0, 0, c.r * .72, 0, Math.PI * 2); ctx.stroke();
+        if (sx > .45) { ctx.fillStyle = 'rgba(122,70,0,.85)'; ctx.font = `800 ${c.r}px Syne, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', 0, 1); }
+      }
+      ctx.restore();
+    }
+    raf = requestAnimationFrame(loop);
+  };
+  loop();
+  return () => { alive = false; cancelAnimationFrame(raf); };
+}
 function cxBigWin({ amount, bet, tier, label, title }) {
   return new Promise(resolve => {
+    const mult = bet ? amount / bet : 25;
+    const steps = CX_LADDER.filter(s => s[0] <= mult);
     const ov = document.createElement('div');
-    ov.className = 'cx-bigwin t-' + tier;
-    ov.innerHTML = `<div class="bw-rays"></div><div class="bw-label">${cxEsc(title || label || 'BIG WIN')}</div>
-      <div class="bw-amt">0 AT$</div><div class="bw-mult">${bet ? (amount / bet).toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + '× stawki' : ''}</div>
-      <div class="bw-hint">kliknij, aby kontynuować</div>`;
+    ov.className = 'cx-bigwin t-' + steps[0][2];
+    ov.innerHTML = `<div class="bw-rays"></div><canvas></canvas>${title ? `<div class="bw-title">${cxEsc(title)}</div>` : ''}<div class="bw-label">${steps[0][1]}</div>
+      <div class="bw-amt">0 AT$</div><div class="bw-bar"><i></i></div><div class="bw-mult">${bet ? mult.toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + '× stawki' : ''}</div>
+      <div class="bw-hint">kliknij, aby pominąć</div>`;
     document.body.appendChild(ov);
-    const amtEl = ov.querySelector('.bw-amt');
-    const lvl = Math.max(1, CX_TIER_ORDER.indexOf(tier) - 1);
-    const dur = Math.min(5200, 1100 + lvl * 700);
-    const t0 = performance.now();
-    let counting = true, closed = false, autoClose = null;
+    const amtEl = ov.querySelector('.bw-amt'), lbl = ov.querySelector('.bw-label'), bar = ov.querySelector('.bw-bar i');
+    const dur = Math.min(7000, 1600 + steps.length * 1200);
+    let stage = 0, counting = true, closed = false, autoClose = null;
+    const stopCoins = cxCoinFountain(ov.querySelector('canvas'), () => counting ? 2 + stage * 2 : (Math.random() < .3 ? 1 : 0));
     cxSound.play('bigwin');
-    cxCoinRain(10 + lvl * 14);
+    const t0 = performance.now();
+    const setStage = i => {
+      if (i === stage) return;
+      stage = i;
+      ov.className = 'cx-bigwin t-' + steps[i][2];
+      lbl.textContent = steps[i][1];
+      lbl.classList.remove('bump'); void lbl.offsetWidth; lbl.classList.add('bump');
+      cxSound.play('feature');
+    };
     const close = () => {
       if (closed) return;
       closed = true; counting = false; clearTimeout(autoClose);
-      ov.style.transition = 'opacity .25s'; ov.style.opacity = '0';
-      setTimeout(() => { ov.remove(); resolve(); }, 250);
+      ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
+      setTimeout(() => { stopCoins(); ov.remove(); resolve(); }, 300);
     };
-    const finish = () => { counting = false; amtEl.textContent = cxFmt(amount) + ' AT$'; autoClose = setTimeout(close, 1800); };
+    const finish = () => {
+      counting = false; setStage(steps.length - 1);
+      amtEl.textContent = cxFmt(amount) + ' AT$'; bar.style.width = '100%';
+      ov.querySelector('.bw-hint').textContent = 'kliknij, aby kontynuować';
+      autoClose = setTimeout(close, 2200);
+    };
     const step = now => {
       if (!counting) return;
       const p = Math.min(1, (now - t0) / dur);
-      amtEl.textContent = cxFmt(amount * (1 - Math.pow(1 - p, 3))) + ' AT$';
+      const cur = amount * (1 - Math.pow(1 - p, 2.2));
+      amtEl.textContent = cxFmt(cur) + ' AT$';
+      bar.style.width = (p * 100) + '%';
+      const m = bet ? cur / bet : 0;
+      let si = 0; steps.forEach((s, i) => { if (m >= s[0]) si = i; });
+      setStage(si);
+      if (Math.random() < .3) cxSound.play('tick');
       if (p < 1) requestAnimationFrame(step); else finish();
     };
-    ov.addEventListener('click', () => { if (counting) { finish(); clearTimeout(autoClose); autoClose = setTimeout(close, 700); } else close(); });
+    ov.addEventListener('click', () => { if (counting) finish(); else close(); });
     requestAnimationFrame(step);
+  });
+}
+// Splash rozpoczęcia bonusu
+function cxSplash({ title, sub, icon = '🎁', color = '#8b6cff', ms = 1900 }) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'cx-splash';
+    ov.style.setProperty('--sp', color);
+    ov.innerHTML = `<div class="sp-box"><div class="sp-ico">${icon}</div><div class="sp-title">${title}</div>${sub ? `<div class="sp-sub">${sub}</div>` : ''}</div>`;
+    document.body.appendChild(ov);
+    cxSound.play('feature');
+    cxCoinRain(18, ['✨', '⭐', '💫']);
+    let done = false;
+    const close = () => { if (done) return; done = true; ov.style.transition = 'opacity .25s'; ov.style.opacity = '0'; setTimeout(() => { ov.remove(); resolve(); }, 250); };
+    ov.onclick = close;
+    setTimeout(close, ms);
   });
 }
 
@@ -473,8 +557,8 @@ socket.on('casinoTablesUpdated', () => {
 });
 
 // ══ OTWIERANIE STOŁU ══════════════════════════════════════════
-const GAME_SCREENS = { poker: 'casino-poker', blackjack: 'casino-blackjack', slots: 'casino-slots', roulette: 'casino-roulette', pachinko: 'casino-pachinko', crash: 'casino-crash', coinflip: 'casino-coinflip', path_of_gambling: 'casino-path', jackpot_frenzy: 'casino-jf', dragon_hoard: 'casino-dh', arcane_academy: 'casino-aa', dual_blades: 'casino-db', neon_racer: 'casino-nr' };
-const GAME_INITS = { slots: 'initSlotsUI', path_of_gambling: 'initPathUI', jackpot_frenzy: 'initJFUI', dragon_hoard: 'initDHUI', arcane_academy: 'initAAUI', dual_blades: 'initDBUI', neon_racer: 'initNRUI', roulette: 'initRouletteUI', pachinko: 'initPachinkoUI', crash: 'initCrashUI', coinflip: 'initCoinflipUI', poker: 'initPokerUI', blackjack: 'initBJUI' };
+const GAME_SCREENS = { poker: 'casino-poker', blackjack: 'casino-blackjack', slots: 'casino-slots', roulette: 'casino-roulette', pachinko: 'casino-pachinko', crash: 'casino-crash', coinflip: 'casino-coinflip', path_of_gambling: 'casino-path', jackpot_frenzy: 'casino-jf', dragon_hoard: 'casino-dh', arcane_academy: 'casino-aa', dual_blades: 'casino-db', neon_racer: 'casino-nr', candy_tumble: 'casino-ct', book_pharaoh: 'casino-bp', hot_777: 'casino-h7' };
+const GAME_INITS = { slots: 'initSlotsUI', path_of_gambling: 'initPathUI', jackpot_frenzy: 'initJFUI', dragon_hoard: 'initDHUI', arcane_academy: 'initAAUI', dual_blades: 'initDBUI', neon_racer: 'initNRUI', candy_tumble: 'initCTUI', book_pharaoh: 'initBPUI', hot_777: 'initH7UI', roulette: 'initRouletteUI', pachinko: 'initPachinkoUI', crash: 'initCrashUI', coinflip: 'initCoinflipUI', poker: 'initPokerUI', blackjack: 'initBJUI' };
 
 function cxAuth(extra = {}) { return { tableId: casinoTableId, discordId: casinoDiscordId, socketToken: casinoSocketToken, ...extra }; }
 

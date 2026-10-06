@@ -3,6 +3,7 @@
 // ══════════════════════════════════════════════════════════════
 const AA_SYMS = ['🔮', '🦅', '🪄', '🎩', '⚗️', '⭐', '🍃', '💫', '📚'];
 const AA = { ORB: 7, TOME: 8 };
+const AA_COLORS = ['#c084fc', '#ff8a3d', '#4fe3ff', '#8b8bff', '#3ff2a3', '#ffd36b', '#7bd96b', '#ff7ad9', '#d4a14a'];
 const AA_POOL = [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 8];
 let aaKit = null, aaPick = null, aaMult = 1;
 
@@ -29,7 +30,7 @@ function initAAUI(table) {
     theme: { a: '#a78bfa', b: '#4fe3ff' },
     cols: 7, rows: 7, event: 'casinoAASpin', boardMaxWidth: '560px',
     randomSym: () => AA_POOL[Math.floor(Math.random() * AA_POOL.length)],
-    symHTML: i => ({ html: `<span class="sk-emo">${AA_SYMS[i]}</span>`, cls: i === AA.ORB ? 'wild' : i === AA.TOME ? 'scatter' : '' }),
+    symHTML: i => ({ color: AA_COLORS[i], html: `<span class="sk-emo">${AA_SYMS[i]}</span>`, cls: i === AA.ORB ? 'wild' : i === AA.TOME ? 'scatter' : '' }),
     features: aaTrailHTML,
     stagger: 70,
     canSpin: () => !aaPick,
@@ -63,7 +64,7 @@ function initAAUI(table) {
       if (res.fsSummary) res.fsSummary.title = `📚 Free Spiny (×${res.fsSummary.mult})`;
     },
     async afterResult(res, kit) {
-      if (res.bonusPick) { await kit.wait(600); aaOpenPick(res.bonusPick); }
+      if (res.bonusPick) { await kit.wait(400); await kit.splash('BONUS PICK', 'Wybieraj księgi — unikaj 3 bomb!', '📚', '#a78bfa'); aaOpenPick(res.bonusPick); }
     },
     freeBetOf: res => res.bet,
   });

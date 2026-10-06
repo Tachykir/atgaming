@@ -3,6 +3,7 @@
 // ══════════════════════════════════════════════════════════════
 const LF_SYMS = ['💎', '7️⃣', '🍀', '🔔', '🍇', '🍊', '🍋', '🍒', '⭐', '💫'];
 const LF_WILD = 8, LF_SCATTER = 9;
+const LF_COLORS = ['#4fc3ff', '#ff4d6d', '#3ff2a3', '#ffc94d', '#a855f7', '#ff9f43', '#e8d84a', '#ff5c7a', '#ffd36b', '#c084fc'];
 const LF_SPIN_POOL = [0, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 8, 9];
 let lfKit = null;
 
@@ -20,7 +21,7 @@ function initSlotsUI(table) {
     cols: 5, rows: 3, event: 'casinoSlotsSpin', lineCount: 20,
     boardMaxWidth: '640px',
     randomSym: () => LF_SPIN_POOL[Math.floor(Math.random() * LF_SPIN_POOL.length)],
-    symHTML: i => ({ html: `<span class="sk-emo">${LF_SYMS[i]}</span>`, cls: i === LF_WILD ? 'wild' : i === LF_SCATTER ? 'scatter' : '' }),
+    symHTML: i => ({ html: `<span class="sk-emo">${LF_SYMS[i]}</span>`, color: LF_COLORS[i], cls: i === LF_WILD ? 'wild' : i === LF_SCATTER ? 'scatter' : '' }),
     anticipate: grid => {
       let n = 0;
       for (let c = 0; c < 5; c++) { if (n >= 2) return c; if (grid[c].includes(LF_SCATTER)) n++; }
@@ -41,9 +42,10 @@ function initSlotsUI(table) {
         cxSound.play('feature');
       }
       if (res.freeSpinsAwarded) {
+        await kit.wait(700);
+        await kit.splash(res.isFree ? `+${res.freeSpinsAwarded} FREE SPINS` : `${res.freeSpinsAwarded} FREE SPINS`, 'Wszystkie wygrane ×3', '💫', '#ff7ad9');
         kit.msg(`💫 ${res.scatter.count} Scattery! <b>+${res.freeSpinsAwarded} Free Spinów</b> z mnożnikiem ×3`, 'feature');
         res._msgSet = res.payout === 0;
-        await kit.wait(1200);
       }
       kit.banner(res.freeSpinsRemaining > 0 ? `🎁 FREE SPINS: <b>${res.freeSpinsRemaining}</b> · wygrane ×3` : '', '');
     },

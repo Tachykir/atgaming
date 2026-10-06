@@ -260,7 +260,7 @@
 .cx-rules li { margin-left: 18px; margin-bottom: 4px; }
 
 /* ── Big Win ─────────────────────────────────────────────────── */
-.cx-bigwin { position: fixed; inset: 0; z-index: 2500; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; background: radial-gradient(circle at 50% 45%, rgba(255,211,107,.18), rgba(5,4,10,.85) 60%); cursor: pointer; animation: cxFade .25s; text-align: center; padding: 16px; }
+.cx-bigwin { position: fixed; inset: 0; z-index: 2500; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; background: radial-gradient(circle at 50% 45%, rgba(255,211,107,.16), rgba(5,4,10,.93) 62%); cursor: pointer; animation: cxFade .25s; text-align: center; padding: 16px; }
 .cx-bigwin .bw-rays { position: absolute; width: 140vmax; height: 140vmax; background: repeating-conic-gradient(rgba(255,211,107,.07) 0 10deg, transparent 10deg 20deg); animation: bwRot 18s linear infinite; pointer-events: none; }
 @keyframes bwRot { to { transform: rotate(360deg); } }
 .cx-bigwin .bw-label { position: relative; font-size: clamp(34px, 7vw, 76px); font-weight: 800; letter-spacing: -1px; background: linear-gradient(180deg, #fff6d5, #ffd36b 45%, #f5a623); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 6px 0 #7a4600) drop-shadow(0 0 30px rgba(255,211,107,.5)); animation: bwPop .6s cubic-bezier(.2,1.6,.4,1); }
@@ -431,3 +431,64 @@
   .cr-stage { height: 300px; }
   .rl-wheel-wrap { width: 260px; height: 260px; }
 }
+
+/* ══ SLOTKIT v2 — kafelki, marquee, efekty wygranych ═════════════ */
+.sk-machine { padding: 0 14px 14px; overflow: hidden; }
+.sk-marquee { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0 12px; margin: 0 -14px 12px; background: linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.15)); border-bottom: 1px solid color-mix(in srgb, var(--sk-a) 35%, transparent); position: relative; }
+.sk-bulbs { width: 100%; height: 10px; background: radial-gradient(circle, var(--sk-a) 0 3px, transparent 4px) 0 0 / 36px 10px repeat-x, radial-gradient(circle, rgba(255,255,255,.22) 0 3px, transparent 4px) 18px 0 / 36px 10px repeat-x; filter: drop-shadow(0 0 4px var(--sk-a)); animation: skBulbs 1.2s steps(2) infinite; }
+@keyframes skBulbs { to { background-position: 18px 0, 36px 0; } }
+.sk-machine.win .sk-bulbs { animation-duration: .3s; }
+.sk-machine.bigwin .sk-bulbs { animation-duration: .18s; filter: drop-shadow(0 0 8px var(--sk-a)) hue-rotate(0deg); animation-name: skBulbs, skHue; }
+@keyframes skHue { to { filter: drop-shadow(0 0 8px var(--sk-a)) hue-rotate(360deg); } }
+.sk-logo { font-weight: 800; font-size: clamp(18px, 3vw, 28px); letter-spacing: .02em; text-transform: uppercase; background: linear-gradient(180deg, #fff, var(--sk-a) 55%, color-mix(in srgb, var(--sk-a) 55%, #000)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 rgba(0,0,0,.6)) drop-shadow(0 0 14px color-mix(in srgb, var(--sk-a) 45%, transparent)); display: flex; align-items: center; gap: 10px; }
+.sk-logo img { width: 34px; height: 34px; object-fit: contain; }
+.sk-machine.shake { animation: skShake .45s; }
+@keyframes skShake { 20% { transform: translate(-6px, 3px) rotate(-.4deg); } 40% { transform: translate(5px, -3px) rotate(.4deg); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(3px, -1px); } }
+.sk-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8; }
+
+/* Kafelki symboli */
+.sk-cell { font-size: var(--sk-fs, 40px); }
+.sk-tile { position: absolute; inset: 6%; border-radius: 18%; display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(110% 80% at 50% 0%, color-mix(in srgb, var(--c) 55%, transparent), transparent 70%), linear-gradient(165deg, color-mix(in srgb, var(--c) 32%, #17132a), color-mix(in srgb, var(--c) 12%, #08070e));
+  border: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.14), inset 0 -10px 18px rgba(0,0,0,.4), 0 4px 10px rgba(0,0,0,.35); transition: transform .2s, box-shadow .2s; }
+.sk-tile > * { position: relative; z-index: 1; }
+.sk-tile .sk-emo { font-size: 1em; filter: drop-shadow(0 4px 6px rgba(0,0,0,.6)); }
+.sk-tile img { width: 86%; height: 86%; }
+.sk-tile.letter { font-weight: 800; font-family: 'Syne', sans-serif; color: #fff; text-shadow: 0 3px 0 color-mix(in srgb, var(--c) 50%, #000), 0 0 14px color-mix(in srgb, var(--c) 80%, transparent); font-size: .9em; }
+.sk-cell.wild .sk-tile { border: 2px solid #ffd36b; box-shadow: inset 0 0 18px rgba(255,211,107,.35), 0 0 14px rgba(255,211,107,.35); }
+.sk-cell.scatter .sk-tile { border: 2px solid #d79bff; box-shadow: inset 0 0 18px rgba(196,120,255,.4), 0 0 14px rgba(196,120,255,.35); }
+.sk-cell.special .sk-tile { border: 2px solid #3ff2a3; box-shadow: inset 0 0 18px rgba(63,242,163,.35), 0 0 14px rgba(63,242,163,.3); }
+.sk-cell.wild::before, .sk-cell.scatter::before, .sk-cell.special::before { display: none; }
+.sk-cell.hit { animation: none; }
+.sk-cell.hit::after { inset: 4%; border-radius: 20%; }
+.sk-cell.hit .sk-tile { animation: skTileWin .7s ease-in-out infinite alternate; box-shadow: 0 0 0 2px var(--sk-a), 0 0 26px color-mix(in srgb, var(--c) 85%, transparent), inset 0 0 18px rgba(255,255,255,.18); }
+.sk-cell.hit .sk-tile::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.5) 48%, transparent 60%); background-size: 260% 100%; animation: skShine 1.3s linear infinite; z-index: 2; }
+@keyframes skTileWin { from { transform: scale(1); filter: brightness(1); } to { transform: scale(1.09); filter: brightness(1.25); } }
+@keyframes skShine { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+.sk-cell.land .sk-tile { animation: skLandTile .38s cubic-bezier(.3,1.7,.5,1); }
+.sk-cell.land { animation: none; }
+@keyframes skLandTile { 0% { transform: translateY(-16%) scale(.96); } 100% { transform: none; } }
+.sk-col.anticip { box-shadow: inset 0 0 0 2px #ffd36b, 0 0 26px rgba(255,211,107,.7); animation: skAnt .5s ease-in-out infinite alternate; }
+@keyframes skAnt { to { box-shadow: inset 0 0 0 3px #fff3c4, 0 0 40px rgba(255,211,107,.95); } }
+.sk-svg text { font: 800 15px 'DM Mono', monospace; fill: #fff; paint-order: stroke; stroke: rgba(0,0,0,.85); stroke-width: 4px; }
+.sk-svg .lbl-bg { rx: 10; }
+.sk-msgbar .amt { display: inline-block; min-width: 3ch; }
+.sk-msgbar.pop { animation: skMsgPop .35s cubic-bezier(.3,1.6,.5,1); }
+@keyframes skMsgPop { from { transform: scale(.94); } }
+
+/* Splash (start bonusu) */
+.cx-splash { position: fixed; inset: 0; z-index: 2400; display: grid; place-items: center; background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--sp, #8b6cff) 30%, transparent), rgba(5,4,10,.82) 65%); cursor: pointer; animation: cxFade .2s; text-align: center; padding: 16px; }
+.cx-splash .sp-box { animation: bwPop .5s cubic-bezier(.2,1.6,.4,1); }
+.cx-splash .sp-ico { font-size: clamp(56px, 10vw, 110px); filter: drop-shadow(0 10px 30px rgba(0,0,0,.6)); animation: spFloat 1.6s ease-in-out infinite alternate; }
+@keyframes spFloat { to { transform: translateY(-10px) rotate(4deg); } }
+.cx-splash .sp-title { font-size: clamp(30px, 6vw, 64px); font-weight: 800; letter-spacing: -1px; background: linear-gradient(180deg, #fff, var(--sp, #8b6cff)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 0 rgba(0,0,0,.6)); }
+.cx-splash .sp-sub { font-size: 16px; color: rgba(255,255,255,.8); font-weight: 700; margin-top: 6px; }
+
+/* Big Win v2 */
+.cx-bigwin .bw-label.bump { animation: bwBump .45s cubic-bezier(.2,1.8,.4,1); }
+@keyframes bwBump { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+.cx-bigwin .bw-title { position: relative; font-weight: 800; font-size: clamp(16px, 2.6vw, 24px); color: rgba(255,255,255,.85); letter-spacing: .06em; text-transform: uppercase; }
+.cx-bigwin canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.cx-bigwin .bw-bar { position: relative; width: min(420px, 80vw); height: 8px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 6px; }
+.cx-bigwin .bw-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #f5a623, #ffd36b, #fff); border-radius: inherit; }
