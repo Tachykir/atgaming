@@ -146,7 +146,7 @@ function mount(app, io) {
   });
   admin('post', '/rtp/set', async (req, res) => {
     try {
-      const v = await casino.rtp.set(String(req.body.gameId), Number(req.body.target) / (Number(req.body.target) > 2 ? 100 : 1));
+      const v = await casino.rtp.set(String(req.body.gameId), Number(req.body.target) / 100);   // panel wysyła procenty
       console.log(`🎛️  RTP ${req.body.gameId} → ${(v * 100).toFixed(2)}% (admin)`);
       res.json({ ok: true, target: v });
     } catch (e) { res.status(400).json({ error: e.message }); }

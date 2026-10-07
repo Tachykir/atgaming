@@ -55,7 +55,7 @@ test('sesje: zapis, odczyt, wygasanie', async () => {
 test('RTP: walidacja zakresu i skala', async () => {
   const rtp = require('../casino/rtp');
   await rtp.load();
-  await assert.rejects(() => rtp.set('slots', 1.5));
+  await assert.rejects(() => rtp.set('slots', 2.5));
   await assert.rejects(() => rtp.set('roulette', 0.9));
   await rtp.set('slots', 0.8);
   assert.ok(Math.abs(rtp.scale('slots') - 0.8 / 0.95) < 1e-9);

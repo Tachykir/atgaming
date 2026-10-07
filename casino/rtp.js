@@ -47,7 +47,7 @@ const GAMES = {
 for (const [id, g] of Object.entries(GAMES)) if (g.fromModule) {
   Object.defineProperty(g, 'base', { get() { return require('./games').SLOTS[id]?.BASE_RTP ?? 0.95; }, enumerable: true });
 }
-const MIN = 0.5, MAX = 1.2;
+const MIN = 0.5, MAX = 2.0;
 const SETTING_KEY = 'rtp_targets';
 
 let targets = {};      // gameId → docelowe RTP (tylko nadpisane)
