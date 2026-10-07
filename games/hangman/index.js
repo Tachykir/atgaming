@@ -103,7 +103,9 @@ function _startRound({ room, content, customWord, io }) {
 
 function _guessLetter({ data, socket, room, io }) {
   const gs = room.gameState;
-  const { letter } = data;
+  // Dokładnie jedna litera (także polskie znaki) — inne dane nie mogą zabierać życia
+  const letter = String(data?.letter ?? '').toLowerCase();
+  if (!/^\p{L}$/u.test(letter)) return;
 
   if (room.status !== 'playing') return;
   if (gs.playerEliminated[socket.id]) return socket.emit('error', { message: 'Zostałeś wyeliminowany!' });

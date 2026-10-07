@@ -1169,6 +1169,7 @@ select.input option{background:var(--surface2);}
 
 
 </style>
+<link rel="stylesheet" href="/css/landscape.css">
 </head>
 <body>
 
@@ -2934,7 +2935,7 @@ socket.on('letterGuessed', ({room,letter,correct,mask,currentTurn,playerLives,pl
   S.room=room;
   if(room.gameState) room.gameState.currentTurn = currentTurn;
   renderHangman(room, mask, currentTurn===S.playerId, playerLives||{}, playerEliminated||{});
-  showToast(correct?`✅ Litera "${letter.toUpperCase()}" jest!`:`❌ Brak litery "${letter.toUpperCase()}"`,correct?'success':'error');
+  if (letter) showToast(correct?`✅ Litera "${letter.toUpperCase()}" jest!`:`❌ Brak litery "${letter.toUpperCase()}"`,correct?'success':'error');
 });
 socket.on('hangmanRoundEnd', ({room, word, won, mask, round, totalRounds, playerLives, playerEliminated}) => {
   S.room=room;
@@ -4289,6 +4290,7 @@ function wlLock() {
 socket.on('wavelengthState', (state) => {
   wlState = state;
   wlMyId = S.myId || socket.id;
+  if (!document.getElementById('screen-wavelength')?.classList.contains('active')) showScreen('wavelength');
   const isPsychic = state.psychic === wlMyId;
   const psychicPlayer = state.players?.find(p => p.id === state.psychic);
 
@@ -4304,10 +4306,10 @@ socket.on('wavelengthState', (state) => {
     document.getElementById('wl-right-label').textContent = state.spectrum[1] + ' →';
   }
 
-  // Target zone (tylko reveal)
+  // Target zone (po odkryciu — wszyscy; wcześniej tylko psychic, który dostaje cel od serwera)
   const tz = document.getElementById('wl-target-zone');
   const tm = document.getElementById('wl-target-marker');
-  if (state.targetZone !== null && state.phase === 'reveal') {
+  if (state.targetZone !== null && state.targetZone !== undefined && (state.phase === 'reveal' || isPsychic)) {
     if (tz) { tz.style.display = ''; tz.style.left = Math.max(0, state.targetZone - 10) + '%'; tz.style.width = '20%'; }
     if (tm) { tm.style.display = ''; tm.style.left = state.targetZone + '%'; }
   } else {

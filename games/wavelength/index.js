@@ -104,7 +104,11 @@ function emitState(room, io, extraEvent) {
     players: room.players.map(p => ({ id: p.id, name: p.name })),
     targetZone: wl.phase === 'reveal' ? wl.targetZone : null,
   };
-  io.to(room.id).emit('wavelengthState', state);
+  // Cel widzi tylko psychic (musi do niego dopasować wskazówkę); reszta dopiero po odkryciu
+  if (wl.psychic && wl.phase !== 'reveal') {
+    io.to(room.id).except(wl.psychic).emit('wavelengthState', state);
+    io.to(wl.psychic).emit('wavelengthState', { ...state, targetZone: wl.targetZone });
+  } else io.to(room.id).emit('wavelengthState', state);
   if (extraEvent) io.to(room.id).emit(extraEvent.name, extraEvent.data);
 }
 
