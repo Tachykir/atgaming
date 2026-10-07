@@ -28,6 +28,7 @@ function initAAUI(table) {
   aaKit = new SlotKit({
     screenId: 'casino-aa', game: 'arcane_academy', title: 'Arcane Academy', icon: '🔮', subtitle: '7×7 · Cluster Pays · Kaskady',
     theme: { a: '#a78bfa', b: '#4fe3ff' },
+    scatter: { is: i => i === AA.TOME, fx: 'magic', icon: '📚' },
     cols: 7, rows: 7, event: 'casinoAASpin', boardMaxWidth: '560px',
     randomSym: () => AA_POOL[Math.floor(Math.random() * AA_POOL.length)],
     symHTML: i => ({ color: AA_COLORS[i], html: `<span class="sk-emo">${AA_SYMS[i]}</span>`, cls: i === AA.ORB ? 'wild' : i === AA.TOME ? 'scatter' : '' }),
@@ -58,7 +59,7 @@ function initAAUI(table) {
       }
       if (res.steps.length) aaSetMult(res.finalMultiplier);
       if (res.steps.length > 1) { res._msgSet = true; kit.msg(`${res.cascadeCount} kaskad! Razem: <span class="amt">+${cxFmt(res.payout)} AT$</span>`, 'big'); }
-      if (res.scatter?.length >= 3 && res.bonusPick) { kit.highlight(res.scatter, 'main', false); cxSound.play('feature'); }
+      if (res.scatter?.length >= 3 && res.bonusPick) await kit.scatterWin(res.scatter);
       kit.banner(res.freeSpinsRemaining > 0 ? `📚 FREE SPINS: <b>${res.freeSpinsRemaining}</b> · mnożnik zostaje: <b>×${res.fsMult}</b>` : '', 'purple');
       if (!res.isFree && !res.freeSpinsRemaining) setTimeout(() => !aaKit?.spinning && aaSetMult(1), 1500);
       if (res.fsSummary) res.fsSummary.title = `📚 Free Spiny (×${res.fsSummary.mult})`;

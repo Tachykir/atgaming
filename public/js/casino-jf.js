@@ -52,6 +52,7 @@ function initJFUI(table) {
   window._jfResizeHandler && window.removeEventListener('resize', window._jfResizeHandler);
   window._jfResizeHandler = function() { if(jfCols) jfBuildGrid(jfCols, false); };
   window.addEventListener('resize', window._jfResizeHandler);
+  setTimeout(window._jfResizeHandler, 80); // po pokazaniu ekranu — dopasuj siatkę do faktycznego miejsca
   if(casinoDiscordId) {
     fetch('/api/casino/slot-stats/jackpot_frenzy').then(r=>r.json()).then(d=>{
       if(!d) return;
@@ -92,9 +93,12 @@ function jfBuildGrid(cols, isDublet) {
   var availW = (window.innerWidth||1536) - 180 - 160 - 36;
   // Wysokość: viewport - header(42) - kociołki(86) - fs-bar(0/36) - stats(52) - padding(30)
   var availH = (window.innerHeight||900) - 42 - 86 - 52 - 30;
+  // Gdy ekran jest widoczny — zmierz faktyczne miejsce na siatkę (telefon w poziomie, inne układy)
+  var colEl = document.querySelector('#screen-casino-jf .jf-grid-col');
+  if (colEl && colEl.clientHeight > 120 && colEl.clientWidth > 120) { availW = colEl.clientWidth - 4; availH = colEl.clientHeight - 4; }
   var cellByW = Math.floor((availW - cols*2 - 12) / cols);
   var cellByH = Math.floor((availH - 10*2 - 12) / 10);
-  var cellSize = Math.max(38, Math.min(cellByW, cellByH, 100));
+  var cellSize = Math.max(window.innerHeight < 560 ? 18 : 38, Math.min(cellByW, cellByH, 100));
   var fontSize = Math.max(12, Math.floor(cellSize * 0.48));
   var gridW = cols*cellSize + cols*2 + 12;
   var gridH = 10*cellSize + 10*2 + 12;

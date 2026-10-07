@@ -66,7 +66,14 @@ discordAuth.setupSession = function(app) {
 };
 discordAuth.setupSession(app); // wywołujemy już nadpisaną wersję
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, file) {
+    // Service worker i manifest zawsze świeże — inaczej aktualizacja aplikacji mogłaby utknąć na starej wersji
+    if (file.endsWith('sw.js') || file.endsWith('.webmanifest')) res.setHeader('Cache-Control', 'no-cache');
+    if (file.endsWith('.webmanifest')) res.setHeader('Content-Type', 'application/manifest+json');
+    if (file.endsWith('sw.js')) res.setHeader('Service-Worker-Allowed', '/');
+  },
+}));
 
 // ── DISCORD ROUTES ────────────────────────────────────────────
 discordAuth.setupRoutes(app);

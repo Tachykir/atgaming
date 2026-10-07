@@ -492,3 +492,189 @@
 .cx-bigwin canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .cx-bigwin .bw-bar { position: relative; width: min(420px, 80vw); height: 8px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 6px; }
 .cx-bigwin .bw-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #f5a623, #ffd36b, #fff); border-radius: inherit; }
+
+/* ══ SCATTERY — efekty tematyczne ════════════════════════════════ */
+.sk-machine[data-scfx] .sk-cell.scatter .sk-tile { border-color: var(--scc); box-shadow: inset 0 0 18px color-mix(in srgb, var(--scc) 45%, transparent), 0 0 16px color-mix(in srgb, var(--scc) 55%, transparent); }
+.sk-machine[data-scfx] .sk-cell.scatter::before { display: block; content: ''; position: absolute; inset: -2%; border-radius: 50%; pointer-events: none; z-index: 0; }
+.sk-machine[data-scfx] .sk-cell.scatter .sk-emo, .sk-machine[data-scfx] .sk-cell.scatter img { animation: scIdleFloat 2.4s ease-in-out infinite; }
+@keyframes scIdleFloat { 50% { transform: translateY(-4%) scale(1.06); } }
+
+/* cosmic — tęczowa aureola */
+.sk-machine[data-scfx="cosmic"] .sk-cell.scatter::before { background: conic-gradient(from 0deg, #ffd36b, #ff7ad9, #7aa7ff, #3ff2a3, #ffd36b); filter: blur(10px); opacity: .55; animation: scSpin 4s linear infinite; -webkit-mask: radial-gradient(circle, transparent 45%, #000 52%, transparent 72%); mask: radial-gradient(circle, transparent 45%, #000 52%, transparent 72%); }
+/* fire — migoczący żar */
+.sk-machine[data-scfx="fire"] .sk-cell.scatter::before { background: radial-gradient(circle at 50% 65%, rgba(255,160,60,.75), rgba(255,59,59,.35) 45%, transparent 70%); animation: scFlicker .18s steps(2) infinite alternate, scBreath 1.4s ease-in-out infinite; }
+.sk-machine[data-scfx="fire"] .sk-cell.scatter .sk-tile { animation: scFireTile 1.2s ease-in-out infinite alternate; }
+@keyframes scFireTile { to { box-shadow: inset 0 0 22px rgba(255,138,61,.65), 0 0 26px rgba(255,90,40,.75); } }
+/* mist — oddychająca mgła */
+.sk-machine[data-scfx="mist"] .sk-cell.scatter::before { background: radial-gradient(circle, rgba(196,181,253,.6), rgba(148,163,184,.25) 50%, transparent 72%); filter: blur(6px); animation: scBreath 2.6s ease-in-out infinite; }
+/* magic — wirujący krąg run */
+.sk-machine[data-scfx="magic"] .sk-cell.scatter::before { inset: 0; border: 2px dashed rgba(167,139,250,.85); box-shadow: 0 0 14px rgba(79,227,255,.55), inset 0 0 14px rgba(167,139,250,.5); animation: scSpin 6s linear infinite; }
+/* eclipse — korona zaćmienia */
+.sk-machine[data-scfx="eclipse"] .sk-cell.scatter::before { background: radial-gradient(circle, transparent 48%, rgba(224,231,255,.9) 52%, rgba(96,165,250,.55) 58%, rgba(255,111,138,.25) 66%, transparent 74%); animation: scSpin 8s linear infinite, scBreath 2s ease-in-out infinite; }
+/* neon — migotanie neonu */
+.sk-machine[data-scfx="neon"] .sk-cell.scatter .sk-tile { animation: scNeon 2.2s infinite; }
+.sk-machine[data-scfx="neon"] .sk-cell.scatter::before { background: radial-gradient(circle, rgba(52,245,197,.45), rgba(244,114,182,.2) 55%, transparent 72%); animation: scBreath 1s ease-in-out infinite; }
+@keyframes scNeon { 0%, 18%, 22%, 60%, 64%, 100% { box-shadow: inset 0 0 18px rgba(52,245,197,.5), 0 0 22px rgba(52,245,197,.8), 0 0 40px rgba(244,114,182,.35); } 20%, 62% { box-shadow: none; } }
+/* candy — bujanie i różowa poświata */
+.sk-machine[data-scfx="candy"] .sk-cell.scatter .sk-tile { animation: scWobble 1.6s ease-in-out infinite; }
+.sk-machine[data-scfx="candy"] .sk-cell.scatter::before { background: radial-gradient(circle, rgba(255,122,217,.6), rgba(122,167,255,.3) 50%, transparent 72%); animation: scBreath 1.3s ease-in-out infinite; }
+@keyframes scWobble { 25% { transform: rotate(-6deg) scale(1.03); } 75% { transform: rotate(6deg) scale(1.03); } }
+/* egypt — złote promienie */
+.sk-machine[data-scfx="egypt"] .sk-cell.scatter::before { inset: -8%; background: repeating-conic-gradient(rgba(255,211,107,.55) 0 8deg, transparent 8deg 22deg); -webkit-mask: radial-gradient(circle, #000 25%, transparent 70%); mask: radial-gradient(circle, #000 25%, transparent 70%); animation: scSpin 10s linear infinite; }
+
+@keyframes scSpin { to { transform: rotate(360deg); } }
+@keyframes scBreath { 50% { transform: scale(1.12); opacity: .75; } }
+@keyframes scFlicker { to { opacity: .7; } }
+
+/* Lądowanie scattera */
+.sk-cell.sc-land { z-index: 3; }
+.sk-cell.sc-land .sk-tile { animation: scLand .7s cubic-bezier(.2,1.8,.4,1) !important; }
+@keyframes scLand { 0% { transform: scale(.6); filter: brightness(2.2); } 45% { transform: scale(1.32); filter: brightness(1.6); } 100% { transform: scale(1); filter: brightness(1); } }
+
+/* Wyzwolenie bonusu */
+.sk-reels.dim .sk-cell.sc-win { opacity: 1; filter: none; }
+.sk-cell.sc-win { z-index: 5; }
+.sk-cell.sc-win .sk-tile { animation: scWin .55s ease-in-out infinite alternate !important; box-shadow: 0 0 0 3px var(--scc), 0 0 34px var(--scc), inset 0 0 22px rgba(255,255,255,.35) !important; }
+@keyframes scWin { from { transform: scale(1.05) rotate(-4deg); filter: brightness(1.2); } to { transform: scale(1.22) rotate(4deg); filter: brightness(1.6); } }
+.sk-svg polyline.sc-beam { stroke-width: 6; stroke-dasharray: 2 12; filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 4px #fff); animation-duration: .5s; }
+.sk-flash { position: absolute; inset: 0; z-index: 9; pointer-events: none; border-radius: inherit; background: radial-gradient(circle, rgba(255,255,255,.85), color-mix(in srgb, var(--scc) 60%, transparent) 40%, transparent 75%); animation: scFlash .9s ease-out forwards; }
+@keyframes scFlash { 0% { opacity: 0; transform: scale(.6); } 15% { opacity: 1; } 100% { opacity: 0; transform: scale(1.4); } }
+.sk-machine.sc-trigger { animation: skShake .45s, scGlow 1.4s ease-out; }
+@keyframes scGlow { 0%, 60% { box-shadow: 0 0 0 6px rgba(0,0,0,.35), 0 0 90px var(--scc), var(--cx-shadow); } }
+
+/* Oczekiwanie na ostatni scatter */
+.sk-machine[data-scfx] .sk-col.anticip { box-shadow: inset 0 0 0 2px var(--scc), 0 0 30px var(--scc); animation: scAnt .4s ease-in-out infinite alternate; }
+@keyframes scAnt { to { box-shadow: inset 0 0 0 3px #fff, 0 0 46px var(--scc), 0 0 80px color-mix(in srgb, var(--scc) 50%, transparent); } }
+.sk-machine.anticipating .sk-col:not(.anticip) { filter: brightness(.55) saturate(.7); transition: filter .3s; }
+
+/* Licznik scatterów */
+.sk-sc-counter { position: absolute; top: 10px; right: 12px; z-index: 7; display: flex; align-items: baseline; gap: 4px; padding: 4px 10px 4px 8px; border-radius: 99px; background: rgba(0,0,0,.65); border: 1px solid var(--scc); color: #fff; font: 800 15px 'DM Mono', monospace; box-shadow: 0 0 14px color-mix(in srgb, var(--scc) 60%, transparent); opacity: 0; transform: translateY(-6px) scale(.9); transition: opacity .25s, transform .25s; pointer-events: none; }
+.sk-sc-counter .ico { font-size: 16px; }
+.sk-sc-counter i { font-style: normal; font-size: 11px; opacity: .6; }
+.sk-sc-counter.show { opacity: 1; transform: none; }
+.sk-sc-counter.full { background: linear-gradient(180deg, color-mix(in srgb, var(--scc) 70%, #000), rgba(0,0,0,.7)); color: #fff; }
+.sk-sc-counter.bump { animation: scBump .45s cubic-bezier(.2,1.8,.4,1); }
+@keyframes scBump { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .sk-machine[data-scfx] .sk-cell.scatter::before, .sk-machine[data-scfx] .sk-cell.scatter .sk-tile, .sk-machine[data-scfx] .sk-cell.scatter .sk-emo { animation: none !important; }
+}
+
+/* ══ PWA: obrót telefonu / instalacja ════════════════════════════ */
+#rotate-overlay { display: none; position: fixed; inset: 0; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center;
+  background: radial-gradient(circle at 50% 35%, #2a1c4a, #07060c 70%); color: #fff; }
+#rotate-overlay h2 { font-size: 22px; font-weight: 800; }
+#rotate-overlay p { color: rgba(255,255,255,.7); font-size: 14px; max-width: 320px; line-height: 1.5; }
+.ro-phone { width: 70px; height: 120px; border-radius: 14px; border: 4px solid var(--cx-gold); position: relative; animation: roTurn 2.2s ease-in-out infinite; box-shadow: 0 0 30px rgba(255,211,107,.35); margin-bottom: 8px; }
+.ro-phone::after { content: ''; position: absolute; bottom: 6px; left: 50%; width: 18px; height: 4px; border-radius: 4px; background: var(--cx-gold); transform: translateX(-50%); }
+.ro-screen { position: absolute; inset: 8px 6px 16px; border-radius: 6px; background: #120d22; display: grid; place-items: center; font-size: 26px; }
+@keyframes roTurn { 0%, 20% { transform: rotate(0); } 50%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+.pwa-btn { border: none; cursor: pointer; font: 800 15px 'Syne', sans-serif; border-radius: 14px; padding: 13px 22px; background: linear-gradient(180deg, #ffe28f, #f5a623); color: #2a1a00; box-shadow: 0 6px 22px rgba(245,166,35,.35); }
+.pwa-btn.ghost { background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.2); box-shadow: none; }
+.pwa-btn[hidden], [data-pwa-install][hidden], [data-pwa-fs][hidden] { display: none !important; }
+/* Telefon w pionie → wymuś poziom */
+@media (orientation: portrait) and (hover: none) and (pointer: coarse) and (max-width: 600px) {
+  #rotate-overlay { display: flex; }
+  body { overflow: hidden; }
+}
+.pwa-sheet { position: fixed; inset: 0; z-index: 99998; background: rgba(4,4,8,.75); backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center; padding: 16px; animation: cxFade .2s; }
+.pwa-sheet-box { width: 100%; max-width: 420px; background: #14111d; border: 1px solid rgba(255,211,107,.3); border-radius: 22px; padding: 22px; text-align: center; color: #fff; }
+.pwa-sheet-box img { width: 64px; height: 64px; border-radius: 16px; }
+.pwa-sheet-box h3 { margin: 10px 0 12px; font-size: 18px; }
+.pwa-sheet-box ol { text-align: left; margin: 0 0 16px 20px; font-size: 14px; line-height: 1.8; color: rgba(255,255,255,.85); }
+.pwa-ico { display: inline-block; padding: 0 4px; }
+
+/* ══ TELEFON W POZIOMIE — układ jak w mobilnych kasynach ══════════ */
+@media (orientation: landscape) and (max-height: 540px) {
+  /* Elementy globalne nie zasłaniają gry */
+  body:has(.cx-screen.active) #profile-btn,
+  body:has(.cx-screen.active) #online-panel-toggle,
+  body:has(.cx-screen.active) .chat-toggle,
+  body:has(.cx-screen.active) .at-version,
+  body:has(#screen-casino-jf.active) #profile-btn, body:has(#screen-casino-jf.active) #online-panel-toggle,
+  body:has(#screen-casino-jf.active) .chat-toggle, body:has(#screen-casino-jf.active) .at-version { display: none !important; }
+
+  /* Jackpot Frenzy */
+  #screen-casino-jf.active { padding: 0; }
+  #screen-casino-jf .jf-screen { height: 100dvh; padding: 4px max(8px, env(safe-area-inset-right)) 4px max(8px, env(safe-area-inset-left)); gap: 4px; }
+  #screen-casino-jf .jf-header { gap: 6px; }
+  #screen-casino-jf .jf-title { font-size: 14px; }
+  #screen-casino-jf .jf-cauldron { height: auto; padding: 3px 8px; border-radius: 8px; }
+  #screen-casino-jf .jf-cld-top { margin-bottom: 2px; }
+  #screen-casino-jf .jf-cld-sub, #screen-casino-jf .jf-stats-row, #screen-casino-jf .s5-recent-wins, #screen-casino-jf .jf-right-col { display: none; }
+  #screen-casino-jf .jf-left-col { width: 150px; gap: 4px; overflow-y: auto; }
+  #screen-casino-jf .jf-spin-btn { padding: 9px; }
+  .cx-shell { max-width: none; padding: 6px max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left)); gap: 6px; }
+
+  /* Nagłówek: jedna cienka linia */
+  .cx-topbar { position: static; padding: 4px 6px; gap: 6px; border-radius: 12px; flex-wrap: nowrap; }
+  .cx-back { padding: 5px 9px; font-size: 12px; }
+  .cx-title-icon { width: 28px; height: 28px; font-size: 18px; border-radius: 8px; }
+  .cx-title-icon img { width: 22px; height: 22px; }
+  .cx-title h2 { font-size: 14px; }
+  .cx-title small { display: none; }
+  .cx-icon-btn { width: 30px; height: 30px; font-size: 13px; border-radius: 8px; }
+  .cx-balance { padding: 2px 10px; flex-direction: row; align-items: baseline; gap: 6px; }
+  .cx-balance b { font-size: 15px; }
+
+  /* Automaty: plansza po lewej na całą wysokość, pionowy panel sterowania po prawej */
+  .cx-screen.active:has(.sk-wrap) .cx-shell { height: 100dvh; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+  .sk-wrap { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr); }
+  .sk-side { display: none; }
+  .sk-main { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(118px, 17vw, 150px); grid-template-rows: minmax(0, 1fr) auto; gap: 6px; }
+  .sk-machine { grid-column: 1; grid-row: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 8px 8px; border-radius: 18px; box-shadow: 0 0 0 3px rgba(0,0,0,.35), 0 0 40px color-mix(in srgb, var(--sk-b) 22%, transparent); }
+  .sk-marquee { flex-direction: row; justify-content: center; padding: 3px 0; margin: 0 -8px 5px; gap: 10px; }
+  .sk-marquee .sk-bulbs { width: auto; flex: 1; height: 8px; }
+  .sk-logo { font-size: 14px; white-space: nowrap; }
+  .sk-logo img { width: 20px; height: 20px; }
+  .sk-feature-row { margin-bottom: 5px; gap: 6px; flex-wrap: nowrap; overflow-x: auto; }
+  .sk-meter { padding: 4px 8px; min-width: 140px; border-radius: 9px; }
+  .sk-meter-top { font-size: 10px; margin-bottom: 3px; }
+  .sk-feature-row .cx-bar, .sk-feature-row [class*="bar"] { height: 6px; }
+  [data-sk="banner"] .sk-banner { padding: 3px 10px; font-size: 12px; margin-bottom: 5px !important; }
+  [data-sk="boards"] { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; }
+  [data-sk="boards"] > .sk-reels:not(.dual), .sk-reels.dual > .sk-reels { height: 100%; width: auto; max-width: 100%; aspect-ratio: var(--sk-ar); margin: 0 auto; gap: 4px; padding: 5px; }
+  [data-sk="boards"].sk-reels.dual { height: 100%; width: 100%; grid-template-columns: auto auto auto; justify-content: center; gap: 8px; }
+  .sk-sc-counter { top: 4px; right: 8px; font-size: 13px; padding: 2px 8px; }
+  .sk-msgbar { grid-column: 1; grid-row: 2; min-height: 30px; padding: 3px 10px; font-size: 12px; border-radius: 10px; }
+  .sk-msgbar.big { font-size: 13px; }
+  .sk-msgbar .amt { font-size: 15px; }
+
+  .sk-controls { grid-column: 2; grid-row: 1 / 3; display: flex; flex-direction: column; justify-content: space-between; align-items: stretch; gap: 6px; padding: 8px; border-radius: 16px; }
+  .sk-betbox { display: grid; grid-template-columns: 30px minmax(0, 1fr) 30px; gap: 4px; align-items: center; }
+  .sk-betbox .val { min-width: 0; padding: 3px 2px; border-radius: 9px; }
+  .sk-betbox .val span { font-size: 9px; }
+  .sk-betbox .val b { font-size: 13px; }
+  .sk-betbox .sk-round { width: 30px; height: 30px; font-size: 16px; }
+  .sk-betbox [data-sk="betmax"] { grid-column: 1 / -1; padding: 5px; font-size: 11px; }
+  .sk-feature-row .cx-row > div, .sk-feature-row .sk-meter > div > div { padding-top: 2px !important; padding-bottom: 2px !important; }
+  .sk-feature-row b { font-size: 12px !important; }
+  .sk-feature-row .cx-row { gap: 4px !important; flex-wrap: nowrap; }
+  .sk-feature-row .cx-row > div { display: flex; align-items: baseline; justify-content: center; gap: 5px; }
+  .sk-spin { width: clamp(78px, 22dvh, 104px); height: clamp(78px, 22dvh, 104px); align-self: center; font-size: 13px; flex: none; }
+  .sk-spin .sk-spin-ico { font-size: 26px; }
+  .sk-right { flex-direction: column; flex-wrap: nowrap; gap: 5px; }
+  .sk-right .cx-btn { width: 100%; padding: 6px 4px; font-size: 11px; }
+  .sk-auto-menu { right: calc(100% + 8px); bottom: 0; }
+
+  /* Pozostałe gry — kompaktowo, przewijanie w razie potrzeby */
+  .cr-wrap { grid-template-columns: minmax(0, 1fr) 240px; }
+  .cr-stage { height: calc(100dvh - 90px); min-height: 220px; }
+  .pk-wrap { grid-template-columns: 230px minmax(0, 1fr); height: calc(100dvh - 60px); }
+  .pk-wrap > div:first-child { overflow-y: auto; gap: 8px !important; padding-right: 2px; }
+  .pk-wrap .pk-stage { align-self: start; }
+  #pk-drop { position: sticky; top: 0; z-index: 3; order: -1; }
+  .pk-risk .cx-btn { padding: 8px 4px; font-size: 12px; }
+  .cx-chip { width: 38px; height: 38px; font-size: 10px; }
+  .cx-lobby { padding: 8px max(12px, env(safe-area-inset-right)) 24px max(12px, env(safe-area-inset-left)); gap: 12px; }
+  .cx-hero { padding: 14px 18px; border-radius: 18px; }
+  .cx-hero h1 { font-size: 24px; }
+  .cf-wrap { grid-template-columns: 260px minmax(0, 1fr); }
+  .cf-stage { height: 170px; }
+  .rl-top { grid-template-columns: 220px 1fr; }
+  .rl-wheel-wrap { width: 200px; height: 200px; }
+  .cx-panel { padding: 10px; }
+  .cx-modal-box { max-height: 92dvh; padding: 16px; }
+  .cx-bigwin .bw-label { font-size: clamp(28px, 9dvh, 56px); }
+  .cx-bigwin .bw-amt { font-size: clamp(24px, 8dvh, 48px); }
+  .cx-splash .sp-ico { font-size: clamp(44px, 16dvh, 90px); }
+}

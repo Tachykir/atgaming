@@ -39,6 +39,7 @@ function initPathUI(table) {
   pgKit = new SlotKit({
     screenId: 'casino-path', game: 'path_of_gambling', title: 'Path of Gambling', icon: '<img src="/images/slots/poelogo.png" alt="">', subtitle: '5×5 · 30 linii · Pit Meter',
     theme: { a: '#ffb347', b: '#c084fc' },
+    scatter: { is: i => i === PG.MIST, fx: 'mist', icon: '🌫️' },
     cols: 5, rows: 5, event: 'casinoPathSpin', lineCount: 30, boardMaxWidth: '560px',
     randomSym: () => PG_POOL[Math.floor(Math.random() * PG_POOL.length)],
     symHTML: i => ({ color: PG_COLORS[i], html: `<img src="/images/slots/${PG_IMG[i]}.png" alt="${PG_NAMES[i]}" draggable="false">`, cls: i === PG.WILD ? 'wild' : i === PG.MIST ? 'scatter' : i === PG.SACRED ? 'special' : '' }),
@@ -76,15 +77,14 @@ function initPathUI(table) {
       }
       kit.showLineWins(res.winLines, PG_LINES);
       if (res.spinMult > 1 && res.payout > 0) { res._msgSet = true; kit.msg(`Wygrana ×${res.spinMult}: <span class="amt">+${cxFmt(res.payout)} AT$</span>`, 'big'); }
-      if (res.scatter?.mist?.length >= 3 && res.trigger) kit.highlight(res.scatter.mist, 'main', false);
-      if (res.scatter?.sacred?.length >= 3 && res.trigger === 'sacred') kit.highlight(res.scatter.sacred, 'main', false);
+      if (res.scatter?.mist?.length >= 3 && res.trigger && res.trigger !== 'sacred') await kit.scatterWin(res.scatter.mist);
+      if (res.scatter?.sacred?.length >= 3 && res.trigger === 'sacred') await kit.scatterWin(res.scatter.sacred);
       pgState.pit = res.pitMeter; pgState.pitMax = res.pitThreshold || 300;
       pgUpdateMeter();
       if (res.freeSpinsAwarded) {
-        cxSound.play('feature');
         const names = { pit: '🕳️ PIT MODE', sacred: '✨ SACRED ORB', scatter: '🌫️ REFLECTING MIST', retrigger: '🔁 RETRIGGER' };
         const subs = { pit: "Hinekora's Lock i Valdo's Box w grze!", sacred: 'Tryb Pit z Lockami i Valdo', scatter: 'Wszystkie wygrane ×2', retrigger: 'Dodatkowe spiny!' };
-        await kit.wait(600);
+        if (!res.scatter?.mist?.length && !res.scatter?.sacred?.length) { cxSound.play('feature'); await kit.wait(400); }
         await kit.splash(`${names[res.trigger] || 'BONUS'}`, `+${res.freeSpinsAwarded} spinów · ${subs[res.trigger] || ''}`, res.trigger === 'pit' ? '🕳️' : res.trigger === 'sacred' ? '✨' : '🌫️', '#ffb347');
         kit.msg(`${names[res.trigger] || 'BONUS'}! <b>+${res.freeSpinsAwarded} spinów</b>`, 'feature');
         res._msgSet = res.payout === 0;

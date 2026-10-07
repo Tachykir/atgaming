@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AT Gaming — offline</title><meta name="theme-color" content="#0a0a0f">
+<style>
+  html,body{height:100%;margin:0}
+  body{background:radial-gradient(circle at 50% 30%,#2a1c4a,#0a0a0f 70%);color:#f0f0f8;font-family:system-ui,-apple-system,Segoe UI,sans-serif;display:grid;place-items:center;text-align:center;padding:16px;box-sizing:border-box}
+  img{width:96px;height:96px;border-radius:22px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+  h1{font-size:22px;margin:18px 0 6px}
+  p{color:#a0a0b8;margin:0 0 18px;font-size:14px}
+  button{background:linear-gradient(180deg,#ffe28f,#f5a623);color:#2a1a00;border:0;border-radius:12px;padding:12px 22px;font-weight:800;font-size:15px;cursor:pointer}
+</style></head>
+<body><div><img src="/icons/icon-192.png" alt=""><h1>Brak połączenia</h1><p>AT Gaming potrzebuje internetu, żeby grać ze znajomymi.</p><button onclick="location.reload()">Spróbuj ponownie</button></div>
+<script>addEventListener('online',()=>location.reload())</script></body></html>

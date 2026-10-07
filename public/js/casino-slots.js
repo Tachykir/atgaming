@@ -18,6 +18,7 @@ function initSlotsUI(table) {
   lfKit = new SlotKit({
     screenId: 'casino-slots', game: 'slots', title: 'Lucky Fruits', icon: '🍀', subtitle: '5×3 · 20 linii · Free Spiny ×3',
     theme: { a: '#ff7ad9', b: '#ffd36b' },
+    scatter: { is: i => i === LF_SCATTER, fx: 'cosmic', icon: '💫' },
     cols: 5, rows: 3, event: 'casinoSlotsSpin', lineCount: 20,
     boardMaxWidth: '640px',
     randomSym: () => LF_SPIN_POOL[Math.floor(Math.random() * LF_SPIN_POOL.length)],
@@ -37,12 +38,8 @@ function initSlotsUI(table) {
     async present(res, kit) {
       await kit.stop(res.grid);
       kit.showLineWins(res.winLines, LF_LINES);
-      if (res.scatter?.count >= 3) {
-        kit.highlight(res.scatter.cells, 'main', !res.winLines.length);
-        cxSound.play('feature');
-      }
+      if (res.scatter?.count >= 3) await kit.scatterWin(res.scatter.cells);
       if (res.freeSpinsAwarded) {
-        await kit.wait(700);
         await kit.splash(res.isFree ? `+${res.freeSpinsAwarded} FREE SPINS` : `${res.freeSpinsAwarded} FREE SPINS`, 'Wszystkie wygrane ×3', '💫', '#ff7ad9');
         kit.msg(`💫 ${res.scatter.count} Scattery! <b>+${res.freeSpinsAwarded} Free Spinów</b> z mnożnikiem ×3`, 'feature');
         res._msgSet = res.payout === 0;

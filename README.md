@@ -47,6 +47,21 @@ Wirtualna waluta AT$ (start 100 000, cotygodniowe doładowanie), logowanie przez
 - Logowanie hasłem tworzy sesję admina (bez wysyłania hasła z każdym żądaniem), 5 błędnych prób = blokada 10 min.
   W produkcji (`NODE_ENV=production`) bez `ADMIN_PASSWORD` panel jest wyłączony.
 
+**Scattery**
+- Każdy automat ma własny motyw efektów scatterów: 🔥 żar (Dragon Hoard), 💫 kosmos (Lucky Fruits), 📚 runy (Arcane Academy),
+  🌫️ mgła (Path of Gambling), 🌒 zaćmienie (Dual Blades), 💨 neon i błyskawice (Neon Racer), 🍭 konfetti (Candy Tumble),
+  📖 złoty piasek i monety (Księga Faraona).
+- Animacja scattera na planszy, wyskok przy lądowaniu z dzwonkiem coraz wyżej, licznik „2/3”, oczekiwanie na ostatni
+  scatter (świecące bębny, cząsteczki, bicie serca), a przy wyzwoleniu bonusu błysk, promień łączący scattery i eksplozja.
+- Konfiguracja w automacie: `scatter: { is: i => i === SCATTER, fx: 'fire', icon: '🔥', need: 3 }` (`public/js/casino-slotkit.js`).
+
+**Aplikacja (PWA) i telefon w poziomie**
+- Instalacja jako aplikacja (Android: „Zainstaluj aplikację”, iOS: instrukcja „Do ekranu początkowego”), pełny ekran,
+  ikony, strona offline (`public/manifest.webmanifest`, `public/sw.js`, `public/js/pwa.js`).
+- Wymuszony poziom: zainstalowana aplikacja startuje poziomo, w przeglądarce telefon w pionie widzi ekran
+  „Obróć telefon” z przyciskiem pełnego ekranu (Android obraca i blokuje orientację).
+- Kompaktowy układ poziomy dla telefonów: plansza na całą wysokość, pionowy panel z dużym przyciskiem SPIN.
+
 **Niezawodność**
 - Stan automatów (free spiny, bonusy, liczniki) zapisywany w bazie — przetrwa restart serwera.
 - SIGTERM/SIGINT (deploy): zwrot AT$ z gier w toku (żetony przy stołach, zakłady ruletki/crash, otwarte wyzwania

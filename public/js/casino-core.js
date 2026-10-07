@@ -287,9 +287,13 @@ const cxSound = (() => {
     lose: () => tone(160, .2, 'sawtooth', .03),
     tick: () => tone(1200, .02, 'square', .02),
     crash: () => { tone(120, .5, 'sawtooth', .07); tone(80, .6, 'square', .05, .05); },
+    // Scatter: dzwonek coraz wyżej z każdym kolejnym scatterem
+    scatter: n => { const f = [660, 880, 1046, 1318, 1568, 1760][Math.min(5, Math.max(0, n - 1))]; tone(f, .35, 'triangle', .08); tone(f * 2, .25, 'sine', .035, .02); tone(f * 1.5, .3, 'sine', .03, .06); },
+    heartbeat: () => { tone(70, .12, 'sine', .14); tone(62, .14, 'sine', .11, .16); },
+    scwin: () => { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => { tone(f, .3, 'triangle', .06, i * .07); tone(f / 2, .3, 'square', .02, i * .07); }); tone(2093, .8, 'sine', .04, .45); },
   };
   return {
-    play(name) { try { sounds[name] && sounds[name](); } catch (e) {} },
+    play(name, ...args) { try { sounds[name] && sounds[name](...args); } catch (e) {} },
     get muted() { return muted; },
     toggle() { muted = !muted; try { localStorage.setItem('cx_muted', muted ? '1' : '0'); } catch (e) {} return muted; },
   };
@@ -301,6 +305,7 @@ function cxTopbar({ icon, title, sub, info }) {
     <button class="cx-back" onclick="leaveCasinoTable()">← Lobby</button>
     <div class="cx-title"><div class="cx-title-icon">${icon || '🎰'}</div><div style="min-width:0"><h2>${cxEsc(title)}</h2>${sub ? `<small>${sub}</small>` : ''}</div></div>
     ${info ? `<button class="cx-icon-btn" title="Zasady i wypłaty" onclick="${info}">ℹ️</button>` : ''}
+    <button class="cx-icon-btn" title="Pełny ekran" data-pwa-fs${window.atPwa?.fsAvailable ? '' : ' hidden'}>⛶</button>
     <button class="cx-icon-btn${cxSound.muted ? '' : ' on'}" title="Dźwięk" onclick="this.classList.toggle('on', !cxSound.toggle())">🔊</button>
     <div class="cx-balance"><span>Saldo</span><b data-cx-balance>${cxFmt(cxBalance())} AT$</b></div>
   </div>`;

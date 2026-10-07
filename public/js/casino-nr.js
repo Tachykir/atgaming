@@ -27,6 +27,7 @@ function initNRUI(table) {
   nrKit = new SlotKit({
     screenId: 'casino-nr', game: 'neon_racer', title: 'Neon Racer', icon: '🏎️', subtitle: '5×3 · 20 linii w obie strony · Turbo ×3',
     theme: { a: '#34f5c5', b: '#f472b6' },
+    scatter: { is: i => i === NR.NITRO, fx: 'neon', icon: '💨' },
     cols: 5, rows: 3, event: 'casinoNRSpin', lineCount: 20, boardMaxWidth: '640px',
     randomSym: () => NR_POOL[Math.floor(Math.random() * NR_POOL.length)],
     symHTML: i => ({ color: NR_COLORS[i], html: `<span class="sk-emo">${NR_SYMS[i]}</span>`, cls: i === NR.LIGHTS ? 'wild' : i === NR.NITRO ? 'scatter' : '' }),
@@ -59,9 +60,7 @@ function initNRUI(table) {
         res._msgSet = res.payout === 0 || res._msgSet;
         nrSetSpeed(0);
       } else if (res.freeSpinsAwarded) {
-        kit.highlight(res.scatter, 'main', false);
-        cxSound.play('feature');
-        await kit.wait(500);
+        await kit.scatterWin(res.scatter);
         await kit.splash(`${res.freeSpinsAwarded} FREE SPINS`, 'Nitro! Wygrane ×2', '💨', '#34f5c5');
         kit.msg(`💨 NITRO! <b>+${res.freeSpinsAwarded} Free Spinów</b> (×2)`, 'feature');
         res._msgSet = res.payout === 0 || res._msgSet;

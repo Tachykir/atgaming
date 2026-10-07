@@ -11,7 +11,7 @@ let bpKit = null, bpSpecial = null;
 
 function bpSymHTML(i) {
   const letter = i >= 4 && i <= 8;
-  return { html: letter ? `<span>${BP_SYMS[i]}</span>` : `<span class="sk-emo">${BP_SYMS[i]}</span>`, tile: letter ? 'letter' : '', color: BP_COLORS[i], cls: i === BP.BOOK ? 'wild' : '' };
+  return { html: letter ? `<span>${BP_SYMS[i]}</span>` : `<span class="sk-emo">${BP_SYMS[i]}</span>`, tile: letter ? 'letter' : '', color: BP_COLORS[i], cls: i === BP.BOOK ? 'wild scatter' : '' };
 }
 function bpSpecialHTML() {
   if (bpSpecial === null) return '<div class="sk-meter"><div class="sk-meter-top"><span>📖 3+ Księgi = 10 Free Spinów z rozszerzającym się symbolem</span></div></div>';
@@ -26,6 +26,7 @@ function initBPUI(table) {
   bpKit = new SlotKit({
     screenId: 'casino-bp', game: 'book_pharaoh', title: 'Księga Faraona', icon: '📖', subtitle: '5×3 · 10 linii · rozszerzający się symbol',
     theme: { a: '#ffd36b', b: '#4fc3ff' },
+    scatter: { is: i => i === BP.BOOK, fx: 'egypt', icon: '📖' },
     cols: 5, rows: 3, event: 'casinoBPSpin', lineCount: 10, boardMaxWidth: '640px',
     randomSym: () => BP_POOL[Math.floor(Math.random() * BP_POOL.length)],
     symHTML: bpSymHTML,
@@ -45,7 +46,7 @@ function initBPUI(table) {
     async present(res, kit) {
       await kit.stop(res.grid);
       kit.showLineWins(res.winLines, BP_LINES);
-      if (res.books?.count >= 3) { kit.highlight(res.books.cells, 'main', !res.winLines.length); cxSound.play('feature'); }
+      if (res.books?.count >= 3) await kit.scatterWin(res.books.cells);
       if (res.expand) {
         await kit.wait(res.winLines.length ? 900 : 300);
         kit.clearWins();
@@ -57,7 +58,7 @@ function initBPUI(table) {
       }
       if (res.freeSpinsAwarded) {
         bpSpecial = res.special;
-        await kit.wait(600);
+        await kit.wait(300);
         await kit.splash(`${res.freeSpinsAwarded} FREE SPINS`, `Symbol specjalny: ${BP_NAMES[res.special]}`, `<div style="width:120px;height:120px;position:relative;margin:0 auto;font-size:64px" class="sk-cell">${ctxTile(bpSymHTML(res.special))}</div>`, '#ffd36b');
         if (!res._msgSet) { kit.msg(`📖 Księgi! <b>+${res.freeSpinsAwarded} Free Spinów</b> · symbol specjalny: <b>${BP_NAMES[res.special]}</b>`, 'feature'); res._msgSet = res.payout === 0; }
       }

@@ -27,6 +27,7 @@ function initDHUI(table) {
   dhKit = new SlotKit({
     screenId: 'casino-dh', game: 'dragon_hoard', title: 'Dragon Hoard', icon: '🐉', subtitle: '4×5 · 20 linii · Hold & Win',
     theme: { a: '#ff8a3d', b: '#ffd36b' },
+    scatter: { is: i => i === DH.FIRE, fx: 'fire', icon: '🔥' },
     cols: 4, rows: 5, event: 'casinoDHSpin', lineCount: 20, boardMaxWidth: '440px',
     randomSym: () => dhState.hold ? DH.EMPTY : DH_POOL[Math.floor(Math.random() * DH_POOL.length)],
     symHTML: i => ({ noTile: i === DH.EMPTY, color: DH_COLORS[i], html: i === DH.EMPTY ? '' : `<span class="sk-emo">${DH_SYMS[i]}</span>`, cls: i === DH.DRAGON ? 'wild' : i === DH.FIRE ? 'scatter' : i === DH.GEM ? 'special' : '' }),
@@ -86,7 +87,7 @@ function initDHUI(table) {
       // Rozszerzanie smoków
       for (let c = 0; c < 4; c++) if (res.grid[c].includes(DH.DRAGON)) { kit.expandCol(c, DH.DRAGON); cxSound.play('chip'); await kit.wait(kit.turbo ? 60 : 180); }
       kit.showLineWins(res.winLines, DH_LINES);
-      if (res.freeSpinsAwarded) { kit.highlight(res.scatter, 'main', false); await kit.wait(600); await kit.splash(`${res.freeSpinsAwarded} FREE SPINS`, 'Wygrane ×2', '🔥', '#ff8a3d'); kit.msg(`🔥 <b>+${res.freeSpinsAwarded} Free Spinów</b> (wygrane ×2)`, 'feature'); res._msgSet = res.payout === 0; }
+      if (res.freeSpinsAwarded) { await kit.scatterWin(res.scatter); await kit.splash(`${res.freeSpinsAwarded} FREE SPINS`, 'Wygrane ×2', '🔥', '#ff8a3d'); kit.msg(`🔥 <b>+${res.freeSpinsAwarded} Free Spinów</b> (wygrane ×2)`, 'feature'); res._msgSet = res.payout === 0; }
       if (res.holdTriggered) {
         cxSound.play('feature');
         kit.highlight(res.gems.map(g => [g.col, g.row]), 'main', false);

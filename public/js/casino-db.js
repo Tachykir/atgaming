@@ -17,6 +17,7 @@ function initDBUI(table) {
   dbKit = new SlotKit({
     screenId: 'casino-db', game: 'dual_blades', title: 'Dual Blades', icon: '⚔️', subtitle: '2 × 3×3 · 10 linii · Sync ×2',
     theme: { a: '#60a5fa', b: '#ff6f8a' },
+    scatter: { is: i => i === DB.ECLIPSE, fx: 'eclipse', icon: '🌒' },
     boards: [{ key: 'L', cols: 3, rows: 3 }, { key: 'R', cols: 3, rows: 3 }],
     midHTML: '<div data-db="mid" style="font-size:30px">⚔️</div><div data-db="midtxt" style="font-size:11px;color:var(--muted)">SYNC</div>',
     event: 'casinoDBSpin', lineCount: 10, fontSize: 'clamp(26px, 5vw, 52px)',
@@ -49,9 +50,8 @@ function initDBUI(table) {
       const meter = kit.root.querySelector('[data-sk="features"]');
       meter.innerHTML = dbSyncHTML(res.syncMeter, goal);
       if (res.freeSpinsAwarded) {
-        if (res.scatter?.count >= 3) { kit.highlight(res.scatter.left, 'L', false); kit.highlight(res.scatter.right, 'R', false); }
-        cxSound.play('feature');
-        await kit.wait(600);
+        if (res.scatter?.count >= 3) await Promise.all([kit.scatterWin(res.scatter.left, 'L'), kit.scatterWin(res.scatter.right, 'R', { quiet: true })]);
+        else { cxSound.play('feature'); await kit.wait(600); }
         await kit.splash(`${res.freeSpinsAwarded} FREE SPINS`, (res.syncFSAwarded && res.scatter?.count < 3 ? 'Sync Meter pełny! ' : '') + 'Sync Bonus ×3', '🌒', '#60a5fa');
         kit.msg(`${res.syncFSAwarded && !res.scatter?.count ? '⚡ Sync Meter pełny!' : '🌒 Eclipse!'} <b>+${res.freeSpinsAwarded} Free Spinów</b>`, 'feature');
         res._msgSet = res.payout === 0 || res._msgSet;

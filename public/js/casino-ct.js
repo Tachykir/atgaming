@@ -12,6 +12,7 @@ function initCTUI(table) {
   ctKit = new SlotKit({
     screenId: 'casino-ct', game: 'candy_tumble', title: 'Candy Tumble', icon: '🍭', subtitle: '6×5 · wygrana za 8+ w dowolnym miejscu · bomby do ×100',
     theme: { a: '#ff7ad9', b: '#7aa7ff' },
+    scatter: { is: i => i === CT.LOLLY, fx: 'candy', icon: '🍭', need: 4 },
     cols: 6, rows: 5, event: 'casinoCTSpin', boardMaxWidth: '600px', stagger: 90,
     randomSym: () => CT_POOL[Math.floor(Math.random() * CT_POOL.length)],
     symHTML: i => ({ html: `<span class="sk-emo">${CT_SYMS[i]}</span>`, color: CT_COLORS[i], cls: i === CT.LOLLY ? 'scatter' : i === CT.BOMB ? 'special' : '' }),
@@ -56,9 +57,9 @@ function initCTUI(table) {
         const m = kit.$('machine'); m.classList.remove('shake'); void m.offsetWidth; m.classList.add('shake');
         await kit.wait(1500);
       } else if (res.steps.length > 1) { res._msgSet = true; kit.countMsg(`${res.steps.length} tumble!`, res.payout, 'big'); }
-      if (res.scatter?.count >= 3) kit.highlight(res.scatter.cells, 'main', false);
+      if (res.freeSpinsAwarded) await kit.scatterWin(res.scatter.cells);
+      else if (res.scatter?.count >= 3) kit.highlight(res.scatter.cells, 'main', false);
       if (res.freeSpinsAwarded) {
-        await kit.wait(600);
         await kit.splash(res.isFree ? `+${res.freeSpinsAwarded} FREE SPINS` : `${res.freeSpinsAwarded} FREE SPINS`, 'Bomby z mnożnikami do ×100!', '🍭', '#ff7ad9');
         if (!res._msgSet) { kit.msg(`🍭 ${res.scatter.count} Lizaki! <b>+${res.freeSpinsAwarded} Free Spinów</b>`, 'feature'); res._msgSet = res.payout === 0; }
       }
