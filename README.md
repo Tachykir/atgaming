@@ -24,6 +24,16 @@ Wirtualna waluta AT$ (start 100 000, cotygodniowe doładowanie), logowanie przez
 | Candy Tumble | pay anywhere 6×5 | 8+ symboli gdziekolwiek, kaskady, bomby ×2–×100 w Free Spinach |
 | Księga Faraona | automat 5×3 | 10 linii, Księga = Wild+Scatter, rozszerzający się symbol w Free Spinach |
 | Hot 777 | klasyk 3×3 | 5 linii, Fire Respin, koło mnożników ×2–×10 |
+| Olympus Ways | Megaways 6 bębnów | 2–7 symboli na bęben (do 117 649 sposobów), kaskady, w FS mnożnik rośnie bez limitu |
+| Wild Duel | automat 5×4 | wildy z mnożnikami ×2–×100 mnożące się na linii, pojedynek, lepkie wildy w FS |
+| Cosmic Infinity | Infinity Reels | każda wygrana dokłada bęben (3 → 12), mnożnik do ×25 |
+| Deep Sea Fortune | automat 5×3 | ryby z kwotami do ×2000, rybak zbiera w FS, mnożnik ×2 → ×3 → ×10 |
+| Sugar Cells | cluster 7×7 | pola-mnożniki podwajane do ×128, w FS zostają na całą serię |
+| Pandora's Mystery | automat 5×4 | puszki-zagadki odsłaniają wspólny symbol, mnożniki ×2–×50, lepkie w FS |
+| Titan Colossus | 1024 sposoby | kolosy 2×2 i 3×3, Kolos-Wild 3×3 z mnożnikiem w FS |
+| Ninja Walk | automat 5×3 | walking wilds: ninja przeskakują w lewo z darmowymi respinami i rosnącym mnożnikiem |
+| Mega Wheel | automat 5×3 + koło | koło fortuny na cały ekran: do ×1000, respiny ×2, jackpoty MINI/MAJOR/GRAND |
+| Alchemy Lab | automat 5×4 | mikstury transmutują słabe symbole w mocniejsze, w FS trwale |
 | Crash | multiplayer | auto cash-out, P(≥x)=0,96/x |
 | Ruletka | multiplayer | europejska, split/street/corner/six line |
 | Pachinko | Plinko | 3 poziomy ryzyka, do 10 kulek |
@@ -52,6 +62,10 @@ Wirtualna waluta AT$ (start 100 000, cotygodniowe doładowanie), logowanie przez
 - 📜 Historia gier gracza: stawki, wygrane, bonusy, wejścia i wyjścia ze stołów (ostatnie 30 dni / 200 wpisów).
 - 🏆 14 osiągnięć z jednorazowymi nagrodami AT$ (pierwsza wygrana, 1 000 spinów, wygrana 250×, Crash 10×, milioner…),
   z paskami postępu i powiadomieniem na żywo w każdej grze (`casino/progress.js`).
+
+**Efekty**
+- Wyzwolenie bonusu przez scattery odpala pełnoekranowe wejście: symbole wylatują z planszy na środek ekranu, promienie, eksplozja cząsteczek w motywie gry (`cxFullscreenFx`, `kit.bonusIntro`).
+- Duże mnożniki wyskakują nad planszą (`kit.bigMult`), od ×50 rozbłyskują na cały ekran (`cxMultFlash`).
 
 **Scattery**
 - Każdy automat ma własny motyw efektów scatterów: 🔥 żar (Dragon Hoard), 💫 kosmos (Lucky Fruits), 📚 runy (Arcane Academy),

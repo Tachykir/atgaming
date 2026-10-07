@@ -26,6 +26,16 @@ const GAMES = {
   candy_tumble:     { name: 'Candy Tumble',     kind: 'slot', base: 0.951 },
   book_pharaoh:     { name: 'Księga Faraona',   kind: 'slot', base: 0.952 },
   hot_777:          { name: 'Hot 777',          kind: 'slot', base: 0.948 },
+  olympus_ways: { name: "Olympus Ways", kind: 'slot', fromModule: true },
+  wild_duel: { name: "Wild Duel", kind: 'slot', fromModule: true },
+  cosmic_infinity: { name: "Cosmic Infinity", kind: 'slot', fromModule: true },
+  deep_sea: { name: "Deep Sea Fortune", kind: 'slot', fromModule: true },
+  sugar_cells: { name: "Sugar Cells", kind: 'slot', fromModule: true },
+  pandora_mystery: { name: "Pandora's Mystery", kind: 'slot', fromModule: true },
+  titan_colossus: { name: "Titan Colossus", kind: 'slot', fromModule: true },
+  ninja_walk: { name: "Ninja Walk", kind: 'slot', fromModule: true },
+  mega_wheel: { name: "Mega Wheel", kind: 'slot', fromModule: true },
+  alchemy_lab: { name: "Alchemy Lab", kind: 'slot', fromModule: true },
   pachinko:         { name: 'Pachinko',         kind: 'pachinko', base: 0.960 },
   crash:            { name: 'Crash',            kind: 'crash', base: 0.960 },
   coinflip:         { name: 'Coinflip (solo)',  kind: 'coinflip', base: 0.980 },
@@ -33,6 +43,10 @@ const GAMES = {
   blackjack:        { name: 'Blackjack',        kind: 'fixed', base: 0.995 },
   poker:            { name: 'Poker (PvP)',      kind: 'fixed', base: 1.000 },
 };
+// Nowsze automaty podają bazowe RTP same (BASE_RTP w module gry — wynik ich kalibracji)
+for (const [id, g] of Object.entries(GAMES)) if (g.fromModule) {
+  Object.defineProperty(g, 'base', { get() { return require('./games').SLOTS[id]?.BASE_RTP ?? 0.95; }, enumerable: true });
+}
 const MIN = 0.5, MAX = 1.2;
 const SETTING_KEY = 'rtp_targets';
 

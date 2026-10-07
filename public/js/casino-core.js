@@ -18,13 +18,23 @@ const CX_GAMES = [
   { id: 'slots',            name: 'Lucky Fruits',     cat: 'slots', icon: '🍀', g1: '#3a1450', g2: '#160822', ga: '#ff7ad9', tags: ['20 linii', 'Free Spiny ×3'], desc: 'Klasyczne owocówki z Wildami i Scatterami. 3+ 💫 = do 25 darmowych spinów z mnożnikiem ×3.' },
   { id: 'path_of_gambling', name: 'Path of Gambling', cat: 'slots', icon: '<img src="/images/slots/poelogo.png" alt="">', g1: '#3b2208', g2: '#140b03', ga: '#ffb347', tags: ['5×5', 'Pit Meter', 'Valdo ×100'], desc: 'Orby z Wraeclast. Pit Meter co 300 spinów, sticky Locki i skrzynki Valdo z mnożnikami.' },
   { id: 'jackpot_frenzy',   name: 'Jackpot Frenzy',   cat: 'slots', icon: '🏆', g1: '#3d0d1d', g2: '#16050b', ga: '#ff6b81', tags: ['Cluster Pays', '5 Jackpotów'], hot: true, desc: 'Napełniaj kociołki coinami: mnożniki, progresywne jackpoty i Dublet na planszy 10×10.' },
-  { id: 'dragon_hoard',     name: 'Dragon Hoard',     cat: 'slots', icon: '🐉', g1: '#40160a', g2: '#170804', ga: '#ff8a3d', tags: ['Hold & Win', 'Grand ×1000'], isNew: true, desc: 'Rozszerzające się smoki i Hold & Win: 6+ gemów zostaje na planszy. Zapełnij wszystko = GRAND.' },
-  { id: 'arcane_academy',   name: 'Arcane Academy',   cat: 'slots', icon: '🔮', g1: '#1f1450', g2: '#0b0820', ga: '#a78bfa', tags: ['Kaskady', 'Mnożnik do ×10', 'Bonus Pick'], isNew: true, desc: 'Klastry znikają, symbole spadają, a mnożnik rośnie z każdą kaskadą. Księgi otwierają Bonus Pick.' },
-  { id: 'dual_blades',      name: 'Dual Blades',      cat: 'slots', icon: '⚔️', g1: '#10203d', g2: '#060b16', ga: '#60a5fa', tags: ['2 plansze', 'Sync ×2'], isNew: true, desc: 'Dwie plansze naraz. Shadow Blade przenosi wilda na drugą stronę, a podwójna wygrana daje Sync ×2.' },
-  { id: 'neon_racer',       name: 'Neon Racer',       cat: 'slots', icon: '🏎️', g1: '#0b3329', g2: '#04140f', ga: '#34f5c5', tags: ['Both Ways', 'Turbo ×3'], isNew: true, desc: 'Wygrane w obie strony, rozszerzające się reflektory i Speed Meter odpalający Turbo ×3.' },
-  { id: 'candy_tumble',     name: 'Candy Tumble',     cat: 'slots', icon: '🍭', g1: '#4a1040', g2: '#1c0618', ga: '#ff7ad9', tags: ['Pay Anywhere', 'Bomby ×100'], isNew: true, hot: true, desc: 'Słodycze spadają kaskadami — 8+ takich samych gdziekolwiek wygrywa. W Free Spinach bomby mnożą wygrane nawet ×100.' },
-  { id: 'book_pharaoh',     name: 'Księga Faraona',   cat: 'slots', icon: '📖', g1: '#3d2a08', g2: '#140d02', ga: '#ffd36b', tags: ['10 linii', 'Rozszerzający symbol'], isNew: true, desc: 'Klasyk z Egiptu. Księga to Wild i Scatter, a w Free Spinach wybrany symbol rozszerza się na całe bębny.' },
-  { id: 'hot_777',          name: 'Hot 777',          cat: 'slots', icon: '🔥', g1: '#40100a', g2: '#170503', ga: '#ff5a3b', tags: ['3×3', 'Fire Respin', 'Koło ×10'], isNew: true, desc: 'Ognisty klasyk 3×3. Dwa pełne bębny odpalają Fire Respin, a pełny ekran kręci kołem mnożników do ×10.' },
+  { id: 'dragon_hoard',     name: 'Dragon Hoard',     cat: 'slots', icon: '🐉', g1: '#40160a', g2: '#170804', ga: '#ff8a3d', tags: ['Hold & Win', 'Grand ×1000'], desc: 'Rozszerzające się smoki i Hold & Win: 6+ gemów zostaje na planszy. Zapełnij wszystko = GRAND.' },
+  { id: 'arcane_academy',   name: 'Arcane Academy',   cat: 'slots', icon: '🔮', g1: '#1f1450', g2: '#0b0820', ga: '#a78bfa', tags: ['Kaskady', 'Mnożnik do ×10', 'Bonus Pick'], desc: 'Klastry znikają, symbole spadają, a mnożnik rośnie z każdą kaskadą. Księgi otwierają Bonus Pick.' },
+  { id: 'dual_blades',      name: 'Dual Blades',      cat: 'slots', icon: '⚔️', g1: '#10203d', g2: '#060b16', ga: '#60a5fa', tags: ['2 plansze', 'Sync ×2'], desc: 'Dwie plansze naraz. Shadow Blade przenosi wilda na drugą stronę, a podwójna wygrana daje Sync ×2.' },
+  { id: 'neon_racer',       name: 'Neon Racer',       cat: 'slots', icon: '🏎️', g1: '#0b3329', g2: '#04140f', ga: '#34f5c5', tags: ['Both Ways', 'Turbo ×3'], desc: 'Wygrane w obie strony, rozszerzające się reflektory i Speed Meter odpalający Turbo ×3.' },
+  { id: 'candy_tumble',     name: 'Candy Tumble',     cat: 'slots', icon: '🍭', g1: '#4a1040', g2: '#1c0618', ga: '#ff7ad9', tags: ['Pay Anywhere', 'Bomby ×100'], hot: true, desc: 'Słodycze spadają kaskadami — 8+ takich samych gdziekolwiek wygrywa. W Free Spinach bomby mnożą wygrane nawet ×100.' },
+  { id: 'book_pharaoh',     name: 'Księga Faraona',   cat: 'slots', icon: '📖', g1: '#3d2a08', g2: '#140d02', ga: '#ffd36b', tags: ['10 linii', 'Rozszerzający symbol'], desc: 'Klasyk z Egiptu. Księga to Wild i Scatter, a w Free Spinach wybrany symbol rozszerza się na całe bębny.' },
+  { id: 'hot_777',          name: 'Hot 777',          cat: 'slots', icon: '🔥', g1: '#40100a', g2: '#170503', ga: '#ff5a3b', tags: ['3×3', 'Fire Respin', 'Koło ×10'], desc: 'Ognisty klasyk 3×3. Dwa pełne bębny odpalają Fire Respin, a pełny ekran kręci kołem mnożników do ×10.' },
+  { id: 'olympus_ways',     name: 'Olympus Ways',     cat: 'slots', icon: '⚡', g1: '#1b2a5a', g2: '#080d20', ga: '#7cc4ff', tags: ['Megaways', '117 649 sposobów', 'Mnożnik ∞'], isNew: true, hot: true, desc: 'Megaways z kaskadami: 2–7 symboli na bębnie, do 117 649 sposobów wygranej. W Free Spinach mnożnik rośnie z każdą kaskadą i nie spada.' },
+  { id: 'wild_duel',        name: 'Wild Duel',        cat: 'slots', icon: '🤠', g1: '#3d2410', g2: '#160c04', ga: '#ffb35c', tags: ['Wildy ×2–×100', 'Mnożniki się mnożą'], isNew: true, desc: 'Rewolwerowe wildy z mnożnikami do ×100 — kilka na jednej linii MNOŻY się nawzajem. W Free Spinach wildy zostają na planszy.' },
+  { id: 'cosmic_infinity',  name: 'Cosmic Infinity',  cat: 'slots', icon: '🌌', g1: '#1a0f3d', g2: '#07041a', ga: '#b48cff', tags: ['Infinity Reels', 'Do 12 bębnów'], isNew: true, desc: 'Każda wygrana dokłada nowy bęben po prawej i podbija mnożnik. Plansza rośnie aż do 12 bębnów.' },
+  { id: 'deep_sea',         name: 'Deep Sea Fortune', cat: 'slots', icon: '🎣', g1: '#073246', g2: '#02121a', ga: '#3fd0ff', tags: ['Money Fish', 'Rybak zbiera', 'do ×10'], isNew: true, desc: 'Ryby niosą kwoty do 2000× stawki. W Free Spinach rybak (Wild) zbiera je wszystkie, a co 4 rybaków mnożnik rośnie ×2 → ×3 → ×10.' },
+  { id: 'sugar_cells',      name: 'Sugar Cells',      cat: 'slots', icon: '🧁', g1: '#4a1236', g2: '#1a0613', ga: '#ff8fd0', tags: ['Cluster 7×7', 'Pola do ×128'], isNew: true, hot: true, desc: 'Klastry słodyczy wybuchają i zostawiają ślad. Kolejna wygrana na tym samym polu podwaja mnożnik pola aż do ×128.' },
+  { id: 'pandora_mystery',  name: "Pandora's Mystery", cat: 'slots', icon: '🎁', g1: '#2e1040', g2: '#100618', ga: '#e9a8ff', tags: ['Mystery', 'Mnożnik do ×50'], isNew: true, desc: 'Puszki Pandory zamieniają się w jeden wspólny symbol. W Free Spinach każda puszka może dorzucić tajemniczy mnożnik.' },
+  { id: 'titan_colossus',   name: 'Titan Colossus',   cat: 'slots', icon: '🗿', g1: '#2b2a24', g2: '#0f0e0b', ga: '#e8c37a', tags: ['Kolosy 2×2 i 3×3', '1024 sposoby'], isNew: true, desc: 'Gigantyczne symbole 2×2 i 3×3 zajmują kilka bębnów naraz. W Free Spinach pojawia się Kolos-Wild 3×3.' },
+  { id: 'ninja_walk',       name: 'Ninja Walk',       cat: 'slots', icon: '🥷', g1: '#2a0d0d', g2: '#0e0404', ga: '#ff4d5e', tags: ['Walking Wilds', 'Respiny'], isNew: true, desc: 'Ninja-wildy przeskakują o bęben w lewo przy każdym darmowym respinie, a ich mnożnik rośnie z każdym krokiem.' },
+  { id: 'mega_wheel',       name: 'Mega Wheel',       cat: 'slots', icon: '🎡', g1: '#3d0d2c', g2: '#160410', ga: '#ff5fb3', tags: ['Koło fortuny', 'do ×1000', 'Jackpoty'], isNew: true, hot: true, desc: '3 scattery kręcą gigantyczne koło na cały ekran: mnożniki do ×1000, free spiny i trzy jackpoty.' },
+  { id: 'alchemy_lab',      name: 'Alchemy Lab',      cat: 'slots', icon: '⚗️', g1: '#0e3326', g2: '#041510', ga: '#5effa9', tags: ['Transmutacja', 'Ulepszanie symboli'], isNew: true, desc: 'Mikstury przemieniają słabe symbole w mocniejsze. W Free Spinach każda transmutacja zostaje na stałe — symbole tylko rosną w siłę.' },
   { id: 'crash',            name: 'Crash',            cat: 'quick', icon: '🚀', g1: '#1d1240', g2: '#090616', ga: '#8b6cff', tags: ['Multiplayer', 'Auto cash-out'], hot: true, desc: 'Rakieta leci, mnożnik rośnie. Wypłać zanim wybuchnie — albo ustaw automatyczny cash-out.' },
   { id: 'roulette',         name: 'Ruletka',          cat: 'quick', icon: '🎡', g1: '#0e3a26', g2: '#05160e', ga: '#3ff2a3', tags: ['Europejska', 'Multiplayer'], desc: 'Klasyczna ruletka z jednym zerem. Stawiaj żetony na planszy razem z innymi graczami.' },
   { id: 'pachinko',         name: 'Pachinko',         cat: 'quick', icon: '🎯', g1: '#2a1040', g2: '#0e0618', ga: '#f472b6', tags: ['Plinko', 'do ×1000'], desc: 'Kulka odbija się od kołków i ląduje w mnożniku. Trzy poziomy ryzyka, do 10 kulek naraz.' },
@@ -384,7 +394,7 @@ function renderCasinoWallet() { renderCasinoHero(); }
 async function loadCasinoWalletOnly() { return loadCasinoLobby(); }
 
 function cxLobbySkeleton() {
-  const tabs = [['all', '✨ Wszystkie'], ['slots', '🎰 Automaty'], ['quick', '⚡ Szybkie gry'], ['tables', '🃏 Stoły'], ['ranking', '🏆 Ranking']];
+  const tabs = [['all', '✨ Wszystkie'], ['new', '🆕 Nowe'], ['slots', '🎰 Automaty'], ['quick', '⚡ Szybkie gry'], ['tables', '🃏 Stoły'], ['ranking', '🏆 Ranking']];
   return `
     <div class="cx-row" style="justify-content:space-between">
       <button class="cx-back" onclick="goHome()">← Strona główna</button>
@@ -392,6 +402,7 @@ function cxLobbySkeleton() {
     </div>
     <div class="cx-hero" id="cx-hero"></div>
     <div class="cx-tabs" id="cx-tabs">${tabs.map(([k, l]) => `<button class="cx-tab${k === casinoLobbyTab ? ' active' : ''}" data-tab="${k}" onclick="cxSetLobbyTab('${k}')">${l}</button>`).join('')}</div>
+    <div id="cx-sec-new"><div class="cx-section-title"><h3>🆕 Nowe automaty</h3></div><div class="cx-games" id="cx-new-grid"></div></div>
     <div id="cx-sec-slots"><div class="cx-section-title"><h3>🎰 Automaty</h3></div><div class="cx-games" id="cx-slots-grid"></div></div>
     <div id="cx-sec-quick"><div class="cx-section-title"><h3>⚡ Szybkie gry</h3></div><div class="cx-games" id="cx-quick-grid"></div></div>
     <div id="cx-sec-tables">
@@ -409,9 +420,11 @@ function cxLobbySkeleton() {
 }
 
 function cxSetLobbyTab(tab) {
+  const rerender = (casinoLobbyTab === 'slots') !== (tab === 'slots');
   casinoLobbyTab = tab;
+  if (rerender && casinoTablesCache.length) return renderCasinoTables(casinoTablesCache);
   document.querySelectorAll('#cx-tabs .cx-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  const show = { slots: ['all', 'slots'], quick: ['all', 'quick'], tables: ['all', 'tables'], ranking: ['all', 'ranking'] };
+  const show = { new: ['all', 'new'], slots: ['all', 'slots'], quick: ['all', 'quick'], tables: ['all', 'tables'], ranking: ['all', 'ranking'] };
   for (const [sec, tabs] of Object.entries(show)) {
     const el = document.getElementById('cx-sec-' + sec);
     if (el) el.style.display = tabs.includes(tab) ? '' : 'none';
@@ -461,7 +474,10 @@ function renderCasinoTables(tables) {
   casinoTablesCache = tables || [];
   const by = id => casinoTablesCache.filter(t => t.game === id);
   const slots = document.getElementById('cx-slots-grid');
-  if (slots) slots.innerHTML = CX_GAMES.filter(g => g.cat === 'slots').map(g => cxGameTile(g, by(g.id))).join('');
+  // Nowości osobno na górze; w „Automatach” pozostałe
+  const fresh = document.getElementById('cx-new-grid');
+  if (fresh) fresh.innerHTML = CX_GAMES.filter(g => g.cat === 'slots' && g.isNew).map(g => cxGameTile(g, by(g.id))).join('');
+  if (slots) slots.innerHTML = CX_GAMES.filter(g => g.cat === 'slots' && (!g.isNew || casinoLobbyTab === 'slots')).map(g => cxGameTile(g, by(g.id))).join('');
   const quick = document.getElementById('cx-quick-grid');
   if (quick) quick.innerHTML = CX_GAMES.filter(g => g.cat === 'quick').map(g => cxGameTile(g, by(g.id).filter(t => !t.createdBy))).join('');
   const listTables = (id, game, cls) => {
@@ -572,8 +588,8 @@ socket.on('casinoTablesUpdated', () => {
 });
 
 // ══ OTWIERANIE STOŁU ══════════════════════════════════════════
-const GAME_SCREENS = { poker: 'casino-poker', blackjack: 'casino-blackjack', slots: 'casino-slots', roulette: 'casino-roulette', pachinko: 'casino-pachinko', crash: 'casino-crash', coinflip: 'casino-coinflip', path_of_gambling: 'casino-path', jackpot_frenzy: 'casino-jf', dragon_hoard: 'casino-dh', arcane_academy: 'casino-aa', dual_blades: 'casino-db', neon_racer: 'casino-nr', candy_tumble: 'casino-ct', book_pharaoh: 'casino-bp', hot_777: 'casino-h7' };
-const GAME_INITS = { slots: 'initSlotsUI', path_of_gambling: 'initPathUI', jackpot_frenzy: 'initJFUI', dragon_hoard: 'initDHUI', arcane_academy: 'initAAUI', dual_blades: 'initDBUI', neon_racer: 'initNRUI', candy_tumble: 'initCTUI', book_pharaoh: 'initBPUI', hot_777: 'initH7UI', roulette: 'initRouletteUI', pachinko: 'initPachinkoUI', crash: 'initCrashUI', coinflip: 'initCoinflipUI', poker: 'initPokerUI', blackjack: 'initBJUI' };
+const GAME_SCREENS = { poker: 'casino-poker', blackjack: 'casino-blackjack', slots: 'casino-slots', roulette: 'casino-roulette', pachinko: 'casino-pachinko', crash: 'casino-crash', coinflip: 'casino-coinflip', path_of_gambling: 'casino-path', jackpot_frenzy: 'casino-jf', dragon_hoard: 'casino-dh', arcane_academy: 'casino-aa', dual_blades: 'casino-db', neon_racer: 'casino-nr', candy_tumble: 'casino-ct', book_pharaoh: 'casino-bp', hot_777: 'casino-h7', olympus_ways: 'casino-ow', wild_duel: 'casino-wd', cosmic_infinity: 'casino-ci', deep_sea: 'casino-ds', sugar_cells: 'casino-sc', pandora_mystery: 'casino-pm', titan_colossus: 'casino-tc', ninja_walk: 'casino-nw', mega_wheel: 'casino-mw', alchemy_lab: 'casino-al' };
+const GAME_INITS = { slots: 'initSlotsUI', path_of_gambling: 'initPathUI', jackpot_frenzy: 'initJFUI', dragon_hoard: 'initDHUI', arcane_academy: 'initAAUI', dual_blades: 'initDBUI', neon_racer: 'initNRUI', candy_tumble: 'initCTUI', book_pharaoh: 'initBPUI', hot_777: 'initH7UI', olympus_ways: 'initOWUI', wild_duel: 'initWDUI', cosmic_infinity: 'initCIUI', deep_sea: 'initDSUI', sugar_cells: 'initSCUI', pandora_mystery: 'initPMUI', titan_colossus: 'initTCUI', ninja_walk: 'initNWUI', mega_wheel: 'initMWUI', alchemy_lab: 'initALUI', roulette: 'initRouletteUI', pachinko: 'initPachinkoUI', crash: 'initCrashUI', coinflip: 'initCoinflipUI', poker: 'initPokerUI', blackjack: 'initBJUI' };
 
 function cxAuth(extra = {}) { return { tableId: casinoTableId, discordId: casinoDiscordId, socketToken: casinoSocketToken, ...extra }; }
 

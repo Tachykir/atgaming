@@ -232,7 +232,7 @@ function levelFromConfig(cfg) {
 // Symulacja RTP (używana w testach/kalibracji)
 function simulate(def, spins = 200000, bet = 100, autoBonus = null) {
   const state = def.newState();
-  let paid = 0, won = 0, hits = 0, max = 0;
+  let paid = 0, won = 0, hits = 0, max = 0, sq = 0;
   for (let i = 0; i < spins; i++) {
     const free = def.isFree(state);
     const b = free ? state.freeBet : bet;
@@ -241,10 +241,13 @@ function simulate(def, spins = 200000, bet = 100, autoBonus = null) {
     let w = r.payout;
     if (autoBonus && state.pick) w += autoBonus(state);
     won += w;
+    sq += (w / bet) ** 2;
     if (w > 0) hits++;
     if (w / bet > max) max = w / bet;
   }
-  return { rtp: won / paid, hitRate: hits / spins, maxMult: max };
+  // sd — odchylenie standardowe wygranej (× stawki) na spin; błąd standardowy RTP ≈ sd / √spins
+  const mean = won / bet / spins;
+  return { rtp: won / paid, hitRate: hits / spins, maxMult: max, sd: Math.sqrt(Math.max(0, sq / spins - mean * mean)) };
 }
 
 module.exports = { register, stateFor, loadState, persistState, scaleMoney, rtpScale, getTier, WIN_TIERS, makePicker, weightedPick, meterAdd, meterBet, meterReset, simulate, levelFromConfig, evalLines, countSym };

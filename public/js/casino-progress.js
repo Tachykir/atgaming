@@ -4,7 +4,7 @@
 const CX_GAME_NAMES = {
   slots: '🍀 Lucky Fruits', path_of_gambling: '🕳️ Path of Gambling', jackpot_frenzy: '🏆 Jackpot Frenzy', dragon_hoard: '🐉 Dragon Hoard',
   arcane_academy: '🔮 Arcane Academy', dual_blades: '⚔️ Dual Blades', neon_racer: '🏎️ Neon Racer', candy_tumble: '🍭 Candy Tumble',
-  book_pharaoh: '📖 Księga Faraona', hot_777: '🔥 Hot 777', pachinko: '🎯 Pachinko', crash: '🚀 Crash', coinflip: '🪙 Coinflip',
+  book_pharaoh: '📖 Księga Faraona', hot_777: '🔥 Hot 777', olympus_ways: "⚡ Olympus Ways", wild_duel: "🤠 Wild Duel", cosmic_infinity: "🌌 Cosmic Infinity", deep_sea: "🎣 Deep Sea Fortune", sugar_cells: "🧁 Sugar Cells", pandora_mystery: "🎁 Pandora's Mystery", titan_colossus: "🗿 Titan Colossus", ninja_walk: "🥷 Ninja Walk", mega_wheel: "🎡 Mega Wheel", alchemy_lab: "⚗️ Alchemy Lab", pachinko: '🎯 Pachinko', crash: '🚀 Crash', coinflip: '🪙 Coinflip',
   roulette: '🎡 Ruletka', poker: '🃏 Poker', blackjack: '🂡 Blackjack', daily: '🎁 Dzienny bonus', topup: '📬 Doładowanie',
   achievement: '🏆 Osiągnięcie', admin: '⚙️ Admin',
 };

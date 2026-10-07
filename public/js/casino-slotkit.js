@@ -20,6 +20,150 @@ const SK_SCATTER_FX = {
   egypt:   { colors: ['#ffd36b', '#f5a623', '#fff3c4', '#4fc3ff'], land: [['sand', 22], ['ring', 1]], ant: 'sand', win: [['coin', 26], ['sand', 36], ['ring', 2]] },
 };
 
+// ══ Silnik cząsteczek (automaty i efekty pełnoekranowe) ═════════════
+// kinds: spark, star, ember, glyph, confetti, bubble, smoke, bolt, coin, ring, sand
+class CxFx {
+  constructor({ canvas, theme, alive }) { this.canvas = canvas; this.theme = theme || (() => null); this.alive = alive || (() => true); this.parts = []; this.raf = null; }
+  emit(x, y, kind, n = 10, o = {}) {
+    if (!this.canvas()) return;
+    const th = this.theme() || {};
+    const colors = o.colors || th.colors || ['#ffd36b'];
+    const pick = () => colors[Math.floor(Math.random() * colors.length)];
+    const sc = o.scale || 1, sp = o.speed || 1, spread = o.spread ?? 20;
+    if (this.parts.length > 900) return;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const p = { k: kind, x: x + Math.cos(a) * spread * Math.random(), y: y + Math.sin(a) * spread * Math.random(), vx: 0, vy: 0, g: .12, drag: .985, life: 1, decay: .02, size: 3, color: pick(), rot: Math.random() * 6, vr: (Math.random() - .5) * .3 };
+      const v = (1.5 + Math.random() * 4) * sp;
+      switch (kind) {
+        case 'spark': p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v - 2; p.decay = .012 + Math.random() * .02; p.size = 2 + Math.random() * 3.5; p.star = Math.random() < .3; if (Math.random() < .35) p.color = '#fff'; break;
+        case 'star': p.vx = Math.cos(a) * v * .6; p.vy = Math.sin(a) * v * .6 - 1; p.g = .02; p.drag = .96; p.decay = .01 + Math.random() * .012; p.size = (4 + Math.random() * 6) * sc; break;
+        case 'ember': p.vx = (Math.random() - .5) * 2.2 * sp; p.vy = -(1 + Math.random() * 3) * sp; p.g = -.04; p.drag = .99; p.decay = .012 + Math.random() * .015; p.size = (1.5 + Math.random() * 3) * sc; break;
+        case 'glyph': { const gl = th.glyphs || '✦✧'; p.ch = gl[Math.floor(Math.random() * gl.length)]; p.vx = Math.cos(a) * v * .5; p.vy = -(1 + Math.random() * 2) * sp; p.g = -.015; p.drag = .97; p.decay = .01 + Math.random() * .01; p.size = (12 + Math.random() * 12) * sc; break; }
+        case 'confetti': p.vx = Math.cos(a) * v * 1.2; p.vy = Math.sin(a) * v - 4 * sp; p.g = .14; p.drag = .975; p.decay = .008 + Math.random() * .01; p.size = (5 + Math.random() * 5) * sc; p.vr = (Math.random() - .5) * .5; break;
+        case 'bubble': p.vx = (Math.random() - .5) * 1.5; p.vy = -(.8 + Math.random() * 2) * sp; p.g = -.02; p.drag = .99; p.decay = .01 + Math.random() * .01; p.size = (4 + Math.random() * 9) * sc; break;
+        case 'smoke': p.vx = (Math.random() - .5) * 1.2; p.vy = -(.3 + Math.random()) * sp; p.g = -.005; p.drag = .99; p.decay = .008 + Math.random() * .008; p.size = (14 + Math.random() * 18) * sc; break;
+        case 'bolt': { p.decay = .06 + Math.random() * .04; p.g = 0; const len = (40 + Math.random() * 70) * sc; const pts = [[0, 0]]; let px = 0, py = 0; for (let k = 1; k <= 7; k++) { px = Math.cos(a) * len * k / 7 + (Math.random() - .5) * 14 * sc; py = Math.sin(a) * len * k / 7 + (Math.random() - .5) * 14 * sc; pts.push([px, py]); } p.pts = pts; p.x = x; p.y = y; break; }
+        case 'coin': p.vx = Math.cos(a) * v * .8; p.vy = -(4 + Math.random() * 5) * sp; p.g = .22; p.drag = .99; p.decay = .009 + Math.random() * .008; p.size = (6 + Math.random() * 4) * sc; p.vr = .15 + Math.random() * .25; p.color = Math.random() < .5 ? '#ffd36b' : '#f5a623'; break;
+        case 'ring': p.x = x; p.y = y; p.r = 6 * sc + i * 14 * sc; p.vrad = (2.5 + i * .6) * sp * Math.max(1, sc); p.g = 0; p.decay = .028; p.size = 4 * sc; break;
+        case 'sand': p.vx = Math.cos(a) * v * .7; p.vy = Math.sin(a) * v * .5 - 1.5; p.g = .05; p.drag = .97; p.decay = .012 + Math.random() * .015; p.size = (1 + Math.random() * 2) * sc; break;
+      }
+      this.parts.push(p);
+    }
+    if (!this.raf) this.loop();
+  }
+  loop() {
+    const cv = this.canvas();
+    if (!cv || !this.alive()) { this.raf = null; this.parts = []; return; }
+    const r = cv.getBoundingClientRect(), d = devicePixelRatio;
+    if (cv.width !== Math.round(r.width * d)) { cv.width = r.width * d; cv.height = r.height * d; }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.clearRect(0, 0, r.width, r.height);
+    ctx.globalCompositeOperation = 'lighter';
+    this.parts = this.parts.filter(p => {
+      p.vy += p.g; p.vx *= p.drag; p.vy *= p.drag; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= p.decay;
+      if (p.life <= 0) return false;
+      const al = Math.min(1, p.life * 1.4);
+      ctx.globalAlpha = al;
+      ctx.fillStyle = ctx.strokeStyle = p.color;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 10;
+      switch (p.k) {
+        case 'star': {
+          ctx.globalAlpha = al * (.6 + .4 * Math.sin(p.life * 30));
+          const s = p.size; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * .3); ctx.beginPath();
+          for (let k = 0; k < 8; k++) { const rr = k % 2 ? s * .28 : s; const an = k * Math.PI / 4; ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); }
+          ctx.closePath(); ctx.fill(); ctx.restore(); break;
+        }
+        case 'ember': ctx.globalAlpha = al * (.55 + Math.random() * .45); ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (.5 + p.life * .5), 0, Math.PI * 2); ctx.fill(); break;
+        case 'glyph': ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.sin(p.rot) * .4); ctx.font = `700 ${p.size}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.ch, 0, 0); ctx.restore(); break;
+        case 'confetti': ctx.shadowBlur = 0; ctx.globalCompositeOperation = 'source-over'; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.scale(Math.cos(p.rot * 2.3), 1); ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); ctx.restore(); ctx.globalCompositeOperation = 'lighter'; break;
+        case 'bubble': ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x + Math.sin(p.rot * 3) * 2, p.y, p.size, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = al * .5; ctx.beginPath(); ctx.arc(p.x - p.size * .35, p.y - p.size * .35, p.size * .22, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); break;
+        case 'smoke': { p.size *= 1.012; ctx.shadowBlur = 0; ctx.globalAlpha = al * .22; const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size); gr.addColorStop(0, p.color); gr.addColorStop(1, 'transparent'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); break; }
+        case 'bolt': ctx.lineWidth = 2.2; ctx.shadowBlur = 16; ctx.beginPath(); p.pts.forEach(([px, py], k) => k ? ctx.lineTo(p.x + px, p.y + py) : ctx.moveTo(p.x + px, p.y + py)); ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = '#fff'; ctx.stroke(); break;
+        case 'coin': { ctx.globalCompositeOperation = 'source-over'; const w = Math.abs(Math.cos(p.rot)) * p.size + 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, w, p.size, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#a35f00'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.globalCompositeOperation = 'lighter'; break; }
+        case 'ring': p.r += p.vrad; ctx.lineWidth = Math.max(.5, p.size * p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.stroke(); break;
+        case 'sand': ctx.shadowBlur = 4; ctx.fillRect(p.x, p.y, p.size, p.size); break;
+        default:
+          if (p.star) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.life * 6); ctx.fillRect(-p.size, -p.size * .25, p.size * 2, p.size * .5); ctx.fillRect(-p.size * .25, -p.size, p.size * .5, p.size * 2); ctx.restore(); }
+          else { ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill(); }
+      }
+      return true;
+    });
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    if (this.parts.length) this.raf = requestAnimationFrame(() => this.loop());
+    else { ctx.clearRect(0, 0, r.width, r.height); this.raf = null; }
+  }
+}
+
+// ══ Efekt pełnoekranowy: wejście bonusu (scattery na cały ekran) ════════
+function cxFullscreenFx({ title = 'BONUS', sub = '', icon = '✨', cells = [], theme = {}, ms = 3000 } = {}) {
+  return new Promise(resolve => {
+    const colors = (theme.colors || ['#ffd36b', '#ff7ad9', '#7aa7ff', '#fff']).filter(Boolean);
+    const ov = document.createElement('div');
+    ov.className = 'cx-fsfx';
+    ov.style.setProperty('--fa', colors[0]); ov.style.setProperty('--fb', colors[1] || colors[0]);
+    ov.innerHTML = `<div class="fs-rays"></div><canvas></canvas><div class="fs-flash"></div>
+      <div class="fs-center"><div class="fs-icon">${icon}</div><div class="fs-title">${title}</div>${sub ? `<div class="fs-sub">${sub}</div>` : ''}<div class="fs-hint">dotknij, aby kontynuować</div></div>`;
+    document.body.appendChild(ov);
+    const cv = ov.querySelector('canvas');
+    let alive = true;
+    const fx = new CxFx({ canvas: () => cv, theme: () => theme, alive: () => alive });
+    const W = innerWidth, H = innerHeight, cx = W / 2, cy = H * 0.42;
+    // Symbole scatterów wylatują z planszy na środek, ustawiają się w łuk
+    const n = cells.length;
+    const flyers = cells.map((c, i) => {
+      const f = document.createElement('div');
+      f.className = 'fs-fly';
+      f.innerHTML = c.html;
+      f.style.width = f.style.height = c.size + 'px';
+      f.style.left = (c.x - c.size / 2) + 'px'; f.style.top = (c.y - c.size / 2) + 'px';
+      ov.appendChild(f);
+      const ang = n > 1 ? Math.PI * (1 + i / (n - 1)) : -Math.PI / 2;
+      const rad = Math.min(W, H) * 0.3;
+      const tx = cx + Math.cos(ang) * rad * 1.2 - c.size / 2, ty = cy + Math.sin(ang) * rad * 0.8 - c.size / 2 - 10;
+      const scale = Math.min(2.4, Math.min(W, H) * 0.16 / c.size);
+      f.animate([{ transform: 'translate(0,0) scale(1) rotate(0)' }, { transform: `translate(${tx - c.x + c.size / 2}px, ${ty - c.y + c.size / 2}px) scale(${scale}) rotate(${i % 2 ? 8 : -8}deg)` }],
+        { duration: 650, delay: i * 70, easing: 'cubic-bezier(.3,1.4,.5,1)', fill: 'forwards' });
+      setTimeout(() => fx.emit(tx + c.size / 2, ty + c.size / 2, 'ring', 1, { scale: 1.5 }), 650 + i * 70);
+      return f;
+    });
+    cxSound.play('scwin');
+    const kinds = (theme.win || [['star', 30], ['spark', 20], ['ring', 2]]);
+    const boom = () => {
+      ov.classList.add('boom');
+      for (const [k, cnt] of kinds) fx.emit(cx, cy, k, Math.round(cnt * 2.2), { spread: Math.min(W, H) / 6, scale: 2, speed: 2.4 });
+      cxSound.play('bigwin');
+    };
+    setTimeout(boom, 650 + n * 70);
+    // Fontanny cząsteczek z dolnych rogów przez cały czas trwania
+    const antKind = theme.ant || 'star';
+    const fount = setInterval(() => {
+      fx.emit(W * 0.06, H, antKind === 'bolt' ? 'spark' : antKind, 3, { spread: 20, scale: 1.6, speed: 2 });
+      fx.emit(W * 0.94, H, antKind === 'bolt' ? 'spark' : antKind, 3, { spread: 20, scale: 1.6, speed: 2 });
+      if (Math.random() < .35) fx.emit(Math.random() * W, Math.random() * H * 0.8, (kinds[0] || ['star'])[0], 4, { spread: 30, scale: 1.4 });
+    }, 70);
+    let done = false;
+    const close = () => {
+      if (done) return; done = true;
+      clearInterval(fount);
+      ov.classList.add('out');
+      setTimeout(() => { alive = false; ov.remove(); resolve(); }, 380);
+    };
+    ov.addEventListener('click', close);
+    setTimeout(close, ms + n * 70);
+  });
+}
+// Wielki mnożnik na cały ekran (≥ ×50)
+function cxMultFlash(mult, colors = ['#ffd36b', '#fff']) {
+  const ov = document.createElement('div');
+  ov.className = 'cx-multflash';
+  ov.style.setProperty('--fa', colors[0] || '#ffd36b');
+  ov.innerHTML = `<b>×${(+mult).toLocaleString('pl-PL', { maximumFractionDigits: 2 })}</b>`;
+  document.body.appendChild(ov);
+  setTimeout(() => ov.remove(), 1300);
+}
+
 class SlotKit {
   constructor(opts) {
     this.o = Object.assign({ turboDefault: false, stagger: 140, baseSpin: 420, anticipate: null }, opts);
@@ -36,7 +180,8 @@ class SlotKit {
     this.grids = {};
     // Scatter: { is(symIdx) → bool, fx: nazwa motywu, need: ile do bonusu, icon }
     this.sc = this.o.scatter ? Object.assign({ need: 3, fx: 'cosmic', icon: '✨' }, this.o.scatter) : null;
-    this.scTheme = this.sc ? SK_SCATTER_FX[this.sc.fx] || SK_SCATTER_FX.cosmic : null;
+    // Motyw: wbudowany (fx: 'fire' itd.) albo własny (scatter.theme = { colors, land, ant, win, glyphs })
+    this.scTheme = this.sc ? (this.sc.theme ? { ...SK_SCATTER_FX.cosmic, ...this.sc.theme } : SK_SCATTER_FX[this.sc.fx] || SK_SCATTER_FX.cosmic) : null;
     if (this.sc && !this.o.anticipate && this.boards.length === 1) {
       this.o.anticipate = grid => {
         let n = 0;
@@ -354,6 +499,7 @@ class SlotKit {
   // Wyzwolenie bonusu przez scattery: błysk, wyróżnienie, połączenie promieniem, eksplozje cząsteczek
   async scatterWin(cells, key = 'main', { quiet = false } = {}) {
     if (!cells?.length) return;
+    this._scIntro = { cells: (this._scIntro && quiet ? this._scIntro.cells : []).concat(cells.map(([c, r]) => this.cellSnapshot(c, r, key)).filter(Boolean)), at: Date.now() };
     const m = this.$('machine');
     const th = this.scTheme || SK_SCATTER_FX.cosmic;
     const b = this.board(key);
@@ -410,74 +556,8 @@ class SlotKit {
   }
   // Typowane cząsteczki: spark, star, ember, glyph, confetti, bubble, smoke, bolt, coin, ring, sand
   emit(x, y, kind, n = 10, o = {}) {
-    if (!this.fx) this.fx = { parts: [], raf: null };
-    if (!this.$('fx')) return;
-    const colors = o.colors || this.scTheme?.colors || [this.o.theme?.a || '#ffd36b'];
-    const pick = () => colors[Math.floor(Math.random() * colors.length)];
-    const sc = o.scale || 1, sp = o.speed || 1, spread = o.spread ?? 20;
-    if (this.fx.parts.length > 900) return;
-    for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const p = { k: kind, x: x + Math.cos(a) * spread * Math.random(), y: y + Math.sin(a) * spread * Math.random(), vx: 0, vy: 0, g: .12, drag: .985, life: 1, decay: .02, size: 3, color: pick(), rot: Math.random() * 6, vr: (Math.random() - .5) * .3 };
-      const v = (1.5 + Math.random() * 4) * sp;
-      switch (kind) {
-        case 'spark': p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v - 2; p.decay = .012 + Math.random() * .02; p.size = 2 + Math.random() * 3.5; p.star = Math.random() < .3; if (Math.random() < .35) p.color = '#fff'; break;
-        case 'star': p.vx = Math.cos(a) * v * .6; p.vy = Math.sin(a) * v * .6 - 1; p.g = .02; p.drag = .96; p.decay = .01 + Math.random() * .012; p.size = (4 + Math.random() * 6) * sc; break;
-        case 'ember': p.vx = (Math.random() - .5) * 2.2 * sp; p.vy = -(1 + Math.random() * 3) * sp; p.g = -.04; p.drag = .99; p.decay = .012 + Math.random() * .015; p.size = (1.5 + Math.random() * 3) * sc; break;
-        case 'glyph': { const gl = this.scTheme?.glyphs || '✦✧'; p.ch = gl[Math.floor(Math.random() * gl.length)]; p.vx = Math.cos(a) * v * .5; p.vy = -(1 + Math.random() * 2) * sp; p.g = -.015; p.drag = .97; p.decay = .01 + Math.random() * .01; p.size = (12 + Math.random() * 12) * sc; break; }
-        case 'confetti': p.vx = Math.cos(a) * v * 1.2; p.vy = Math.sin(a) * v - 4 * sp; p.g = .14; p.drag = .975; p.decay = .008 + Math.random() * .01; p.size = (5 + Math.random() * 5) * sc; p.vr = (Math.random() - .5) * .5; break;
-        case 'bubble': p.vx = (Math.random() - .5) * 1.5; p.vy = -(.8 + Math.random() * 2) * sp; p.g = -.02; p.drag = .99; p.decay = .01 + Math.random() * .01; p.size = (4 + Math.random() * 9) * sc; break;
-        case 'smoke': p.vx = (Math.random() - .5) * 1.2; p.vy = -(.3 + Math.random()) * sp; p.g = -.005; p.drag = .99; p.decay = .008 + Math.random() * .008; p.size = (14 + Math.random() * 18) * sc; break;
-        case 'bolt': { p.decay = .06 + Math.random() * .04; p.g = 0; const len = (40 + Math.random() * 70) * sc; const pts = [[0, 0]]; let px = 0, py = 0; for (let k = 1; k <= 7; k++) { px = Math.cos(a) * len * k / 7 + (Math.random() - .5) * 14 * sc; py = Math.sin(a) * len * k / 7 + (Math.random() - .5) * 14 * sc; pts.push([px, py]); } p.pts = pts; p.x = x; p.y = y; break; }
-        case 'coin': p.vx = Math.cos(a) * v * .8; p.vy = -(4 + Math.random() * 5) * sp; p.g = .22; p.drag = .99; p.decay = .009 + Math.random() * .008; p.size = (6 + Math.random() * 4) * sc; p.vr = .15 + Math.random() * .25; p.color = Math.random() < .5 ? '#ffd36b' : '#f5a623'; break;
-        case 'ring': p.x = x; p.y = y; p.r = 6 * sc + i * 14 * sc; p.vrad = (2.5 + i * .6) * sp * Math.max(1, sc); p.g = 0; p.decay = .028; p.size = 4 * sc; break;
-        case 'sand': p.vx = Math.cos(a) * v * .7; p.vy = Math.sin(a) * v * .5 - 1.5; p.g = .05; p.drag = .97; p.decay = .012 + Math.random() * .015; p.size = (1 + Math.random() * 2) * sc; break;
-      }
-      this.fx.parts.push(p);
-    }
-    if (!this.fx.raf) this.fxLoop();
-  }
-  fxLoop() {
-    const cv = this.$('fx');
-    if (!cv || skActive !== this) { this.fx.raf = null; this.fx.parts = []; return; }
-    const r = cv.getBoundingClientRect(), d = devicePixelRatio;
-    if (cv.width !== Math.round(r.width * d)) { cv.width = r.width * d; cv.height = r.height * d; }
-    const ctx = cv.getContext('2d');
-    ctx.setTransform(d, 0, 0, d, 0, 0);
-    ctx.clearRect(0, 0, r.width, r.height);
-    ctx.globalCompositeOperation = 'lighter';
-    this.fx.parts = this.fx.parts.filter(p => {
-      p.vy += p.g; p.vx *= p.drag; p.vy *= p.drag; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= p.decay;
-      if (p.life <= 0) return false;
-      const al = Math.min(1, p.life * 1.4);
-      ctx.globalAlpha = al;
-      ctx.fillStyle = ctx.strokeStyle = p.color;
-      ctx.shadowColor = p.color; ctx.shadowBlur = 10;
-      switch (p.k) {
-        case 'star': {
-          ctx.globalAlpha = al * (.6 + .4 * Math.sin(p.life * 30));
-          const s = p.size; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * .3); ctx.beginPath();
-          for (let k = 0; k < 8; k++) { const rr = k % 2 ? s * .28 : s; const an = k * Math.PI / 4; ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); }
-          ctx.closePath(); ctx.fill(); ctx.restore(); break;
-        }
-        case 'ember': ctx.globalAlpha = al * (.55 + Math.random() * .45); ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (.5 + p.life * .5), 0, Math.PI * 2); ctx.fill(); break;
-        case 'glyph': ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.sin(p.rot) * .4); ctx.font = `700 ${p.size}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.ch, 0, 0); ctx.restore(); break;
-        case 'confetti': ctx.shadowBlur = 0; ctx.globalCompositeOperation = 'source-over'; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.scale(Math.cos(p.rot * 2.3), 1); ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); ctx.restore(); ctx.globalCompositeOperation = 'lighter'; break;
-        case 'bubble': ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x + Math.sin(p.rot * 3) * 2, p.y, p.size, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = al * .5; ctx.beginPath(); ctx.arc(p.x - p.size * .35, p.y - p.size * .35, p.size * .22, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); break;
-        case 'smoke': { p.size *= 1.012; ctx.shadowBlur = 0; ctx.globalAlpha = al * .22; const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size); gr.addColorStop(0, p.color); gr.addColorStop(1, 'transparent'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); break; }
-        case 'bolt': ctx.lineWidth = 2.2; ctx.shadowBlur = 16; ctx.beginPath(); p.pts.forEach(([px, py], k) => k ? ctx.lineTo(p.x + px, p.y + py) : ctx.moveTo(p.x + px, p.y + py)); ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = '#fff'; ctx.stroke(); break;
-        case 'coin': { ctx.globalCompositeOperation = 'source-over'; const w = Math.abs(Math.cos(p.rot)) * p.size + 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, w, p.size, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#a35f00'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.globalCompositeOperation = 'lighter'; break; }
-        case 'ring': p.r += p.vrad; ctx.lineWidth = Math.max(.5, p.size * p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.stroke(); break;
-        case 'sand': ctx.shadowBlur = 4; ctx.fillRect(p.x, p.y, p.size, p.size); break;
-        default:
-          if (p.star) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.life * 6); ctx.fillRect(-p.size, -p.size * .25, p.size * 2, p.size * .5); ctx.fillRect(-p.size * .25, -p.size, p.size * .5, p.size * 2); ctx.restore(); }
-          else { ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill(); }
-      }
-      return true;
-    });
-    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-    if (this.fx.parts.length) this.fx.raf = requestAnimationFrame(() => this.fxLoop());
-    else { ctx.clearRect(0, 0, r.width, r.height); this.fx.raf = null; }
+    if (!this.fxE) this.fxE = new CxFx({ canvas: () => this.$('fx'), theme: () => this.scTheme || { colors: [this.o.theme?.a || '#ffd36b', this.o.theme?.b || '#8b6cff', '#fff'] }, alive: () => skActive === this });
+    this.fxE.emit(x, y, kind, n, o);
   }
   drawLine(cells, color, key = 'main', label) {
     const b = this.board(key);
@@ -555,7 +635,45 @@ class SlotKit {
     };
     requestAnimationFrame(step);
   }
-  splash(title, sub, icon, color) { return cxSplash({ title, sub, icon, color: color || this.o.theme?.a }); }
+  splash(title, sub, icon, color) {
+    // Po wyzwoleniu przez scattery — pełnoekranowe wejście bonusu z lecącymi symbolami
+    if (this.sc && this._scIntro && Date.now() - this._scIntro.at < 8000) {
+      const cells = this._scIntro.cells; this._scIntro = null;
+      return this.bonusIntro({ title, sub, icon, cells });
+    }
+    return cxSplash({ title, sub, icon, color: color || this.o.theme?.a });
+  }
+  cellSnapshot(c, r, key = 'main') {
+    const el = this.cell(c, r, key);
+    if (!el) return null;
+    const rc = el.getBoundingClientRect();
+    return { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2, size: rc.width, html: el.innerHTML };
+  }
+  // Pełnoekranowe wejście bonusu: symbole wylatują z planszy na środek ekranu, wybuch cząsteczek motywu, tytuł
+  bonusIntro({ title, sub, icon, cells = [], ms } = {}) {
+    if (!cells.length && this.sc) {
+      const b = this.board('main'), g = this.grids[b.key] || [];
+      g.forEach((col, c) => col.forEach((si, r) => { if (this.sc.is(si)) cells.push(this.cellSnapshot(c, r, b.key)); }));
+    }
+    return cxFullscreenFx({ title, sub, icon, cells: cells.filter(Boolean), theme: this.scTheme || { colors: [this.o.theme?.a, this.o.theme?.b, '#fff'] }, ms: ms || (this.turbo ? 1600 : 3000) });
+  }
+  // Duży mnożnik: wyskakuje nad planszą (opcjonalnie nad komórką), ≥ ×50 — błysk na cały ekran
+  bigMult(mult, { c, r, key = 'main', label } = {}) {
+    const m = this.$('machine'); if (!m) return Promise.resolve();
+    const mr = m.getBoundingClientRect();
+    let x = mr.width / 2, y = mr.height / 2;
+    if (c !== undefined) { const p = this.cellCenter(c, r, key); if (p) { x = p.x; y = p.y; } }
+    const el = document.createElement('div');
+    el.className = 'sk-mult-pop' + (mult >= 100 ? ' mega' : mult >= 20 ? ' big' : '');
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.innerHTML = `${label ? `<small>${label}</small>` : ''}×${(+mult).toLocaleString('pl-PL', { maximumFractionDigits: 2 })}`;
+    m.appendChild(el);
+    this.emit(x, y, 'ring', 2, { scale: 1.6 });
+    this.emit(x, y, mult >= 20 ? 'star' : 'spark', mult >= 20 ? 30 : 14, { spread: 30, speed: 1.4 });
+    cxSound.play(mult >= 20 ? 'bigwin' : 'win');
+    if (mult >= 50) { m.classList.remove('shake'); void m.offsetWidth; m.classList.add('shake'); cxMultFlash(mult, this.scTheme?.colors || [this.o.theme?.a, '#fff']); }
+    return new Promise(res => setTimeout(() => { el.classList.add('out'); setTimeout(() => { el.remove(); res(); }, 350); }, this.turbo ? 500 : 1100));
+  }
 
   // ── Stawka ───────────────────────────────────────────────
   get bet() { return this.steps[this.betIdx]; }

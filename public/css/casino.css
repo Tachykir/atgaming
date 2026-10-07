@@ -629,7 +629,7 @@
   .sk-feature-row { margin-bottom: 5px; gap: 6px; flex-wrap: nowrap; overflow-x: auto; }
   .sk-meter { padding: 4px 8px; min-width: 140px; border-radius: 9px; }
   .sk-meter-top { font-size: 10px; margin-bottom: 3px; }
-  .sk-feature-row .cx-bar, .sk-feature-row [class*="bar"] { height: 6px; }
+  .sk-feature-row .cx-bar { height: 6px; }
   [data-sk="banner"] .sk-banner { padding: 3px 10px; font-size: 12px; margin-bottom: 5px !important; }
   [data-sk="boards"] { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; }
   [data-sk="boards"] > .sk-reels:not(.dual), .sk-reels.dual > .sk-reels { height: 100%; width: auto; max-width: 100%; aspect-ratio: var(--sk-ar); margin: 0 auto; gap: 4px; padding: 5px; }
@@ -722,3 +722,50 @@
 @keyframes cxAchIn { from { transform: translate(-50%, -140%); opacity: 0; } }
 @keyframes cxAchOut { to { transform: translate(-50%, -140%); opacity: 0; } }
 @media (orientation: landscape) and (max-height: 540px) { .cx-ach-pop { top: 6px; padding: 6px 12px; } .cx-ach-pop .ico { font-size: 26px; } }
+
+/* ══ Pełnoekranowe wejście bonusu ═══════════════════════════════ */
+.cx-fsfx { position: fixed; inset: 0; z-index: 2450; overflow: hidden; cursor: pointer; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--fa) 35%, transparent), rgba(4,3,10,.94) 68%); animation: cxFade .25s; }
+.cx-fsfx.out { animation: fsOut .38s ease-in forwards; }
+@keyframes fsOut { to { opacity: 0; transform: scale(1.06); } }
+.cx-fsfx canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+.cx-fsfx .fs-rays { position: absolute; left: 50%; top: 42%; width: 220vmax; height: 220vmax; margin: -110vmax 0 0 -110vmax; pointer-events: none;
+  background: repeating-conic-gradient(color-mix(in srgb, var(--fa) 22%, transparent) 0 7deg, transparent 7deg 15deg); animation: bwRot 14s linear infinite; opacity: 0; transition: opacity .5s; }
+.cx-fsfx.boom .fs-rays { opacity: 1; }
+.cx-fsfx .fs-flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 42%, #fff, color-mix(in srgb, var(--fa) 70%, transparent) 30%, transparent 70%); opacity: 0; pointer-events: none; z-index: 2; }
+.cx-fsfx.boom .fs-flash { animation: fsFlash .9s ease-out; }
+@keyframes fsFlash { 10% { opacity: 1; } 100% { opacity: 0; } }
+.cx-fsfx.boom { animation: cxFade .25s, skShake .5s .05s; }
+.cx-fsfx .fs-fly { position: fixed; z-index: 4; display: grid; place-items: center; font-size: 40px; filter: drop-shadow(0 0 18px var(--fa)) drop-shadow(0 8px 16px rgba(0,0,0,.6)); pointer-events: none; }
+.cx-fsfx .fs-fly .sk-tile { box-shadow: 0 0 0 3px var(--fa), 0 0 40px var(--fa) !important; }
+.cx-fsfx .fs-fly > * { animation: fsBob 1s ease-in-out .7s infinite alternate; }
+@keyframes fsBob { to { transform: translateY(-6px) scale(1.04); } }
+.cx-fsfx .fs-center { position: relative; z-index: 5; text-align: center; margin-top: 18vh; opacity: 0; transform: scale(.3); }
+.cx-fsfx.boom .fs-center { animation: fsPop .6s cubic-bezier(.2,1.7,.4,1) forwards; }
+@keyframes fsPop { to { opacity: 1; transform: scale(1); } }
+.cx-fsfx .fs-icon { font-size: clamp(40px, 9vmin, 90px); filter: drop-shadow(0 0 30px var(--fa)); }
+.cx-fsfx .fs-icon img { width: 1.2em; height: 1.2em; object-fit: contain; }
+.cx-fsfx .fs-title { font-size: clamp(36px, 10vmin, 104px); font-weight: 800; letter-spacing: -1px; line-height: 1;
+  background: linear-gradient(180deg, #fff, var(--fa) 55%, var(--fb)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 6px 0 rgba(0,0,0,.5)) drop-shadow(0 0 30px var(--fa)); animation: fsTitle 1.2s ease-in-out .6s infinite alternate; }
+@keyframes fsTitle { to { transform: scale(1.05); filter: drop-shadow(0 6px 0 rgba(0,0,0,.5)) drop-shadow(0 0 50px var(--fa)); } }
+.cx-fsfx .fs-sub { font-size: clamp(14px, 2.6vmin, 22px); font-weight: 700; color: #fff; margin-top: 8px; text-shadow: 0 2px 10px #000; }
+.cx-fsfx .fs-hint { font-size: 11px; color: rgba(255,255,255,.45); margin-top: 14px; }
+
+/* ══ Wielkie mnożniki ════════════════════════════════════════════ */
+.sk-mult-pop { position: absolute; z-index: 9; transform: translate(-50%, -50%); pointer-events: none; text-align: center; font: 800 clamp(30px, 6vw, 56px)/1 'Syne', sans-serif;
+  background: linear-gradient(180deg, #fff, #ffd36b 50%, #f5a623); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 0 #6b3a00) drop-shadow(0 0 18px rgba(255,211,107,.8)); animation: multIn .45s cubic-bezier(.2,1.8,.4,1); }
+.sk-mult-pop small { display: block; font-size: .32em; letter-spacing: .1em; -webkit-text-fill-color: #fff; color: #fff; }
+.sk-mult-pop.big { font-size: clamp(44px, 9vw, 84px); background-image: linear-gradient(180deg, #fff, #ff9ab0 40%, #ff3b6b); filter: drop-shadow(0 5px 0 #5a0b22) drop-shadow(0 0 26px rgba(255,90,140,.9)); }
+.sk-mult-pop.mega { font-size: clamp(56px, 12vw, 120px); background-image: linear-gradient(180deg, #fff, #c4b5fd 35%, #8b6cff 60%, #ff7ad9); filter: drop-shadow(0 6px 0 #2b1680) drop-shadow(0 0 40px rgba(139,108,255,.95)); animation: multIn .45s cubic-bezier(.2,1.8,.4,1), multWob .3s .45s ease-in-out 3 alternate; }
+.sk-mult-pop.out { animation: multOut .35s ease-in forwards; }
+@keyframes multIn { from { transform: translate(-50%, -50%) scale(.2) rotate(-12deg); opacity: 0; } }
+@keyframes multWob { to { transform: translate(-50%, -50%) scale(1.12) rotate(3deg); } }
+@keyframes multOut { to { transform: translate(-50%, -120%) scale(.6); opacity: 0; } }
+.cx-multflash { position: fixed; inset: 0; z-index: 2440; pointer-events: none; display: grid; place-items: center;
+  background: radial-gradient(circle, color-mix(in srgb, var(--fa) 45%, transparent), transparent 65%); animation: mfBg 1.3s ease-out forwards; }
+.cx-multflash b { font: 800 clamp(80px, 26vmin, 260px)/1 'Syne', sans-serif; background: linear-gradient(180deg, #fff, var(--fa)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 8px 0 rgba(0,0,0,.45)) drop-shadow(0 0 60px var(--fa)); animation: mfText 1.3s cubic-bezier(.2,1.6,.4,1) forwards; }
+@keyframes mfBg { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes mfText { 0% { transform: scale(3); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 75% { opacity: 1; } 100% { transform: scale(.8); opacity: 0; } }

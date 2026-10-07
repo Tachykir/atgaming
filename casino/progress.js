@@ -9,7 +9,8 @@
 'use strict';
 const store = require('./store');
 
-const SLOT_GAMES = ['slots', 'path_of_gambling', 'jackpot_frenzy', 'dragon_hoard', 'arcane_academy', 'dual_blades', 'neon_racer', 'candy_tumble', 'book_pharaoh', 'hot_777'];
+const SLOT_GAMES = ['slots', 'path_of_gambling', 'jackpot_frenzy', 'dragon_hoard', 'arcane_academy', 'dual_blades', 'neon_racer', 'candy_tumble', 'book_pharaoh', 'hot_777',
+  'olympus_ways', 'wild_duel', 'cosmic_infinity', 'deep_sea', 'sugar_cells', 'pandora_mystery', 'titan_colossus', 'ninja_walk', 'mega_wheel', 'alchemy_lab'];
 const DAILY = [2_000, 3_000, 4_000, 5_000, 6_500, 8_000, 10_000]; // dzień serii 1…7+
 
 // cond(m, ev) → true gdy zdobyte; progress(m) → [ile, cel] dla paska postępu
@@ -23,7 +24,7 @@ const ACHIEVEMENTS = [
   { id: 'giga_win',    icon: '💎', name: 'Giga wygrana',        desc: 'Wygraj co najmniej 75× stawki',           reward: 15_000, cond: (m, ev) => ev?.mult >= 75 },
   { id: 'frito',       icon: '🔥', name: 'Mega Giga Frito',     desc: 'Wygraj co najmniej 250× stawki',          reward: 50_000, cond: (m, ev) => ev?.mult >= 250 },
   { id: 'high_roller', icon: '🎩', name: 'High roller',         desc: 'Postaw 100 000 AT$ w jednym zakładzie',   reward: 10_000, cond: (m, ev) => ev?.bet >= 100_000 },
-  { id: 'explorer',    icon: '🧭', name: 'Odkrywca',            desc: 'Zagraj na wszystkich 10 automatach',      reward: 10_000, progress: m => [SLOT_GAMES.filter(g => m.games.includes(g)).length, SLOT_GAMES.length] },
+  { id: 'explorer',    icon: '🧭', name: 'Odkrywca',            desc: `Zagraj na wszystkich ${SLOT_GAMES.length} automatach`,      reward: 25_000, progress: m => [SLOT_GAMES.filter(g => m.games.includes(g)).length, SLOT_GAMES.length] },
   { id: 'crash_10x',   icon: '🚀', name: 'Na Księżyc',          desc: 'Wypłać w Crash przy mnożniku ≥ 10×',      reward: 8_000,  cond: (m, ev) => ev?.game === 'crash' && ev?.mult >= 10 && ev?.win > 0 },
   { id: 'roulette_35', icon: '🎡', name: 'Strzał w numer',      desc: 'Traf pojedynczy numer w ruletce',         reward: 5_000,  cond: (m, ev) => ev?.game === 'roulette' && ev?.straight },
   { id: 'daily_7',     icon: '📅', name: 'Stały bywalec',       desc: 'Odbierz dzienny bonus 7 dni z rzędu',     reward: 15_000, progress: m => [m.daily.streak || 0, 7] },

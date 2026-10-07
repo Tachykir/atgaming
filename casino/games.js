@@ -22,6 +22,16 @@ const SLOTS = {
   candy_tumble:     require('../games/casino/candy_tumble'),
   book_pharaoh:     require('../games/casino/book_pharaoh'),
   hot_777:          require('../games/casino/hot_777'),
+  olympus_ways: require('../games/casino/olympus_ways'),
+  wild_duel: require('../games/casino/wild_duel'),
+  cosmic_infinity: require('../games/casino/cosmic_infinity'),
+  deep_sea: require('../games/casino/deep_sea'),
+  sugar_cells: require('../games/casino/sugar_cells'),
+  pandora_mystery: require('../games/casino/pandora_mystery'),
+  titan_colossus: require('../games/casino/titan_colossus'),
+  ninja_walk: require('../games/casino/ninja_walk'),
+  mega_wheel: require('../games/casino/mega_wheel'),
+  alchemy_lab: require('../games/casino/alchemy_lab'),
 };
 
 // Moduły z registerHandlers(socket, io, casino)
