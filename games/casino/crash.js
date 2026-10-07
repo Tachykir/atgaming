@@ -58,6 +58,7 @@ async function settleCashout(table, io, casino, discordId, mult, socket) {
   await casino.updateBalance(discordId, bet.winAmount);
   casino.tracker?.track('crash', { wagered: 0, returned: bet.winAmount, rounds: 0 });
   const balance = (await casino.getWallet(discordId))?.balance ?? 0;
+  casino.progress?.recordRound(discordId, { game: 'crash', bet: 0, win: bet.winAmount, mult, balance, kind: 'cashout', note: `Wypłata przy ${mult}×` });
   const payload = { tableId: table.id, discordId, multiplier: mult, winAmount: bet.winAmount, net: bet.winAmount - bet.amount, balance };
   if (socket) socket.emit('casinoCrashCashedOut', payload);
   else if (bet.socketId) io.to(bet.socketId).emit('casinoCrashCashedOut', payload);
@@ -94,6 +95,7 @@ function registerHandlers(socket, io, casino) {
         name: discordUser.globalName || discordUser.username, avatar: discordUser.avatar,
         cashedOut: false, cashOutAt: null, winAmount: 0,
       };
+      casino.progress?.recordRound(discordUser.id, { game: 'crash', bet: betAmt, win: 0, mult: 0, balance, kind: 'bet' });
       socket.emit('casinoCrashBetPlaced', { tableId: table.id, amount: betAmt, autoCashout, balance });
       io.to('casino:' + table.id).emit('casinoCrashState', buildPublicState(gs, table));
     });

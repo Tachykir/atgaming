@@ -432,10 +432,12 @@ function renderCasinoHero() {
     const profit = (w.totalWon || 0) - (w.totalLost || 0);
     el.innerHTML = `<div><h1>Witaj w <em>AT Casino</em></h1><p>Wybierz grę poniżej. Stawki Low / Medium / High decydują o zakresie zakładów.</p>
       <div class="cx-hero-user">${w.avatar ? `<img src="${cxEsc(w.avatar)}" alt="" onerror="this.style.display='none'">` : ''}<div><div style="font-weight:800">${cxEsc(w.globalName)}</div>
-        <div class="cx-hero-stats"><span class="cx-pill">Gry: <b>${cxFmt(w.gamesPlayed)}</b></span><span class="cx-pill">Bilans: <b class="${profit >= 0 ? 'cx-pos' : 'cx-neg'}">${profit >= 0 ? '+' : ''}${cxFmt(profit)}</b></span></div></div></div></div>
+        <div class="cx-hero-stats"><span class="cx-pill">Gry: <b>${cxFmt(w.gamesPlayed)}</b></span><span class="cx-pill">Bilans: <b class="${profit >= 0 ? 'cx-pos' : 'cx-neg'}">${profit >= 0 ? '+' : ''}${cxFmt(profit)}</b></span></div></div></div>
+      <div class="cx-hero-actions" id="cx-hero-actions"></div></div>
       <div class="cx-hero-wallet"><span>Twoje saldo</span><b data-cx-balance>${cxFmt(w.balance)} AT$</b></div>`;
   }
   document.querySelectorAll('[data-needs-login]').forEach(b => b.style.display = w ? '' : 'none');
+  if (w && typeof cxLoadDaily === 'function') { if (cxDaily) cxRenderProgressActions(); else cxLoadDaily(); }
 }
 
 function cxGameTile(g, tables) {

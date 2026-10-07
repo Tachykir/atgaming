@@ -62,3 +62,29 @@ test('RTP: walidacja zakresu i skala', async () => {
   await rtp.resetAll();
   assert.strictEqual(rtp.scale('slots'), 1);
 });
+
+test('dzienny bonus: raz dziennie, seria rośnie', async () => {
+  const progress = require('../casino/progress');
+  await store.ensureWallet(user('d1'));
+  const first = await progress.claimDaily('d1');
+  assert.ok(first.ok);
+  assert.strictEqual(first.amount, progress.DAILY[0]);
+  assert.strictEqual(first.streak, 1);
+  const again = await progress.claimDaily('d1');
+  assert.ok(again.error);
+  assert.strictEqual((await store.getWallet('d1')).balance, store.START_BALANCE + progress.DAILY[0]);
+});
+
+test('osiągnięcia: pierwsza wygrana i high roller przyznają nagrody raz', async () => {
+  const progress = require('../casino/progress');
+  await store.ensureWallet(user('a1'));
+  await progress.recordRound('a1', { game: 'slots', bet: 100_000, win: 50, balance: 1 });
+  await progress.recordRound('a1', { game: 'slots', bet: 100_000, win: 50, balance: 1 });
+  const list = await progress.achievementsFor('a1');
+  const on = list.filter(a => a.unlocked).map(a => a.id).sort();
+  assert.deepStrictEqual(on, ['first_win', 'high_roller']);
+  const reward = list.filter(a => a.unlocked).reduce((s, a) => s + a.reward, 0);
+  assert.strictEqual((await store.getWallet('a1')).balance, store.START_BALANCE + reward);
+  const hist = await progress.history('a1', 10);
+  assert.ok(hist.some(h => h.kind === 'achievement'));
+});

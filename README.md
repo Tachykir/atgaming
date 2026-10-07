@@ -47,6 +47,12 @@ Wirtualna waluta AT$ (start 100 000, cotygodniowe doładowanie), logowanie przez
 - Logowanie hasłem tworzy sesję admina (bez wysyłania hasła z każdym żądaniem), 5 błędnych prób = blokada 10 min.
   W produkcji (`NODE_ENV=production`) bez `ADMIN_PASSWORD` panel jest wyłączony.
 
+**Dzienny bonus, historia i osiągnięcia**
+- 🎁 Dzienny bonus (dzień wg czasu polskiego): 2 000 → 10 000 AT$ za kolejne dni serii; przerwa zeruje serię.
+- 📜 Historia gier gracza: stawki, wygrane, bonusy, wejścia i wyjścia ze stołów (ostatnie 30 dni / 200 wpisów).
+- 🏆 14 osiągnięć z jednorazowymi nagrodami AT$ (pierwsza wygrana, 1 000 spinów, wygrana 250×, Crash 10×, milioner…),
+  z paskami postępu i powiadomieniem na żywo w każdej grze (`casino/progress.js`).
+
 **Scattery**
 - Każdy automat ma własny motyw efektów scatterów: 🔥 żar (Dragon Hoard), 💫 kosmos (Lucky Fruits), 📚 runy (Arcane Academy),
   🌫️ mgła (Path of Gambling), 🌒 zaćmienie (Dual Blades), 💨 neon i błyskawice (Neon Racer), 🍭 konfetti (Candy Tumble),

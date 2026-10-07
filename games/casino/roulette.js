@@ -139,6 +139,7 @@ function doSpin(table, io, casino, gs) {
       await casino.recordGame(discordId).catch(() => {});
       const balance = (await casino.getWallet(discordId).catch(() => null))?.balance ?? null;
       results.push({ discordId, staked, won, net: won - staked, wins, balance });
+      casino.progress?.recordRound(discordId, { game: 'roulette', bet: staked, win: won, balance, straight: wins.some(w => w.type === 'straight'), note: `Numer ${number}` });
     }
     if (table.gameState !== gs) return;
     gs.results = results;

@@ -11,6 +11,7 @@ const store = require('./store');
 const tablesMod = require('./tables');
 const rtp = require('./rtp');
 const tracker = require('./tracker');
+const progress = require('./progress');
 
 // Wyłączność per klucz (gracz+gra): odrzuca równoległe żądania zamiast je kolejkować
 const busyKeys = new Set();
@@ -25,6 +26,7 @@ async function init() {
   await store.init();
   await rtp.load();
   tracker.start();
+  progress.start();
 }
 
 function scheduleWeeklyTopup(io) {
@@ -40,6 +42,7 @@ function scheduleWeeklyTopup(io) {
     setTimeout(async () => {
       try {
         const topped = await store.runWeeklyTopup();
+        for (const t of topped) progress.logEvent(t.id, { game: 'topup', kind: 'bonus', win: t.added, balance: store.WEEKLY_TOP_UP, note: 'Tygodniowe doładowanie' });
         if (io && topped.length) io.emit('weeklyTopup', { count: topped.length, message: `📅 Tygodniowe doładowanie! ${topped.length} graczy otrzymało AT$ do 100 000` });
       } catch (e) { console.error('Weekly topup error:', e); }
       schedule();
@@ -63,6 +66,6 @@ const api = module.exports = {
   getTablePublic: tablesMod.getTablePublic,
   deleteTable: id => tablesMod.deleteTable(id, (pid, amt) => store.updateBalance(pid, amt).catch(() => {})),
   // pozostałe
-  exclusive, scheduleWeeklyTopup, rtp, tracker, store,
+  exclusive, scheduleWeeklyTopup, rtp, tracker, progress, store,
   START_BALANCE: store.START_BALANCE, WEEKLY_MINIMUM: store.WEEKLY_MINIMUM, WEEKLY_TOP_UP: store.WEEKLY_TOP_UP,
 };

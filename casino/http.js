@@ -84,6 +84,21 @@ function mount(app, io) {
     res.json({ ...m, rtp: casino.rtp.target(g), rtpScale: k, syms: (m.syms || []).map(s => s.p ? { ...s, p: s.p.map(v => v * k) } : s),
       ...(m.scatterPay ? { scatterPay: sc(m.scatterPay) } : {}), ...(m.bookPay ? { bookPay: sc(m.bookPay) } : {}) });
   });
+  // Dzienny bonus, historia, osiągnięcia
+  const authed = fn => wrap(async (req, res) => {
+    const user = userOf(req);
+    if (!user) return res.status(401).json({ error: 'Wymagane logowanie przez Discord' });
+    await casino.ensureWallet(user);
+    return fn(req, res, user);
+  });
+  app.get('/api/casino/daily', authed(async (req, res, u) => res.json(await casino.progress.dailyStatus(u.id))));
+  app.post('/api/casino/daily', authed(async (req, res, u) => {
+    const r = await casino.progress.claimDaily(u.id);
+    res.status(r.error ? 409 : 200).json(r);
+  }));
+  app.get('/api/casino/history', authed(async (req, res, u) => res.json(await casino.progress.history(u.id, Number(req.query.limit) || 50))));
+  app.get('/api/casino/achievements', authed(async (req, res, u) => res.json(await casino.progress.achievementsFor(u.id))));
+
   app.get('/api/casino/leaderboard', wrap(async (req, res) => res.json(await casino.getLeaderboard(50))));
   app.get('/api/casino/tables', (req, res) => res.json(Object.values(casino.casinoTables).map(casino.getTablePublic)));
   app.get('/api/casino/tables/:tableId', (req, res) => {
@@ -118,6 +133,7 @@ function mount(app, io) {
     const v = parseInt(amount);
     if (!discordId || !Number.isFinite(v) || v < 0) return res.status(400).json({ error: 'Nieprawidłowe dane' });
     if (!await casino.adminSetBalance(discordId, v)) return res.status(404).json({ error: 'Portfel nie istnieje' });
+    casino.progress.logEvent(discordId, { game: 'admin', kind: 'admin', balance: v, note: `Saldo ustawione przez admina: ${v.toLocaleString('pl-PL')} AT$` });
     res.json({ ok: true, discordId, newBalance: v });
   });
   admin('post', '/wallets', async (req, res) => res.json(await casino.getAllWallets()));

@@ -71,6 +71,7 @@ function registerHandlers(socket, io, casino) {
       await casino.recordGame(discordUser.id);
       await casino.updateSlotStats(discordUser.id, 'pachinko', { spins: balls, spent: total, won: winAmount, bestWin: Math.max(...results.map(r => r.win)) });
       const balance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
+      casino.progress?.recordRound(discordUser.id, { game: 'pachinko', bet: total, win: winAmount, mult: Math.max(...results.map(r => r.mult)), balance, note: `${balls} × ${risk}` });
       socket.emit('casinoPachinkoResult', { risk, rows: rc.rows, mults: rc.mults, bet, balls: results, totalBet: total, winAmount, net: winAmount - total, balance });
     });
   });

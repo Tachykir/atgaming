@@ -182,6 +182,7 @@ function registerHandlers(socket, io, casino) {
       }
       const balance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
       const pk = state.pick;
+      if (cash > 0) casino.progress?.recordRound(discordUser.id, { game: def.game, bet: 0, win: cash, mult: cash / pk.bet, balance, kind: 'bonus', note: 'Bonus Pick' });
       socket.emit('casinoAAPickResult', { index: Number(data.index), item: r.item, cash, fsAwarded: r.fsAwarded, pick: scalePick(publicPick(pk, pk.done), k), balance, freeSpins: state.freeSpins, rtpScale: k });
       if (pk.done) state.pick = null;
       E.persistState(def, casino, discordUser.id);

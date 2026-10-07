@@ -72,11 +72,23 @@ async function initPg() {
       sid TEXT PRIMARY KEY, sess JSONB NOT NULL, expire TIMESTAMPTZ NOT NULL
     )`);
   await pg.query('CREATE INDEX IF NOT EXISTS app_sessions_expire ON app_sessions (expire)');
+  // Profil gracza (osiągnięcia, liczniki, dzienny bonus) i historia gier
+  await pg.query(`
+    CREATE TABLE IF NOT EXISTS casino_player_meta (
+      discord_id TEXT PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`);
+  await pg.query(`
+    CREATE TABLE IF NOT EXISTS casino_history (
+      id BIGSERIAL PRIMARY KEY, discord_id TEXT NOT NULL, ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      game TEXT NOT NULL, kind TEXT NOT NULL, bet BIGINT NOT NULL DEFAULT 0, win BIGINT NOT NULL DEFAULT 0,
+      balance BIGINT, note TEXT
+    )`);
+  await pg.query('CREATE INDEX IF NOT EXISTS casino_history_user ON casino_history (discord_id, id DESC)');
   console.log('🐘 Casino: połączono z PostgreSQL');
 }
 
 // ─── JSON FALLBACK ───────────────────────────────────────────────
-const JSON_DEFAULT = () => ({ wallets: {}, topupLog: [], lastWeeklyTopup: null, slotStats: {}, settings: {}, slotState: {}, gameTotals: {}, sessions: {} });
+const JSON_DEFAULT = () => ({ wallets: {}, topupLog: [], lastWeeklyTopup: null, slotStats: {}, settings: {}, slotState: {}, gameTotals: {}, sessions: {}, meta: {}, history: {} });
 let saveTimer = null;
 function loadJsonDb() {
   jsonDb = JSON_DEFAULT();
@@ -404,8 +416,56 @@ async function pruneSessions() {
   return n;
 }
 
+// ─── PROFIL GRACZA I HISTORIA ────────────────────────────────────
+const HISTORY_KEEP = 200;   // tyle ostatnich wpisów na gracza
+async function getMeta(id) {
+  if (pg) { const r = await pg.query('SELECT data FROM casino_player_meta WHERE discord_id=$1', [id]); return r.rows[0]?.data ?? null; }
+  return jsonDb.meta[id] ?? null;
+}
+async function setMeta(id, data) {
+  if (pg) {
+    await pg.query(`INSERT INTO casino_player_meta (discord_id, data) VALUES ($1,$2)
+      ON CONFLICT (discord_id) DO UPDATE SET data=EXCLUDED.data, updated_at=NOW()`, [id, JSON.stringify(data)]);
+    return;
+  }
+  jsonDb.meta[id] = data; saveJson();
+}
+// rows: [{ discordId, ts, game, kind, bet, win, balance, note }]
+async function addHistory(rows) {
+  if (!rows.length) return;
+  if (pg) {
+    const vals = [], args = [];
+    rows.forEach((r, i) => {
+      const o = i * 8;
+      vals.push(`($${o + 1},$${o + 2},$${o + 3},$${o + 4},$${o + 5},$${o + 6},$${o + 7},$${o + 8})`);
+      args.push(r.discordId, new Date(r.ts), r.game, r.kind, Math.round(r.bet || 0), Math.round(r.win || 0), r.balance ?? null, r.note ?? null);
+    });
+    await pg.query(`INSERT INTO casino_history (discord_id, ts, game, kind, bet, win, balance, note) VALUES ${vals.join(',')}`, args);
+    return;
+  }
+  for (const r of rows) {
+    const list = (jsonDb.history[r.discordId] ||= []);
+    list.unshift({ ts: r.ts, game: r.game, kind: r.kind, bet: r.bet || 0, win: r.win || 0, balance: r.balance ?? null, note: r.note ?? null });
+    if (list.length > HISTORY_KEEP) list.length = HISTORY_KEEP;
+  }
+  saveJson();
+}
+async function getHistory(id, limit = 50) {
+  limit = Math.max(1, Math.min(HISTORY_KEEP, limit));
+  if (pg) {
+    const r = await pg.query('SELECT ts, game, kind, bet, win, balance, note FROM casino_history WHERE discord_id=$1 ORDER BY id DESC LIMIT $2', [id, limit]);
+    return r.rows.map(x => ({ ts: x.ts, game: x.game, kind: x.kind, bet: Number(x.bet), win: Number(x.win), balance: x.balance === null ? null : Number(x.balance), note: x.note }));
+  }
+  return (jsonDb.history[id] || []).slice(0, limit);
+}
+// Usuwa wpisy starsze niż 30 dni (PG; JSON i tak trzyma tylko ostatnie HISTORY_KEEP)
+async function pruneHistory() {
+  if (pg) await pg.query("DELETE FROM casino_history WHERE ts < NOW() - INTERVAL '30 days'");
+}
+
 module.exports = {
   init, close, flushJsonSync, whenReady,
+  getMeta, setMeta, addHistory, getHistory, pruneHistory,
   sessionGet, sessionSet, sessionTouch, sessionDestroy, pruneSessions,
   getWallet, ensureWallet, updateBalance, debit, recordGame, getAllWallets, adminSetBalance, getLeaderboard, runWeeklyTopup,
   getSlotStats, updateSlotStats, getSlotState, setSlotState, getSetting, setSetting,

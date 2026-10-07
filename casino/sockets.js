@@ -62,7 +62,10 @@ function leaveTable(socket, tableId, io) {
   if (table.game === 'blackjack') blackjack.playerLeft(table, socket.id, io);
 
   // Zwróć żetony ze stołu do portfela
-  if (player.discordId && player.sessionChips > 0) casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
+  if (player.discordId && player.sessionChips > 0) {
+    casino.updateBalance(player.discordId, player.sessionChips).catch(() => {});
+    casino.progress.logEvent(player.discordId, { game: table.game, kind: 'cashout', win: player.sessionChips, note: `Wyjście ze stołu ${table.name}` });
+  }
   table.players.splice(idx, 1);
   socket.leave('casino:' + tableId);
   if (socket.casinoTableId === tableId) socket.casinoTableId = null;
@@ -98,6 +101,14 @@ function leaveTable(socket, tableId, io) {
  */
 function register(socket, io, hooks = {}) {
   rateLimiter(socket);
+  casino.progress.setIo(io);
+  // Pokój gracza — powiadomienia (osiągnięcia) na wszystkie jego karty / urządzenia
+  const joinUserRoom = data => {
+    const u = socket.getDiscordUser?.(data && typeof data === 'object' ? data : {});
+    if (u?.id && socket.userRoom !== u.id) { socket.userRoom = u.id; socket.join('user:' + u.id); }
+  };
+  joinUserRoom();
+  socket.use((packet, next) => { if (!socket.userRoom && String(packet[0]).startsWith('casino')) joinUserRoom(packet[1]); next(); });
 
   socket.on('casinoGetWallet', async (data, cb) => {
     const reply = typeof cb === 'function' ? cb : () => {};
@@ -138,6 +149,7 @@ function register(socket, io, hooks = {}) {
       socket.casinoTableId = tableId;
       socket.discordId = user.id;
       socket.emit('casinoJoined', { tableId, sessionChips: amount, walletBalance: balanceAfter });
+      casino.progress.logEvent(user.id, { game: table.game, kind: 'buyin', bet: amount, balance: balanceAfter, note: `Wejście do stołu ${table.name}` });
 
       (table.game === 'poker' ? poker : blackjack).emitTableState(table, io);
       if (table.game === 'poker' && table.players.length >= 2 && table.status === 'open' && !table.gameState) poker.startCountdown(table, io, 10);
@@ -233,6 +245,7 @@ async function shutdown() {
   let total = 0;
   for (const [id, amt] of refunds) { total += amt; await casino.updateBalance(id, Math.floor(amt)).catch(e => console.error('refund', id, e.message)); }
   await casino.tracker.flush().catch(() => {});
+  await casino.progress.flush().catch(() => {});
   casino.tracker.stop();
   await casino.store.close();
   return { players: refunds.size, total };

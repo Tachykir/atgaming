@@ -109,6 +109,7 @@ function registerHandlers(socket, io, casino) {
       [c.creator.id]:  (await casino.getWallet(c.creator.id))?.balance ?? 0,
       [c.opponent.id]: (await casino.getWallet(c.opponent.id))?.balance ?? 0,
     };
+    for (const pl of [c.creator, c.opponent]) casino.progress?.recordRound(pl.id, { game: 'coinflip', bet: c.bet, win: pl.id === winner.id ? pot : 0, balance: balances[pl.id], note: `PvP vs ${(pl.id === c.creator.id ? c.opponent : c.creator).name}` });
     io.to('casino:' + table.id).emit('casinoCoinflipResult', { tableId: table.id, challengeId: c.id, result, winner, loser, bet: c.bet, totalPot: pot, creatorSide: c.side, balances });
     delete gs.challenges[c.id];
     broadcast(table, io);
@@ -150,6 +151,7 @@ function registerHandlers(socket, io, casino) {
       if (payout) await casino.updateBalance(discordUser.id, payout);
       await casino.recordGame(discordUser.id);
       const balance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
+      casino.progress?.recordRound(discordUser.id, { game: 'coinflip', bet, win: payout, balance, note: 'Solo' });
       pushHistory(table, { result, winner: win ? (discordUser.globalName || discordUser.username) : 'Kasyno', loser: win ? 'Kasyno' : (discordUser.globalName || discordUser.username), bet, pvp: false, at: Date.now() });
       socket.emit('casinoCoinflipSoloResult', { tableId: table.id, result, side: data.side, win, bet, payout, net: payout - bet, balance, durationMs: FLIP_MS });
       setTimeout(() => broadcast(table, io), FLIP_MS);

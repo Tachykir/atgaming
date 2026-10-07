@@ -153,6 +153,10 @@ function register(def, socket, io, casino) {
       const balance = (await casino.getWallet(discordUser.id))?.balance ?? 0;
       const mult = bet > 0 ? payout / bet : 0;
       const tier = getTier(mult);
+      casino.progress?.recordRound(discordUser.id, {
+        game: def.game, bet: free ? 0 : bet, win: payout, mult, balance, kind: free ? 'free' : 'round',
+        feature: !!(res.freeSpinsAwarded || res.bonusPick || res.holdTriggered || res.turboTriggered || res.triggeredCauldrons?.length),
+      });
       socket.emit(def.resultEvent, {
         ...res,
         payout, bet, paid: !free, cost: free ? 0 : bet, net: payout - (free ? 0 : bet),
