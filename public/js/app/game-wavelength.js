@@ -1,5 +1,16 @@
-// wavelength.js — gra Wavelength
+// ── WAVELENGTH ─────────────────────────────────────────────────────
 let wlState = null;
+let wlMyId = null;
+
+function onWlSlider(val) {
+  document.getElementById('wl-slider-val').textContent = val;
+  const ind = document.getElementById('wl-indicator');
+  if (ind) ind.style.left = val + '%';
+  // Wyślij guess w czasie rzeczywistym
+  if (wlState?.phase === 'guessing' && wlState?.psychic !== wlMyId) {
+    socket.emit('wavelengthGuess', { roomId: S.roomId, value: parseInt(val) });
+  }
+}
 
 function wlSubmitClue() {
   const clue = document.getElementById('wl-clue-input')?.value?.trim();
@@ -15,6 +26,7 @@ function wlLock() {
 socket.on('wavelengthState', (state) => {
   wlState = state;
   wlMyId = S.myId || socket.id;
+  if (!document.getElementById('screen-wavelength')?.classList.contains('active')) showScreen('wavelength');
   const isPsychic = state.psychic === wlMyId;
   const psychicPlayer = state.players?.find(p => p.id === state.psychic);
 
@@ -30,10 +42,10 @@ socket.on('wavelengthState', (state) => {
     document.getElementById('wl-right-label').textContent = state.spectrum[1] + ' →';
   }
 
-  // Target zone (tylko reveal)
+  // Target zone (po odkryciu — wszyscy; wcześniej tylko psychic, który dostaje cel od serwera)
   const tz = document.getElementById('wl-target-zone');
   const tm = document.getElementById('wl-target-marker');
-  if (state.targetZone !== null && state.phase === 'reveal') {
+  if (state.targetZone !== null && state.targetZone !== undefined && (state.phase === 'reveal' || isPsychic)) {
     if (tz) { tz.style.display = ''; tz.style.left = Math.max(0, state.targetZone - 10) + '%'; tz.style.width = '20%'; }
     if (tm) { tm.style.display = ''; tm.style.left = state.targetZone + '%'; }
   } else {
@@ -100,4 +112,15 @@ socket.on('wavelengthReveal', ({ targetZone, teamGuess, pts, dist }) => {
   if (el) el.innerHTML = `<span class="result-pop" style="color:${pts>=3?'#ffd200':'var(--muted)'}">${emoji} Cel: ${targetZone} · Drużyna: ${teamGuess} · Odległość: ${dist} → <b>+${pts} pkt</b></span>`;
 });
 
-// ── SOCKET EVENTS KASYNA ──────────────────────────────────────
+// ── INIT ───────────────────────────────────────────────────────
+// ── INIT ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  const jc = document.getElementById('join-code');
+  if (jc) {
+    jc.addEventListener('input', function(){ this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); });
+    jc.addEventListener('keydown', e => { if(e.key==='Enter') joinRoom(); });
+  }
+  const cn = document.getElementById('create-name');
+  if (cn) cn.addEventListener('keydown', e => { if(e.key==='Enter') createRoom(); });
+  init();
+});

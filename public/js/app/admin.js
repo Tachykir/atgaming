@@ -1,13 +1,32 @@
-// admin.js — panel admin
-
+// ── ADMIN ──────────────────────────────────────────────────────
+// Sesja admina przetrwa odświeżenie strony — nie trzeba logować się ponownie
+async function openAdmin() {
+  try {
+    const r = await fetch('/api/admin/session');
+    if (r.ok && (await r.json()).isAdmin) { await loadAdminContent(); return showScreen('admin'); }
+  } catch (e) {}
+  showScreen('admin-login');
+}
+async function adminLogin() {
+  const pwd = document.getElementById('admin-password').value;
+  const r = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd})});
+  const {ok, error} = await r.json().catch(() => ({}));
+  if (!ok) return showToast(error || 'Złe hasło!','error');
+  adminPwd = pwd; await loadAdminContent(); showScreen('admin');
+}
+async function loadAdminContent() {
+  const r = await fetch('/api/content'); content = await r.json();
+  renderAdminTabs();
+}
 function renderAdminTabs() {
   const ids = Object.keys(content);
-  const allIds = [...ids, 'casino'];
+  const allIds = [...ids, 'casino', 'casino-rtp'];
   if (!activeAdminTab || !allIds.includes(activeAdminTab)) activeAdminTab = ids[0];
   document.getElementById('admin-tabs').innerHTML = ids.map(id => {
     const meta = games.find(g=>g.id===id)||{icon:'🎮',name:id};
     return `<button class="tab-btn ${id===activeAdminTab?'active':''}" onclick="adminTab('${id}')">${meta.icon} ${meta.name}</button>`;
-  }).join('') + `<button class="tab-btn ${activeAdminTab==='casino'?'active':''}" onclick="adminTab('casino')">💰 Kasino AT$</button>`;
+  }).join('') + `<button class="tab-btn ${activeAdminTab==='casino'?'active':''}" onclick="adminTab('casino')">💰 Kasyno: portfele</button>`
+    + `<button class="tab-btn ${activeAdminTab==='casino-rtp'?'active':''}" onclick="adminTab('casino-rtp')">🎛️ Kasyno: RTP</button>`;
   renderAdminTabContent(activeAdminTab);
 }
 function adminTab(t) { activeAdminTab=t; renderAdminTabs(); }
@@ -18,6 +37,7 @@ function renderAdminTabContent(gameId) {
   else if(gameId==='quiz') el.innerHTML=renderQuizAdmin(c);
   else if(gameId==='wordrace') el.innerHTML=renderWordRaceAdmin(c);
   else if(gameId==='casino') { renderCasinoAdmin(); }
+  else if(gameId==='casino-rtp') { renderCasinoRtpAdmin(); }
   else el.innerHTML='<p style="color:var(--muted)">Brak panelu admina dla tej gry.</p>';
 }
 function renderHangmanAdmin(c){
@@ -107,7 +127,7 @@ async function casinoAdminLoadWallets() {
   if (!el) return;
   el.innerHTML = '<p style="color:var(--muted);font-size:13px">⏳ Ładowanie...</p>';
   try {
-    const r = await fetch('/api/admin/casino/wallets?password=' + encodeURIComponent(adminPwd));
+    const r = await fetch('/api/admin/casino/wallets', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: adminPwd || undefined }) });
     if (!r.ok) { el.innerHTML = '<p style="color:var(--error)">Błąd dostępu</p>'; return; }
     const wallets = await r.json();
     casinoAdminWallets = wallets;
@@ -193,55 +213,3 @@ async function casinoAdminTopup() {
 
 async function adminReset(){if(!confirm('Zresetować do domyślnych treści?'))return;await fetch('/api/admin/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd})});await loadAdminContent();showToast('Zresetowano!','success');}
 async function adminResetLb(){if(!confirm('Wyczyścić cały leaderboard?'))return;await fetch('/api/admin/leaderboard',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPwd})});showToast('Leaderboard wyczyszczony!','success');}
-
-// ── ACTIVE ROOMS ──────────────────────────────────────────────
-async function loadActiveRooms() {
-  try {
-    const res = await fetch('/api/rooms');
-    const rooms = await res.json();
-    const el = document.getElementById('active-rooms-list');
-    if (!rooms.length) {
-      el.innerHTML = '<div class="ar-empty">🎮 Brak aktywnych gier.<br><span style="font-size:13px">Stwórz pokój i zaproś znajomych!</span></div>';
-      return;
-    }
-    el.innerHTML = rooms.map(r => {
-      const statusLabel = { waiting: 'Czeka', playing: 'W grze', finished: 'Zakończona' }[r.status] || r.status;
-      const canJoin = r.status === 'waiting' && r.playerCount < r.maxPlayers;
-      const canObserve = r.status === 'playing' || r.status === 'waiting';
-      return `<div class="active-room-card">
-        <div class="ar-icon">${r.gameIcon}</div>
-        <div class="ar-info">
-          <div class="ar-game">${escHtml(r.gameName)}</div>
-          <div class="ar-meta">
-            Kod: <strong style="color:var(--accent3);font-family:'DM Mono',monospace">${r.id}</strong> ·
-            ${r.playerCount}/${r.maxPlayers} graczy
-            ${r.hostName ? '· Host: ' + escHtml(r.hostName) : ''}
-          </div>
-        </div>
-        <span class="ar-status ${r.status}">${statusLabel}</span>
-        <div class="ar-actions">
-          ${canJoin ? `<button class="btn btn-primary btn-sm" onclick="quickJoin('${r.id}')">Dołącz</button>` : ''}
-          ${canObserve ? `<button class="btn btn-secondary btn-sm" onclick="startObserve('${r.id}')">👁️ Obserwuj</button>` : ''}
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    document.getElementById('active-rooms-list').innerHTML = '<div class="ar-empty">Błąd ładowania pokojów.</div>';
-  }
-}
-
-function quickJoin(roomId) {
-  document.getElementById('join-code').value = roomId;
-  showScreen('join');
-}
-
-function startObserve(roomId) {
-  const name = prompt('Twój nick (obserwator):') || 'Obserwator';
-  S.playerName = name;
-  S.roomId = roomId;
-  S.isObserver = true;
-  socket.emit('observeRoom', { roomId, observerName: name });
-}
-
-// ── KÓŁKO I KRZYŻYK ──────────────────────────────────────────
-let tttGs = null;

@@ -140,10 +140,31 @@ Railway daje **5$/miesiąc kredytów za darmo** — dla hobbystycznego projektu 
 
 ## 📁 Struktura projektu
 ```
-gamenight/
-├── server.js          # Serwer + logika gier (Node.js + Socket.io)
-├── public/
-│   └── index.html     # Frontend (cały UI w jednym pliku)
-├── package.json
-└── .gitignore
+server.js              # serwer: pokoje gier, panel admina, socket.io
+casino/                # kasyno AT$ (dane, RTP, stoły, API, sockety)
+games/<gra>/index.js   # logika gier imprezowych (wisielec, quiz, szachy…)
+games/casino/          # silniki gier kasyna i automatów
+lib/                   # env, logowanie admina, sesje w bazie, serializacja pokoi
+public/index.html      # znaczniki HTML i style strony
+public/js/app/         # frontend gier imprezowych (core, gry, turniej, admin…)
+public/js/casino-*.js  # frontend kasyna
+public/css/            # casino.css, landscape.css (telefon w poziomie)
+test/                  # testy (node:test) — npm test
+scripts/check-syntax.js# sprawdzenie składni wszystkich plików — npm run lint
 ```
+
+## 🧪 Testy
+```bash
+npm run lint   # składnia wszystkich plików JS
+npm test       # RTP automatów (symulacje), matematyka gier, portfele, sesje, serializacja pokoi
+```
+GitHub Actions (`.github/workflows/ci.yml`) uruchamia oba przy każdym pushu.
+
+## 🔐 Zmienne środowiskowe
+| Zmienna | Opis |
+|---|---|
+| `DATABASE_URL` | PostgreSQL (Railway) — portfele, sesje, leaderboard, treści admina, ustawienia RTP |
+| `ADMIN_PASSWORD` | hasło panelu admina (bez niego na produkcji panel jest wyłączony) |
+| `SESSION_SECRET` | sekret sesji (bez niego serwer generuje losowy i zapisuje w bazie) |
+| `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI` | logowanie przez Discord |
+| `ALLOWED_ORIGINS` | dodatkowe domeny, z których wolno łączyć się z socket.io (po przecinku) |
