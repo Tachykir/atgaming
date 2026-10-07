@@ -131,16 +131,40 @@ function cxCoinRain(n = 30, emojis = ['🪙', '💰', '✨']) {
 // licznikiem kwoty i fontanną monet. Zwraca Promise (po zamknięciu).
 const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito'];
 const CX_LADDER = [[0, 'BIG WIN', 'mega'], [15, 'MEGA WIN', 'mega'], [40, 'HUGE WIN', 'huge'], [100, 'GIGA WIN', 'giga'], [300, 'MEGA GIGA FRITO WIN', 'frito']];
+// Monety/klejnoty renderowane raz do bufora — w pętli tylko drawImage (bez gradientów na klatkę)
+const CX_COIN_SPR = (() => {
+  const cache = {};
+  const mk = (key, draw) => () => cache[key] || (cache[key] = (() => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    draw(cv.getContext('2d'), 32); return cv;
+  })());
+  const coin = (ctx, r, dollar) => {
+    const g = ctx.createRadialGradient(r - r * .3, r - r * .3, r * .1, r, r, r);
+    g.addColorStop(0, '#fff6d0'); g.addColorStop(.45, '#ffd36b'); g.addColorStop(.85, '#e09500'); g.addColorStop(1, '#8a5200');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(r, r, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(122,70,0,.7)'; ctx.lineWidth = r * .14; ctx.beginPath(); ctx.arc(r, r, r * .72, 0, Math.PI * 2); ctx.stroke();
+    if (dollar) { ctx.fillStyle = 'rgba(122,70,0,.85)'; ctx.font = `800 ${r}px Syne, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', r, r + 1); }
+  };
+  return {
+    coin: mk('coin', (ctx, r) => coin(ctx, r, true)),
+    plain: mk('plain', (ctx, r) => coin(ctx, r, false)),
+    gem: mk('gem', (ctx, r) => {
+      const g = ctx.createLinearGradient(r * .3, r * .3, r * 1.7, r * 1.7);
+      g.addColorStop(0, '#e9fff4'); g.addColorStop(.5, '#3ff2a3'); g.addColorStop(1, '#0a6a3e');
+      ctx.fillStyle = g; ctx.fillRect(r * .3, r * .3, r * 1.4, r * 1.4);
+    }),
+  };
+})();
 function cxCoinFountain(canvas, getIntensity) {
   const ctx = canvas.getContext('2d');
   const coins = [];
   let raf, alive = true;
-  const resize = () => { canvas.width = innerWidth * devicePixelRatio; canvas.height = innerHeight * devicePixelRatio; };
+  const resize = () => { const d = typeof CX_FX !== 'undefined' ? CX_FX.dpr : 1; canvas.width = innerWidth * d; canvas.height = innerHeight * d; };
   resize();
   const loop = () => {
     if (!alive) return;
-    const W = canvas.width, H = canvas.height, d = devicePixelRatio;
-    const k = getIntensity();
+    const W = canvas.width, H = canvas.height, d = typeof CX_FX !== 'undefined' ? CX_FX.dpr : 1;
+    const k = coins.length > (typeof CX_FX !== 'undefined' && CX_FX.lite ? 140 : 320) ? 0 : getIntensity();
     for (let i = 0; i < k; i++) {
       const fromSide = Math.random() < .3;
       coins.push({ x: fromSide ? (Math.random() < .5 ? 0 : W) : W / 2 + (Math.random() - .5) * W * .2, y: H + 20 * d,
@@ -155,18 +179,10 @@ function cxCoinFountain(canvas, getIntensity) {
       c.x += c.vx; c.y += c.vy; c.vy += .45 * d; c.spin += c.vs;
       if (c.y > H + 60 * d) { coins.splice(i, 1); continue; }
       const sx = Math.abs(Math.cos(c.spin));
+      const spr = c.gem ? CX_COIN_SPR.gem() : sx > .45 ? CX_COIN_SPR.coin() : CX_COIN_SPR.plain();
       ctx.save(); ctx.translate(c.x, c.y); ctx.scale(Math.max(.12, sx), 1);
-      if (c.gem) {
-        ctx.rotate(.785); const g = ctx.createLinearGradient(-c.r, -c.r, c.r, c.r);
-        g.addColorStop(0, '#e9fff4'); g.addColorStop(.5, '#3ff2a3'); g.addColorStop(1, '#0a6a3e');
-        ctx.fillStyle = g; ctx.fillRect(-c.r * .7, -c.r * .7, c.r * 1.4, c.r * 1.4);
-      } else {
-        const g = ctx.createRadialGradient(-c.r * .3, -c.r * .3, c.r * .1, 0, 0, c.r);
-        g.addColorStop(0, '#fff6d0'); g.addColorStop(.45, '#ffd36b'); g.addColorStop(.85, '#e09500'); g.addColorStop(1, '#8a5200');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, c.r, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(122,70,0,.7)'; ctx.lineWidth = c.r * .14; ctx.beginPath(); ctx.arc(0, 0, c.r * .72, 0, Math.PI * 2); ctx.stroke();
-        if (sx > .45) { ctx.fillStyle = 'rgba(122,70,0,.85)'; ctx.font = `800 ${c.r}px Syne, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', 0, 1); }
-      }
+      if (c.gem) ctx.rotate(.785);
+      ctx.drawImage(spr, -c.r, -c.r, c.r * 2, c.r * 2);
       ctx.restore();
     }
     raf = requestAnimationFrame(loop);
@@ -316,9 +332,15 @@ function cxTopbar({ icon, title, sub, info }) {
     <div class="cx-title"><div class="cx-title-icon">${icon || '🎰'}</div><div style="min-width:0"><h2>${cxEsc(title)}</h2>${sub ? `<small>${sub}</small>` : ''}</div></div>
     ${info ? `<button class="cx-icon-btn" title="Zasady i wypłaty" onclick="${info}">ℹ️</button>` : ''}
     <button class="cx-icon-btn" title="Pełny ekran" data-pwa-fs${window.atPwa?.fsAvailable ? '' : ' hidden'}>⛶</button>
+    ${typeof CX_FX !== 'undefined' ? `<button class="cx-icon-btn${CX_FX.lite ? '' : ' on'}" title="Efekty: pełne / lekkie (płynniej na słabszych urządzeniach)" onclick="cxToggleFx(this)">✨</button>` : ''}
     <button class="cx-icon-btn${cxSound.muted ? '' : ' on'}" title="Dźwięk" onclick="this.classList.toggle('on', !cxSound.toggle())">🔊</button>
     <div class="cx-balance"><span>Saldo</span><b data-cx-balance>${cxFmt(cxBalance())} AT$</b></div>
   </div>`;
+}
+function cxToggleFx(btn) {
+  CX_FX.set(CX_FX.lite ? 'full' : 'lite');
+  document.querySelectorAll('[onclick="cxToggleFx(this)"]').forEach(b => b.classList.toggle('on', !CX_FX.lite));
+  cxToast(CX_FX.lite ? '✨ Efekty lekkie — płynniej na słabszym sprzęcie' : '✨ Efekty pełne', 'info');
 }
 function cxScreen(screenId) {
   const el = document.getElementById('screen-' + screenId);

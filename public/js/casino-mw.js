@@ -48,10 +48,11 @@ function mwCss() {
 .mw-wov { position: fixed; inset: 0; z-index: 2430; display: flex; align-items: center; justify-content: center; gap: 2vmin; overflow: hidden; cursor: default;
   background: radial-gradient(circle at 50% 50%, rgba(140,20,100,.6), rgba(30,4,40,.92) 45%, rgba(6,1,10,.97) 75%); animation: cxFade .3s; }
 .mw-wov.out { opacity: 0; transition: opacity .35s; }
-.mw-rays { position: absolute; left: 50%; top: 50%; width: 220vmax; height: 220vmax; margin: -110vmax 0 0 -110vmax; pointer-events: none; opacity: .28;
+.mw-rays { position: absolute; left: 50%; top: 50%; width: 150vmax; height: 150vmax; margin: -75vmax 0 0 -75vmax; will-change: transform; pointer-events: none; opacity: .28;
   background: repeating-conic-gradient(from 0deg, rgba(255,95,179,.55) 0deg 7deg, transparent 7deg 15deg, rgba(255,211,107,.45) 15deg 22deg, transparent 22deg 30deg); animation: mwRays 24s linear infinite; }
 .mw-wov.spinning .mw-rays { animation-duration: 5s; opacity: .4; }
 @keyframes mwRays { to { transform: rotate(360deg); } }
+.fx-lite .mw-title, .fx-lite #screen-casino-mw .sk-logo { animation: none; }
 .mw-fxc { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
 .mw-stage { position: relative; flex: none; width: min(90vw, 90vh); height: min(90vw, 90vh); z-index: 2; }
 .mw-stage canvas { width: 100%; height: 100%; display: block; }
@@ -186,7 +187,7 @@ function mwWheel(res, kit) {
     let alive = true;
     const fx = new CxFx({ canvas: () => fxCv, theme: () => ({ colors: MW_FX_COLORS }), alive: () => alive });
     const css = stage.getBoundingClientRect().width;
-    const D = Math.min(2, devicePixelRatio || 1);
+    const D = Math.min(CX_FX.lite ? 1.5 : 2, devicePixelRatio || 1);
     const S = Math.round(css * D);
     cv.width = cv.height = S;
     const R = S / 2, WR = R * .86; // promień koła (rama + żarówki na zewnątrz)
@@ -195,14 +196,47 @@ function mwWheel(res, kit) {
     let ang = Math.random() * Math.PI * 2, flap = 0, mode = 'idle', winSeg = -1, hub = '🎡', hubC = '#ffd36b', lastIdx = null, lastTick = 0, vel = 0;
     const center = () => { const r = stage.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2 }; };
 
+    // Statyczne warstwy (poświata, rama, piasta) i żarówki — renderowane raz, w pętli tylko drawImage
+    const layer = (draw) => { const c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'); x.translate(R, R); draw(x); return c; };
+    const rimGrad = x => { const g = x.createLinearGradient(-R, -R, R, R); g.addColorStop(0, '#fff3c4'); g.addColorStop(.3, '#ffb02e'); g.addColorStop(.55, '#8a4b00'); g.addColorStop(.8, '#ffd36b'); g.addColorStop(1, '#fff3c4'); return g; };
+    const under = layer(x => {
+      const gl = x.createRadialGradient(0, 0, WR * .8, 0, 0, R);
+      gl.addColorStop(0, 'rgba(255,95,179,.55)'); gl.addColorStop(1, 'rgba(255,95,179,0)');
+      x.fillStyle = gl; x.beginPath(); x.arc(0, 0, R, 0, Math.PI * 2); x.fill();
+    });
+    const over = layer(x => {
+      const rim = rimGrad(x);
+      x.beginPath(); x.arc(0, 0, WR + R * .065, 0, Math.PI * 2); x.moveTo(WR - R * .005, 0); x.arc(0, 0, WR - R * .005, 0, Math.PI * 2, true);
+      x.fillStyle = rim; x.fill('evenodd');
+      x.beginPath(); x.arc(0, 0, WR + R * .065, 0, Math.PI * 2); x.lineWidth = S * .006; x.strokeStyle = '#3a1500'; x.stroke();
+      for (let i = 0; i < BULBS; i++) {
+        const a = i / BULBS * Math.PI * 2;
+        x.fillStyle = '#6b3a12'; x.beginPath(); x.arc(Math.cos(a) * (WR + R * .033), Math.sin(a) * (WR + R * .033), R * .016, 0, Math.PI * 2); x.fill();
+      }
+      const hg = x.createRadialGradient(-WR * .05, -WR * .05, 0, 0, 0, WR * .24);
+      hg.addColorStop(0, '#5b1a6e'); hg.addColorStop(1, '#16031f');
+      x.beginPath(); x.arc(0, 0, WR * .22, 0, Math.PI * 2); x.fillStyle = hg; x.fill();
+      x.lineWidth = S * .012; x.strokeStyle = rim; x.stroke();
+    });
+    const br = R * .02, BS = Math.ceil(br * 5.2) + 2;
+    const bulbSpr = col => { const c = document.createElement('canvas'); c.width = c.height = BS; const x = c.getContext('2d'), h = BS / 2;
+      const g = x.createRadialGradient(h, h, 0, h, h, br * 2.6); g.addColorStop(0, '#fff'); g.addColorStop(.35, col); g.addColorStop(1, 'rgba(255,200,80,0)');
+      x.fillStyle = g; x.fillRect(0, 0, BS, BS); return c; };
+    const bulbW = bulbSpr('#fff3c4'), bulbP = bulbSpr('#ff5fb3');
+    const ptr = (() => { const W2 = Math.ceil(R * .2), H2 = Math.ceil(R * .22), c = document.createElement('canvas'); c.width = W2; c.height = H2; const x = c.getContext('2d');
+      x.translate(W2 / 2, R * .045);
+      const path = () => { x.beginPath(); x.moveTo(-R * .06, -R * .03); x.lineTo(R * .06, -R * .03); x.lineTo(0, R * .13); x.closePath(); };
+      x.save(); x.translate(0, R * .012); path(); x.fillStyle = 'rgba(0,0,0,.45)'; x.fill(); x.restore();   // cień bez shadowBlur
+      path(); const pg = x.createLinearGradient(0, -R * .03, 0, R * .13); pg.addColorStop(0, '#fff3c4'); pg.addColorStop(1, '#ff3d9a');
+      x.fillStyle = pg; x.fill(); x.lineWidth = S * .005; x.strokeStyle = '#3a1500'; x.stroke();
+      x.beginPath(); x.arc(0, 0, R * .028, 0, Math.PI * 2); x.fillStyle = '#ffd36b'; x.fill(); x.stroke();
+      return { c, ox: W2 / 2, oy: R * .045 }; })();
+
     const draw = t => {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, S, S);
+      ctx.drawImage(under, 0, 0);
       ctx.translate(R, R);
-      // poświata
-      const gl = ctx.createRadialGradient(0, 0, WR * .8, 0, 0, R);
-      gl.addColorStop(0, 'rgba(255,95,179,.55)'); gl.addColorStop(1, 'rgba(255,95,179,0)');
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
       // koło
       ctx.save(); ctx.rotate(ang);
       ctx.drawImage(img, -WR, -WR, WR * 2, WR * 2);
@@ -210,49 +244,29 @@ function mwWheel(res, kit) {
         const pulse = .35 + .3 * Math.sin(t / 90);
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, WR * .995, winSeg * seg, (winSeg + 1) * seg); ctx.closePath();
         ctx.fillStyle = `rgba(255,255,255,${pulse})`; ctx.fill();
-        ctx.lineWidth = S * .012; ctx.strokeStyle = '#fff'; ctx.shadowColor = '#ffd36b'; ctx.shadowBlur = S * .04; ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.lineWidth = S * .03; ctx.strokeStyle = 'rgba(255,211,107,.35)'; ctx.stroke();   // poświata szeroką linią
+        ctx.lineWidth = S * .012; ctx.strokeStyle = '#fff'; ctx.stroke();
       }
-      // przyciemnienie pozostałych przy wygranej
       ctx.restore();
-      // rama
-      const rim = ctx.createLinearGradient(-R, -R, R, R);
-      rim.addColorStop(0, '#fff3c4'); rim.addColorStop(.3, '#ffb02e'); rim.addColorStop(.55, '#8a4b00'); rim.addColorStop(.8, '#ffd36b'); rim.addColorStop(1, '#fff3c4');
-      ctx.beginPath(); ctx.arc(0, 0, WR + R * .065, 0, Math.PI * 2); ctx.moveTo(WR - R * .005, 0); ctx.arc(0, 0, WR - R * .005, 0, Math.PI * 2, true);
-      ctx.fillStyle = rim; ctx.fill('evenodd');
-      ctx.beginPath(); ctx.arc(0, 0, WR + R * .065, 0, Math.PI * 2); ctx.lineWidth = S * .006; ctx.strokeStyle = '#3a1500'; ctx.stroke();
-      // żarówki
+      // rama + zgaszone żarówki + piasta
+      ctx.drawImage(over, -R, -R);
+      // zapalone żarówki
       const step = Math.floor(t / (mode === 'spin' ? Math.max(25, 90 - Math.abs(vel) * 900) : mode === 'win' ? 110 : 420));
       for (let i = 0; i < BULBS; i++) {
-        const a = i / BULBS * Math.PI * 2;
-        const x = Math.cos(a) * (WR + R * .033), y = Math.sin(a) * (WR + R * .033);
         const on = mode === 'spin' ? (i + step) % 4 === 0 || (i + step) % 4 === 1 : mode === 'win' ? step % 2 === 0 : (i + step) % 2 === 0;
-        const br = R * .02;
-        if (on) {
-          const g = ctx.createRadialGradient(x, y, 0, x, y, br * 2.6);
-          const col = mode === 'win' ? (i % 2 ? '#ff5fb3' : '#fff3c4') : '#fff3c4';
-          g.addColorStop(0, '#fff'); g.addColorStop(.35, col); g.addColorStop(1, 'rgba(255,200,80,0)');
-          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, br * 2.6, 0, Math.PI * 2); ctx.fill();
-        } else {
-          ctx.fillStyle = '#6b3a12'; ctx.beginPath(); ctx.arc(x, y, br * .8, 0, Math.PI * 2); ctx.fill();
-        }
+        if (!on) continue;
+        const a = i / BULBS * Math.PI * 2;
+        ctx.drawImage(mode === 'win' && i % 2 ? bulbP : bulbW, Math.cos(a) * (WR + R * .033) - BS / 2, Math.sin(a) * (WR + R * .033) - BS / 2);
       }
-      // piasta
-      const hg = ctx.createRadialGradient(-WR * .05, -WR * .05, 0, 0, 0, WR * .24);
-      hg.addColorStop(0, '#5b1a6e'); hg.addColorStop(1, '#16031f');
-      ctx.beginPath(); ctx.arc(0, 0, WR * .22, 0, Math.PI * 2); ctx.fillStyle = hg; ctx.fill();
-      ctx.lineWidth = S * .012; ctx.strokeStyle = rim; ctx.stroke();
-      ctx.fillStyle = hubC; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.shadowColor = hubC; ctx.shadowBlur = S * .02;
+      // napis na piaście (poświata = szeroki półprzezroczysty obrys)
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const hs = hub.length > 6 ? S * .045 : hub.length > 4 ? S * .055 : S * .07;
-      ctx.font = `800 ${hs}px Syne, sans-serif`; ctx.fillText(hub, 0, S * .004);
-      ctx.shadowBlur = 0;
+      ctx.font = `800 ${hs}px Syne, sans-serif`;
+      ctx.globalAlpha = .35; ctx.lineWidth = S * .012; ctx.strokeStyle = hubC; ctx.lineJoin = 'round'; ctx.strokeText(hub, 0, S * .004); ctx.globalAlpha = 1;
+      ctx.fillStyle = hubC; ctx.fillText(hub, 0, S * .004);
       // wskaźnik (u góry, odbija się na kołkach)
       ctx.save(); ctx.translate(0, -WR - R * .07); ctx.rotate(flap);
-      ctx.beginPath(); ctx.moveTo(-R * .06, -R * .03); ctx.lineTo(R * .06, -R * .03); ctx.lineTo(0, R * .13); ctx.closePath();
-      const pg = ctx.createLinearGradient(0, -R * .03, 0, R * .13); pg.addColorStop(0, '#fff3c4'); pg.addColorStop(1, '#ff3d9a');
-      ctx.fillStyle = pg; ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = S * .015; ctx.fill();
-      ctx.lineWidth = S * .005; ctx.strokeStyle = '#3a1500'; ctx.stroke();
-      ctx.beginPath(); ctx.arc(0, 0, R * .028, 0, Math.PI * 2); ctx.fillStyle = '#ffd36b'; ctx.fill(); ctx.stroke();
+      ctx.drawImage(ptr.c, -ptr.ox, -ptr.oy);
       ctx.restore();
     };
     let raf = null;

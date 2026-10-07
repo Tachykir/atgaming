@@ -22,77 +22,170 @@ const SK_SCATTER_FX = {
 
 // ══ Silnik cząsteczek (automaty i efekty pełnoekranowe) ═════════════
 // kinds: spark, star, ember, glyph, confetti, bubble, smoke, bolt, coin, ring, sand
+// Wydajność: poświata z gotowych sprite'ów (zamiast shadowBlur liczonego dla każdej cząsteczki),
+// ograniczona gęstość pikseli, limit cząsteczek i adaptacyjna jakość (mniej cząsteczek, gdy klatki się spóźniają).
+const CX_FX = (() => {
+  const touch = matchMedia('(hover: none) and (pointer: coarse)').matches;
+  let forced = null;
+  try { forced = localStorage.getItem('cx_fx'); } catch (e) {}
+  const st = {
+    lite: forced ? forced === 'lite' : (touch || (navigator.hardwareConcurrency || 8) <= 4),
+    q: 1,              // współczynnik liczby cząsteczek (adaptacyjny)
+    ema: 16,           // średni czas klatki [ms]
+    get maxParts() { return st.lite ? 260 : 700; },
+    get dpr() { return Math.min(devicePixelRatio || 1, st.lite ? 1 : 1.5); },
+    set(mode) {
+      st.lite = mode === 'lite';
+      try { localStorage.setItem('cx_fx', mode); } catch (e) {}
+      document.documentElement.classList.toggle('fx-lite', st.lite);
+    },
+    // Pomiar klatek: przy spadku poniżej ~40 FPS zmniejsz liczbę cząsteczek, przy płynnym obrazie wróć do pełnej
+    frame(dt) {
+      if (dt > 200) return;
+      st.ema = st.ema * 0.9 + dt * 0.1;
+      if (st.ema > 25) st.q = Math.max(0.3, st.q * 0.92);
+      else if (st.ema < 18) st.q = Math.min(1, st.q * 1.01);
+    },
+  };
+  document.documentElement.classList.toggle('fx-lite', st.lite);
+  return st;
+})();
+const cxSprites = new Map();
+function cxSprite(kind, color) {
+  color = cxHex(color);
+  const key = kind + color;
+  let c = cxSprites.get(key);
+  if (c) return c;
+  c = document.createElement('canvas');
+  const S = 64; c.width = c.height = S;
+  const g = c.getContext('2d');
+  if (kind === 'glow') {
+    const gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    gr.addColorStop(0, '#fff'); gr.addColorStop(0.18, color); gr.addColorStop(0.45, color + '66'); gr.addColorStop(1, color + '00');
+    g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  } else if (kind === 'soft') {
+    const gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    gr.addColorStop(0, color); gr.addColorStop(1, color + '00');
+    g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  } else if (kind === 'star') {
+    const gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    gr.addColorStop(0, color + 'aa'); gr.addColorStop(1, color + '00');
+    g.fillStyle = gr; g.fillRect(0, 0, S, S);
+    g.translate(S / 2, S / 2); g.beginPath();
+    for (let k = 0; k < 8; k++) { const rr = k % 2 ? S * .09 : S * .32; const an = k * Math.PI / 4; g.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); }
+    g.closePath(); g.fillStyle = color; g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 0, S * .06, 0, Math.PI * 2); g.fill();
+  }
+  cxSprites.set(key, c);
+  return c;
+}
+// Dowolny kolor CSS → #rrggbb (canvas normalizuje fillStyle); kolory z przezroczystością → złoty zapasowy
+const cxHexCache = new Map();
+function cxHex(c) {
+  if (/^#[0-9a-f]{6}$/i.test(c)) return c;
+  if (cxHexCache.has(c)) return cxHexCache.get(c);
+  const t = cxHex.ctx || (cxHex.ctx = document.createElement('canvas').getContext('2d'));
+  t.fillStyle = '#ffd36b'; t.fillStyle = c;
+  const v = /^#[0-9a-f]{6}$/i.test(t.fillStyle) ? t.fillStyle : '#ffd36b';
+  cxHexCache.set(c, v);
+  return v;
+}
+
 class CxFx {
-  constructor({ canvas, theme, alive }) { this.canvas = canvas; this.theme = theme || (() => null); this.alive = alive || (() => true); this.parts = []; this.raf = null; }
+  constructor({ canvas, theme, alive }) { this.canvas = canvas; this.theme = theme || (() => null); this.alive = alive || (() => true); this.parts = []; this.raf = null; this.size = null; this.frameN = 0; }
   emit(x, y, kind, n = 10, o = {}) {
     if (!this.canvas()) return;
     const th = this.theme() || {};
-    const colors = o.colors || th.colors || ['#ffd36b'];
+    const colors = (o.colors || th.colors || ['#ffd36b']).filter(Boolean).map(cxHex);
     const pick = () => colors[Math.floor(Math.random() * colors.length)];
     const sc = o.scale || 1, sp = o.speed || 1, spread = o.spread ?? 20;
-    if (this.parts.length > 900) return;
+    const room = CX_FX.maxParts - this.parts.length;
+    if (room <= 0) return;
+    n = Math.min(room, kind === 'ring' ? n : Math.max(1, Math.round(n * CX_FX.q * (CX_FX.lite ? 0.6 : 1))));
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
       const p = { k: kind, x: x + Math.cos(a) * spread * Math.random(), y: y + Math.sin(a) * spread * Math.random(), vx: 0, vy: 0, g: .12, drag: .985, life: 1, decay: .02, size: 3, color: pick(), rot: Math.random() * 6, vr: (Math.random() - .5) * .3 };
       const v = (1.5 + Math.random() * 4) * sp;
       switch (kind) {
-        case 'spark': p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v - 2; p.decay = .012 + Math.random() * .02; p.size = 2 + Math.random() * 3.5; p.star = Math.random() < .3; if (Math.random() < .35) p.color = '#fff'; break;
+        case 'spark': p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v - 2; p.decay = .012 + Math.random() * .02; p.size = 2 + Math.random() * 3.5; p.star = Math.random() < .3; if (Math.random() < .35) p.color = '#ffffff'; break;
         case 'star': p.vx = Math.cos(a) * v * .6; p.vy = Math.sin(a) * v * .6 - 1; p.g = .02; p.drag = .96; p.decay = .01 + Math.random() * .012; p.size = (4 + Math.random() * 6) * sc; break;
         case 'ember': p.vx = (Math.random() - .5) * 2.2 * sp; p.vy = -(1 + Math.random() * 3) * sp; p.g = -.04; p.drag = .99; p.decay = .012 + Math.random() * .015; p.size = (1.5 + Math.random() * 3) * sc; break;
-        case 'glyph': { const gl = th.glyphs || '✦✧'; p.ch = gl[Math.floor(Math.random() * gl.length)]; p.vx = Math.cos(a) * v * .5; p.vy = -(1 + Math.random() * 2) * sp; p.g = -.015; p.drag = .97; p.decay = .01 + Math.random() * .01; p.size = (12 + Math.random() * 12) * sc; break; }
+        case 'glyph': { const gl = th.glyphs || '✦✧'; p.ch = [...gl][Math.floor(Math.random() * [...gl].length)]; p.vx = Math.cos(a) * v * .5; p.vy = -(1 + Math.random() * 2) * sp; p.g = -.015; p.drag = .97; p.decay = .01 + Math.random() * .01; p.size = (12 + Math.random() * 12) * sc; break; }
         case 'confetti': p.vx = Math.cos(a) * v * 1.2; p.vy = Math.sin(a) * v - 4 * sp; p.g = .14; p.drag = .975; p.decay = .008 + Math.random() * .01; p.size = (5 + Math.random() * 5) * sc; p.vr = (Math.random() - .5) * .5; break;
         case 'bubble': p.vx = (Math.random() - .5) * 1.5; p.vy = -(.8 + Math.random() * 2) * sp; p.g = -.02; p.drag = .99; p.decay = .01 + Math.random() * .01; p.size = (4 + Math.random() * 9) * sc; break;
         case 'smoke': p.vx = (Math.random() - .5) * 1.2; p.vy = -(.3 + Math.random()) * sp; p.g = -.005; p.drag = .99; p.decay = .008 + Math.random() * .008; p.size = (14 + Math.random() * 18) * sc; break;
-        case 'bolt': { p.decay = .06 + Math.random() * .04; p.g = 0; const len = (40 + Math.random() * 70) * sc; const pts = [[0, 0]]; let px = 0, py = 0; for (let k = 1; k <= 7; k++) { px = Math.cos(a) * len * k / 7 + (Math.random() - .5) * 14 * sc; py = Math.sin(a) * len * k / 7 + (Math.random() - .5) * 14 * sc; pts.push([px, py]); } p.pts = pts; p.x = x; p.y = y; break; }
+        case 'bolt': { p.decay = .06 + Math.random() * .04; p.g = 0; const len = (40 + Math.random() * 70) * sc; const pts = [[0, 0]]; for (let k = 1; k <= 7; k++) pts.push([Math.cos(a) * len * k / 7 + (Math.random() - .5) * 14 * sc, Math.sin(a) * len * k / 7 + (Math.random() - .5) * 14 * sc]); p.pts = pts; p.x = x; p.y = y; break; }
         case 'coin': p.vx = Math.cos(a) * v * .8; p.vy = -(4 + Math.random() * 5) * sp; p.g = .22; p.drag = .99; p.decay = .009 + Math.random() * .008; p.size = (6 + Math.random() * 4) * sc; p.vr = .15 + Math.random() * .25; p.color = Math.random() < .5 ? '#ffd36b' : '#f5a623'; break;
         case 'ring': p.x = x; p.y = y; p.r = 6 * sc + i * 14 * sc; p.vrad = (2.5 + i * .6) * sp * Math.max(1, sc); p.g = 0; p.decay = .028; p.size = 4 * sc; break;
         case 'sand': p.vx = Math.cos(a) * v * .7; p.vy = Math.sin(a) * v * .5 - 1.5; p.g = .05; p.drag = .97; p.decay = .012 + Math.random() * .015; p.size = (1 + Math.random() * 2) * sc; break;
       }
       this.parts.push(p);
     }
-    if (!this.raf) this.loop();
+    if (!this.raf) { this.last = performance.now(); this.loop(); }
+  }
+  // Rozmiar canvasu odczytywany co kilkanaście klatek (getBoundingClientRect w każdej klatce wymusza przeliczenie układu)
+  measure(cv) {
+    if (!this.size || this.frameN % 20 === 0) {
+      const r = cv.getBoundingClientRect(), d = CX_FX.dpr;
+      this.size = { w: r.width, h: r.height, d };
+      const W = Math.round(r.width * d), H = Math.round(r.height * d);
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    }
+    return this.size;
   }
   loop() {
     const cv = this.canvas();
-    if (!cv || !this.alive()) { this.raf = null; this.parts = []; return; }
-    const r = cv.getBoundingClientRect(), d = devicePixelRatio;
-    if (cv.width !== Math.round(r.width * d)) { cv.width = r.width * d; cv.height = r.height * d; }
+    if (!cv || !this.alive()) { this.raf = null; this.parts = []; this.size = null; return; }
+    const now = performance.now();
+    CX_FX.frame(now - this.last); this.last = now;
+    this.frameN++;
+    const { w, h, d } = this.measure(cv);
     const ctx = cv.getContext('2d');
     ctx.setTransform(d, 0, 0, d, 0, 0);
-    ctx.clearRect(0, 0, r.width, r.height);
+    ctx.clearRect(0, 0, w, h);
     ctx.globalCompositeOperation = 'lighter';
-    this.parts = this.parts.filter(p => {
+    const lite = CX_FX.lite;
+    let j = 0;
+    for (let i = 0; i < this.parts.length; i++) {
+      const p = this.parts[i];
       p.vy += p.g; p.vx *= p.drag; p.vy *= p.drag; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= p.decay;
-      if (p.life <= 0) return false;
+      if (p.life <= 0 || p.y > h + 60 || p.y < -120) continue;
+      this.parts[j++] = p;
       const al = Math.min(1, p.life * 1.4);
       ctx.globalAlpha = al;
-      ctx.fillStyle = ctx.strokeStyle = p.color;
-      ctx.shadowColor = p.color; ctx.shadowBlur = 10;
       switch (p.k) {
         case 'star': {
           ctx.globalAlpha = al * (.6 + .4 * Math.sin(p.life * 30));
-          const s = p.size; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * .3); ctx.beginPath();
-          for (let k = 0; k < 8; k++) { const rr = k % 2 ? s * .28 : s; const an = k * Math.PI / 4; ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); }
-          ctx.closePath(); ctx.fill(); ctx.restore(); break;
+          const s = p.size * 3.1;
+          if (lite) ctx.drawImage(cxSprite('star', p.color), p.x - s / 2, p.y - s / 2, s, s);
+          else { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * .3); ctx.drawImage(cxSprite('star', p.color), -s / 2, -s / 2, s, s); ctx.restore(); }
+          break;
         }
-        case 'ember': ctx.globalAlpha = al * (.55 + Math.random() * .45); ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (.5 + p.life * .5), 0, Math.PI * 2); ctx.fill(); break;
-        case 'glyph': ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.sin(p.rot) * .4); ctx.font = `700 ${p.size}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.ch, 0, 0); ctx.restore(); break;
-        case 'confetti': ctx.shadowBlur = 0; ctx.globalCompositeOperation = 'source-over'; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.scale(Math.cos(p.rot * 2.3), 1); ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); ctx.restore(); ctx.globalCompositeOperation = 'lighter'; break;
-        case 'bubble': ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x + Math.sin(p.rot * 3) * 2, p.y, p.size, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = al * .5; ctx.beginPath(); ctx.arc(p.x - p.size * .35, p.y - p.size * .35, p.size * .22, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); break;
-        case 'smoke': { p.size *= 1.012; ctx.shadowBlur = 0; ctx.globalAlpha = al * .22; const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size); gr.addColorStop(0, p.color); gr.addColorStop(1, 'transparent'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); break; }
-        case 'bolt': ctx.lineWidth = 2.2; ctx.shadowBlur = 16; ctx.beginPath(); p.pts.forEach(([px, py], k) => k ? ctx.lineTo(p.x + px, p.y + py) : ctx.moveTo(p.x + px, p.y + py)); ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = '#fff'; ctx.stroke(); break;
-        case 'coin': { ctx.globalCompositeOperation = 'source-over'; const w = Math.abs(Math.cos(p.rot)) * p.size + 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, w, p.size, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#a35f00'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.globalCompositeOperation = 'lighter'; break; }
-        case 'ring': p.r += p.vrad; ctx.lineWidth = Math.max(.5, p.size * p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.stroke(); break;
-        case 'sand': ctx.shadowBlur = 4; ctx.fillRect(p.x, p.y, p.size, p.size); break;
-        default:
-          if (p.star) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.life * 6); ctx.fillRect(-p.size, -p.size * .25, p.size * 2, p.size * .5); ctx.fillRect(-p.size * .25, -p.size, p.size * .5, p.size * 2); ctx.restore(); }
-          else { ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill(); }
+        case 'ember': { ctx.globalAlpha = al * (.55 + Math.random() * .45); const s = p.size * (.5 + p.life * .5) * 5; ctx.drawImage(cxSprite('glow', p.color), p.x - s / 2, p.y - s / 2, s, s); break; }
+        case 'glyph': {
+          const s = p.size * 2.2; ctx.globalAlpha = al * .5; ctx.drawImage(cxSprite('glow', p.color), p.x - s / 2, p.y - s / 2, s, s);
+          ctx.globalAlpha = al; ctx.fillStyle = p.color; ctx.font = `700 ${p.size | 0}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.ch, p.x, p.y); break;
+        }
+        case 'confetti': ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = p.color; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.scale(Math.cos(p.rot * 2.3), 1); ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); ctx.restore(); ctx.globalCompositeOperation = 'lighter'; break;
+        case 'bubble': ctx.strokeStyle = p.color; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x + Math.sin(p.rot * 3) * 2, p.y, p.size, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = al * .5; ctx.fillStyle = '#fff'; ctx.fillRect(p.x - p.size * .45, p.y - p.size * .45, p.size * .3, p.size * .3); break;
+        case 'smoke': { p.size *= 1.012; ctx.globalAlpha = al * .22; const s = p.size * 2; ctx.drawImage(cxSprite('soft', p.color), p.x - p.size, p.y - p.size, s, s); break; }
+        case 'bolt': {
+          ctx.beginPath(); p.pts.forEach(([px, py], k) => k ? ctx.lineTo(p.x + px, p.y + py) : ctx.moveTo(p.x + px, p.y + py));
+          ctx.strokeStyle = p.color; ctx.globalAlpha = al * .35; ctx.lineWidth = 7; ctx.stroke();   // poświata = szeroka półprzezroczysta linia
+          ctx.globalAlpha = al; ctx.lineWidth = 2.2; ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = '#fff'; ctx.stroke(); break;
+        }
+        case 'coin': { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = p.color; const cw = Math.abs(Math.cos(p.rot)) * p.size + 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, cw, p.size, 0, 0, Math.PI * 2); ctx.fill(); if (!lite) { ctx.strokeStyle = '#a35f00'; ctx.lineWidth = 1.2; ctx.stroke(); } ctx.globalCompositeOperation = 'lighter'; break; }
+        case 'ring': p.r += p.vrad; ctx.strokeStyle = p.color; ctx.lineWidth = Math.max(.5, p.size * p.life); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.stroke(); break;
+        case 'sand': ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); break;
+        default: {
+          const s = p.size * p.life * 5;
+          ctx.drawImage(cxSprite('glow', p.color), p.x - s / 2, p.y - s / 2, s, s);
+        }
       }
-      return true;
-    });
-    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-    if (this.parts.length) this.raf = requestAnimationFrame(() => this.loop());
-    else { ctx.clearRect(0, 0, r.width, r.height); this.raf = null; }
+    }
+    this.parts.length = j;
+    ctx.globalAlpha = 1;
+    if (j) this.raf = requestAnimationFrame(() => this.loop());
+    else { ctx.clearRect(0, 0, w, h); this.raf = null; this.size = null; }
   }
 }
 

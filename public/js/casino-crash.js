@@ -152,7 +152,7 @@ function crResize() {
   const cv = document.getElementById('cr-canvas');
   if (!cv) return;
   const r = cv.getBoundingClientRect();
-  cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio;
+  cv.width = r.width * CX_FX.dpr; cv.height = r.height * CX_FX.dpr;
 }
 window.addEventListener('resize', () => { if (cr) crResize(); });
 
@@ -160,7 +160,7 @@ function crLoop() {
   const cv = document.getElementById('cr-canvas');
   if (!cv || !cr) return;
   const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height, d = devicePixelRatio;
+  const W = cv.width, H = cv.height, d = CX_FX.dpr;
   if (!W) { crResize(); cr.raf = requestAnimationFrame(crLoop); return; }
   ctx.clearRect(0, 0, W, H);
   const st = cr.state;
@@ -190,7 +190,7 @@ function crLoop() {
       ctx.beginPath(); ctx.moveTo(X(0), Y(1));
       const N = 80;
       for (let i = 1; i <= N; i++) { const t = tNow * i / N; ctx.lineTo(X(t), Y(Math.exp(cr.growth * t))); }
-      ctx.strokeStyle = grad; ctx.lineWidth = 4 * d; ctx.shadowColor = crashed ? '#ff5c7a' : '#3ff2a3'; ctx.shadowBlur = 16 * d; ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = crashed ? 'rgba(255,92,122,.22)' : 'rgba(63,242,163,.22)'; ctx.lineWidth = 14 * d; ctx.stroke(); ctx.strokeStyle = grad; ctx.lineWidth = 4 * d; ctx.stroke();  // poświata szeroką linią zamiast shadowBlur
       ctx.lineTo(X(tNow), H - pad); ctx.lineTo(X(0), H - pad); ctx.closePath();
       const fill = ctx.createLinearGradient(0, 0, 0, H);
       fill.addColorStop(0, crashed ? 'rgba(255,92,122,.25)' : 'rgba(63,242,163,.22)'); fill.addColorStop(1, 'rgba(0,0,0,0)');

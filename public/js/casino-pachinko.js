@@ -127,7 +127,9 @@ function pkResize() {
   if (!w) return;
   const h = Math.min(window.innerHeight * .72, w * 0.95);
   cv.style.height = h + 'px';
-  cv.width = w * devicePixelRatio; cv.height = h * devicePixelRatio;
+  const d = CX_FX.dpr;
+  cv.width = w * d; cv.height = h * d;
+  if (pk) pk.dirty = true;
 }
 window.addEventListener('resize', () => { if (pk) pkResize(); });
 
@@ -144,17 +146,28 @@ function pkPosX(g, row, pos) { return g.C + (pos - row / 2) * g.s; }
 function pkLoop() {
   const cv = document.getElementById('pk-canvas');
   if (!cv || !pk) return;
-  if (cv.clientWidth && Math.abs(cv.width - cv.clientWidth * devicePixelRatio) > 2) pkResize();
+  if (cv.clientWidth && Math.abs(cv.width - cv.clientWidth * CX_FX.dpr) > 2) pkResize();
   if (!cv.width) { pk.raf = requestAnimationFrame(pkLoop); return; }
   const ctx = cv.getContext('2d');
   const g = pkGeom(), cfg = PK_CFG[pk.risk], now = performance.now();
+  // Bez lecących kulek i błysków nic się nie zmienia — nie rysuj ponownie (oszczędza CPU/baterię)
+  const flashing = Object.values(pk.flash).some(t => now - t < 520);
+  if (!pk.flying.length && !flashing && !pk.dirty) { pk.raf = requestAnimationFrame(pkLoop); return; }
+  pk.dirty = false;
   ctx.clearRect(0, 0, g.W, g.H);
-  // kołki
-  for (let r = 0; r < g.R; r++) for (let k = 0; k < r + 3; k++) {
-    const x = g.C + (k - (r + 2) / 2) * g.s, y = g.rowY(r);
-    ctx.beginPath(); ctx.arc(x, y, Math.max(2, g.s * .09), 0, Math.PI * 2);
-    ctx.fillStyle = '#d9d4ff'; ctx.shadowColor = 'rgba(167,139,250,.8)'; ctx.shadowBlur = 6; ctx.fill(); ctx.shadowBlur = 0;
+  // kołki — statyczne, rysowane raz do bufora (z poświatą) i kopiowane
+  const key = `${g.W}x${g.H}:${pk.risk}`;
+  if (pk.pegKey !== key) {
+    const off = pk.pegCv || (pk.pegCv = document.createElement('canvas'));
+    off.width = g.W; off.height = g.H;
+    const o = off.getContext('2d');
+    o.fillStyle = '#d9d4ff'; o.shadowColor = 'rgba(167,139,250,.8)'; o.shadowBlur = 6;
+    for (let r = 0; r < g.R; r++) for (let k = 0; k < r + 3; k++) {
+      o.beginPath(); o.arc(g.C + (k - (r + 2) / 2) * g.s, g.rowY(r), Math.max(2, g.s * .09), 0, Math.PI * 2); o.fill();
+    }
+    pk.pegKey = key;
   }
+  ctx.drawImage(pk.pegCv, 0, 0);
   // przegródki z mnożnikami
   const n = cfg.mults.length;
   for (let i = 0; i < n; i++) {
@@ -165,7 +178,7 @@ function pkLoop() {
     const fl = pk.flash[i] ? Math.max(0, 1 - (now - pk.flash[i]) / 500) : 0;
     ctx.save(); ctx.translate(x, g.binY + h / 2 + fl * -6);
     ctx.fillStyle = col; ctx.globalAlpha = .85 + fl * .15;
-    const rr = 6 * devicePixelRatio;
+    const rr = 6 * CX_FX.dpr;
     ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-w / 2, -h / 2, w, h, rr) : ctx.rect(-w / 2, -h / 2, w, h); ctx.fill();
     ctx.globalAlpha = 1; ctx.fillStyle = '#1a0d00'; ctx.font = `800 ${Math.max(8, g.s * (m >= 100 ? .26 : .3))}px Syne, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(m + (m >= 100 ? '' : '×'), 0, 1);
@@ -188,10 +201,12 @@ function pkLoop() {
       x = x0 + (x1 - x0) * fr;
       y = y0 + (y1 - y0) * (fr * fr) - Math.sin(fr * Math.PI) * g.s * .35;
     }
+    const gs = g.s * .9;
+    ctx.globalAlpha = .7; ctx.drawImage(cxSprite('glow', '#ffd36b'), x - gs / 2, y - gs / 2, gs, gs); ctx.globalAlpha = 1;
     ctx.beginPath(); ctx.arc(x, y, g.s * .16, 0, Math.PI * 2);
     const bg = ctx.createRadialGradient(x - 2, y - 2, 1, x, y, g.s * .16);
     bg.addColorStop(0, '#fff6d5'); bg.addColorStop(1, '#f5a623');
-    ctx.fillStyle = bg; ctx.shadowColor = '#ffd36b'; ctx.shadowBlur = 14; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = bg; ctx.fill();
     if (p >= 1) { pkLanded(b); return false; }
     return true;
   });

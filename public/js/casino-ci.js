@@ -23,7 +23,7 @@ function ciInjectCss() {
 #screen-casino-ci .ci-layer.l2 i { background-image: radial-gradient(1.5px 1.5px at 40px 120px, #ffd6fb, transparent), radial-gradient(1.5px 1.5px at 150px 60px, #bff4ff, transparent), radial-gradient(2px 2px at 110px 170px, #fff, transparent); background-size: 200px 200px; opacity: .75; animation-duration: 40s; }
 #screen-casino-ci .ci-layer.l3 i { background-image: radial-gradient(2.5px 2.5px at 90px 220px, #fff, transparent), radial-gradient(2px 2px at 300px 90px, #ff9ff0, transparent), radial-gradient(3px 3px at 220px 330px, #9ff4ff, transparent); background-size: 400px 400px; animation-duration: 25s; }
 #screen-casino-ci .ci-nebula { position: absolute; inset: -20%; background: conic-gradient(from 0deg at 75% 45%, transparent, rgba(180,140,255,.12), transparent 30%, rgba(79,227,255,.1), transparent 60%, rgba(255,79,216,.12), transparent); animation: ciSpin 80s linear infinite; }
-@keyframes ciDrift { from { background-position: 0 0; } to { background-position: -400px 0; } }
+@keyframes ciDrift { to { transform: translateX(-400px); } }
 @keyframes ciSpin { to { transform: rotate(360deg); } }
 #screen-casino-ci [data-sk="boards"] { display: flex; justify-content: center; }
 #screen-casino-ci [data-sk="boards"] > .sk-reels { max-width: none !important; flex: none; transition: width .45s cubic-bezier(.3,1.2,.5,1), height .45s; background: rgba(4,2,16,.55); border-color: rgba(180,140,255,.25); box-shadow: 0 0 30px rgba(180,140,255,.15), inset 0 0 30px rgba(79,227,255,.08); }
