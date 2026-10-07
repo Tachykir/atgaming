@@ -1,3 +1,4 @@
+const env      = require('./lib/env'); // pierwsze: wczytuje .env
 const express  = require('express');
 const http     = require('http');
 const { Server } = require('socket.io');
@@ -9,23 +10,22 @@ const casino        = require('./casino');
 const casinoHttp    = require('./casino/http');
 const casinoSockets = require('./casino/sockets');
 const adminAuth     = require('./lib/adminAuth');
-
-// Ładuj .env jeśli istnieje
-try {
-  const envPath = path.join(__dirname, '.env');
-  if (fs.existsSync(envPath)) {
-    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
-      const [key, ...rest] = line.split('=');
-      if (key && !key.startsWith('#') && rest.length) {
-        process.env[key.trim()] = rest.join('=').trim();
-      }
-    });
-  }
-} catch(e) {}
+const { DbSessionStore } = require('./lib/sessionStore');
+const { persisted, flushAll } = require('./lib/persisted');
 
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*' } });
+// Socket.io: połączenia tylko z tej samej domeny (lub z ALLOWED_ORIGINS / domeny z DISCORD_REDIRECT_URI)
+const io     = new Server(server, {
+  allowRequest(req, done) {
+    const origin = req.headers.origin;
+    if (!origin) return done(null, true);
+    try {
+      if (new URL(origin).host === req.headers.host || env.allowedOrigins().includes(origin)) return done(null, true);
+    } catch (e) {}
+    done('Niedozwolone źródło połączenia', false);
+  },
+});
 
 app.use(express.json());
 
@@ -50,7 +50,7 @@ let _sessionMiddleware = null;
 discordAuth.setupSession = function(app) {
   const session = require('express-session');
   const cfg = {
-    secret: process.env.SESSION_SECRET || 'atgaming-secret-change-me',
+    store: new DbSessionStore(),   // sesje w bazie — restart nie wylogowuje graczy
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -60,7 +60,22 @@ discordAuth.setupSession = function(app) {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   };
-  _sessionMiddleware = session(cfg);
+  // Sekret sesji: SESSION_SECRET z env, a gdy go brak — losowy, zapamiętany w bazie (stały między restartami)
+  let real = null;
+  const ready = (async () => {
+    let secret = process.env.SESSION_SECRET;
+    if (!secret) {
+      await casino.store.whenReady();
+      secret = await casino.store.getSetting('session_secret').catch(() => null);
+      if (!secret) {
+        secret = require('crypto').randomBytes(48).toString('hex');
+        await casino.store.setSetting('session_secret', secret).catch(() => {});
+      }
+      console.warn('⚠️  SESSION_SECRET nie jest ustawiony — używam losowego sekretu zapisanego w bazie');
+    }
+    real = session({ ...cfg, secret });
+  })();
+  _sessionMiddleware = (req, res, next) => real ? real(req, res, next) : ready.then(() => real(req, res, next), next);
   app.set('trust proxy', 1);
   app.use(_sessionMiddleware);
 };
@@ -104,19 +119,18 @@ const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard_data.json');
 const LEADERBOARD_MAX = 100; // max entries per game
 
 let leaderboard = {};
-try {
-  if (fs.existsSync(LEADERBOARD_FILE)) {
-    leaderboard = JSON.parse(fs.readFileSync(LEADERBOARD_FILE, 'utf8'));
-    console.log(`📊 Leaderboard wczytany (${Object.keys(leaderboard).length} gier)`);
+// Trzymany w bazie (Postgres / JSON) — plik na dysku kontenera znika przy każdym deployu
+const leaderboardStore = persisted('party_leaderboard', () => leaderboard);
+async function loadLeaderboard() {
+  const saved = await leaderboardStore.load().catch(() => null);
+  if (saved && typeof saved === 'object') leaderboard = saved;
+  else if (fs.existsSync(LEADERBOARD_FILE)) {
+    // Jednorazowa migracja ze starego pliku
+    try { leaderboard = JSON.parse(fs.readFileSync(LEADERBOARD_FILE, 'utf8')); leaderboardStore.save(); } catch (e) {}
   }
-} catch(e) {
-  console.error('Błąd wczytywania leaderboard:', e.message);
+  console.log(`📊 Leaderboard wczytany (${Object.keys(leaderboard).length} gier)`);
 }
-
-function saveLeaderboard() {
-  try { fs.writeFileSync(LEADERBOARD_FILE, JSON.stringify(leaderboard, null, 2)); }
-  catch(e) { console.error('Błąd zapisu leaderboard:', e.message); }
-}
+function saveLeaderboard() { leaderboardStore.save(); }
 
 function recordScore(gameId, playerName, score, meta = {}) {
   if (!leaderboard[gameId]) leaderboard[gameId] = [];
@@ -166,7 +180,8 @@ casino.initTables();
 
 // Zainicjuj bazę danych (PG lub JSON) i dopiero potem uruchom serwer
 const PORT = process.env.PORT || 3000;
-casino.init().then(() => {
+casino.init().then(async () => {
+  await Promise.all([loadLeaderboard(), loadContent()]);
   server.listen(PORT, () => console.log(`\n🚀 Serwer działa na porcie ${PORT}\n`));
   casino.scheduleWeeklyTopup(io);
   casinoSockets.startLoops(io);
@@ -185,6 +200,7 @@ async function gracefulShutdown(signal) {
   try {
     io.emit('serverRestart', { message: 'Serwer jest restartowany — AT$ z gier w toku zostały zwrócone.' });
     server.close();
+    await flushAll();
     const r = await casinoSockets.shutdown();
     if (r.players) console.log(`💸 Zwrócono ${r.total.toLocaleString('pl-PL')} AT$ (${r.players} graczy)`);
   } catch (e) { console.error('Shutdown error:', e); }
@@ -346,6 +362,23 @@ function adminCheck(password, res) {
   res.status(403).json({ error: 'Brak dostępu' });
   return false;
 }
+
+// Treści gier edytowane w panelu admina — zapis w bazie (przetrwają restart)
+const contentStore = persisted('admin_content', () => CONTENT);
+async function loadContent() {
+  const saved = await contentStore.load().catch(() => null);
+  if (saved && typeof saved === 'object') for (const [id, c] of Object.entries(saved)) if (CONTENT[id]) CONTENT[id] = c;
+}
+const DIFFS = ['easy', 'medium', 'hard'];
+app.use(/^\/api\/admin\/(hangman|quiz|wordrace|reset)/, (req, res, next) => {
+  const b = req.body || {};
+  if (b.difficulty !== undefined && !DIFFS.includes(b.difficulty)) return res.status(400).json({ error: 'Nieprawidłowy poziom trudności' });
+  const game = req.baseUrl.split('/')[3];
+  if (req.method === 'DELETE' && CONTENT[game] && !CONTENT[game][b.category]?.[b.difficulty]) return res.status(404).json({ error: 'Nie ma takiej kategorii' });
+  for (const f of ['word', 'question', 'clue', 'answer', 'key', 'label']) if (b[f] !== undefined && (typeof b[f] !== 'string' || b[f].length > 300)) return res.status(400).json({ error: 'Nieprawidłowe dane' });
+  res.on('finish', () => { if (req.method !== 'GET' && res.statusCode < 300) contentStore.save(); });
+  next();
+});
 
 app.post('/api/admin/login', adminAuth.login);
 app.post('/api/admin/logout', adminAuth.logout);

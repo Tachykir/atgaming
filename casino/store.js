@@ -67,11 +67,16 @@ async function initPg() {
       wagered BIGINT NOT NULL DEFAULT 0, returned BIGINT NOT NULL DEFAULT 0,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`);
+  await pg.query(`
+    CREATE TABLE IF NOT EXISTS app_sessions (
+      sid TEXT PRIMARY KEY, sess JSONB NOT NULL, expire TIMESTAMPTZ NOT NULL
+    )`);
+  await pg.query('CREATE INDEX IF NOT EXISTS app_sessions_expire ON app_sessions (expire)');
   console.log('🐘 Casino: połączono z PostgreSQL');
 }
 
 // ─── JSON FALLBACK ───────────────────────────────────────────────
-const JSON_DEFAULT = () => ({ wallets: {}, topupLog: [], lastWeeklyTopup: null, slotStats: {}, settings: {}, slotState: {}, gameTotals: {} });
+const JSON_DEFAULT = () => ({ wallets: {}, topupLog: [], lastWeeklyTopup: null, slotStats: {}, settings: {}, slotState: {}, gameTotals: {}, sessions: {} });
 let saveTimer = null;
 function loadJsonDb() {
   jsonDb = JSON_DEFAULT();
@@ -96,6 +101,9 @@ function saveJson() { if (!saveTimer) saveTimer = setTimeout(flushJsonSync, 400)
 
 // ─── INICJALIZACJA ───────────────────────────────────────────────
 let ready = false;
+let readyResolve;
+const readyPromise = new Promise(r => { readyResolve = r; });
+const whenReady = () => readyPromise;
 async function init() {
   if (ready) return;
   if (process.env.DATABASE_URL) {
@@ -106,6 +114,7 @@ async function init() {
     loadJsonDb();
   }
   ready = true;
+  readyResolve();
 }
 async function close() {
   if (pg) { await pg.end().catch(() => {}); pg = null; }
@@ -357,8 +366,47 @@ async function getEconomySummary() {
   return { wallets: ws.length, totalBalance: ws.reduce((s, w) => s + w.balance, 0) };
 }
 
+// ─── SESJE LOGOWANIA (express-session) ───────────────────────────
+// Trzymane w bazie, żeby restart / deploy serwera nie wylogowywał graczy
+async function sessionGet(sid) {
+  if (pg) {
+    const r = await pg.query('SELECT sess FROM app_sessions WHERE sid=$1 AND expire > NOW()', [sid]);
+    return r.rows[0]?.sess ?? null;
+  }
+  const e = jsonDb.sessions[sid];
+  if (!e) return null;
+  if (e.expire < Date.now()) { delete jsonDb.sessions[sid]; saveJson(); return null; }
+  return e.sess;
+}
+async function sessionSet(sid, sess, expireAt) {
+  if (pg) {
+    await pg.query(`INSERT INTO app_sessions (sid, sess, expire) VALUES ($1,$2,$3)
+      ON CONFLICT (sid) DO UPDATE SET sess=EXCLUDED.sess, expire=EXCLUDED.expire`, [sid, JSON.stringify(sess), new Date(expireAt)]);
+    return;
+  }
+  jsonDb.sessions[sid] = { sess, expire: expireAt };
+  saveJson();
+}
+async function sessionTouch(sid, expireAt) {
+  if (pg) { await pg.query('UPDATE app_sessions SET expire=$2 WHERE sid=$1', [sid, new Date(expireAt)]); return; }
+  if (jsonDb.sessions[sid]) { jsonDb.sessions[sid].expire = expireAt; saveJson(); }
+}
+async function sessionDestroy(sid) {
+  if (pg) { await pg.query('DELETE FROM app_sessions WHERE sid=$1', [sid]); return; }
+  delete jsonDb.sessions[sid];
+  saveJson();
+}
+async function pruneSessions() {
+  if (pg) { const r = await pg.query('DELETE FROM app_sessions WHERE expire < NOW()'); return r.rowCount; }
+  let n = 0;
+  for (const [sid, e] of Object.entries(jsonDb.sessions)) if (e.expire < Date.now()) { delete jsonDb.sessions[sid]; n++; }
+  if (n) saveJson();
+  return n;
+}
+
 module.exports = {
-  init, close, flushJsonSync,
+  init, close, flushJsonSync, whenReady,
+  sessionGet, sessionSet, sessionTouch, sessionDestroy, pruneSessions,
   getWallet, ensureWallet, updateBalance, debit, recordGame, getAllWallets, adminSetBalance, getLeaderboard, runWeeklyTopup,
   getSlotStats, updateSlotStats, getSlotState, setSlotState, getSetting, setSetting,
   addGameTotals, getGameTotals, resetGameTotals, getEconomySummary,
