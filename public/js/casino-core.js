@@ -134,10 +134,33 @@ function cxCoinRain(n = 30, emojis = ['🪙', '💰', '✨']) {
 
 // Duża wygrana — nakładka z eskalacją (Big → Mega → Huge → Giga → Frito),
 // licznikiem kwoty i fontanną monet. Zwraca Promise (po zamknięciu).
-const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito', 'ultra', 'turbo', 'cosmic', 'legend', 'divine'];
+const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito', 'ultra', 'turbo', 'cosmic', 'legend', 'divine', 'j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9', 'j10'];
 const CX_LADDER = [[0, 'BIG WIN', 'mega'], [15, 'MEGA WIN', 'mega'], [40, 'HUGE WIN', 'huge'], [100, 'GIGA WIN', 'giga'], [300, 'MEGA GIGA FRITO WIN', 'frito'],
-  [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 KOSMICZNE FRITO', 'cosmic'], [5000, '👑 LEGENDARNE FRITO', 'legend'], [10000, '🌯 SUPER MEGA ROLLO KEBAB W PICIE Z FRYTKAMI AMERYKAŃSKI Z PODWÓJNYM MIĘSEM ZALANY SOSAMI NA MAKSA', 'divine']];
+  [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 KOSMICZNE FRITO', 'cosmic'], [5000, '👑 LEGENDARNE FRITO', 'legend'], [10000, '🌯 SUPER MEGA ROLLO KEBAB W PICIE Z FRYTKAMI AMERYKAŃSKI Z PODWÓJNYM MIĘSEM ZALANY SOSAMI NA MAKSA', 'divine'],
+  [15000, '🥟 PIEROGI BABCI JACKPOT', 'j1'],
+  [25000, '🐸 ŻABKA O 3 W NOCY JACKPOT', 'j2'],
+  [50000, '🐊 KROKODYL W WIŚLE JACKPOT', 'j3'],
+  [75000, '🚜 SĄSIAD KUPIŁ NOWEGO URSUSA JACKPOT', 'j4'],
+  [100000, '🦆 KACZKA DZIWACZKA JACKPOT', 'j5'],
+  [250000, '🛸 JANUSZ W KOSMOSIE JACKPOT', 'j6'],
+  [500000, '🍕 PIZZA Z ANANASEM I KETCHUPEM JACKPOT', 'j7'],
+  [1000000, '📈 ŻABA W KRAWACIE NA GIEŁDZIE JACKPOT', 'j8'],
+  [5000000, '🧙 CZARODZIEJ Z BIEDRONKI JACKPOT', 'j9'],
+  [10000000, '💀 KONIEC ŚWIATA, NIC JUŻ NIE MA SENSU JACKPOT', 'j10']];
 // Efekty poziomów ponad Mega Giga Frito: [cząsteczki przy wejściu, cząsteczki ciągłe, kolory]
+// Jackpoty ponad Rollo Kebabem: kolory etykiety + preset efektów + emoji lecące po ekranie
+const CX_JP = {
+  j1: { a: '#ffe9b0', b: '#e8a33d', fx: 'legend', e: '🥟' },
+  j2: { a: '#9dffb0', b: '#18a84a', fx: 'ultra', e: '🐸' },
+  j3: { a: '#c9ff7a', b: '#3c8a1e', fx: 'turbo', e: '🐊' },
+  j4: { a: '#ffb36b', b: '#c2410c', fx: 'ultra', e: '🚜' },
+  j5: { a: '#fff36b', b: '#e0b000', fx: 'cosmic', e: '🦆' },
+  j6: { a: '#7fe8ff', b: '#6a45f0', fx: 'cosmic', e: '🛸' },
+  j7: { a: '#ffd36b', b: '#ff3b3b', fx: 'legend', e: '🍕' },
+  j8: { a: '#5effa9', b: '#0aa36b', fx: 'turbo', e: '📈' },
+  j9: { a: '#ff7ad9', b: '#b400ff', fx: 'cosmic', e: '🧙' },
+  j10: { a: '#ffffff', b: '#ff2d55', fx: 'divine', e: '💀' },
+};
 const CX_TIER_FX = {
   ultra:  { burst: [['ember', 80], ['spark', 40], ['ring', 3]], loop: [['ember', 6]], colors: ['#ff3b1f', '#ff8a1f', '#ffd36b', '#fff3c4'] },
   turbo:  { burst: [['bolt', 18], ['spark', 50], ['ring', 4]], loop: [['bolt', 1], ['spark', 3]], colors: ['#b48cff', '#4fe3ff', '#ffffff', '#7aa7ff'] },
@@ -217,27 +240,30 @@ function cxBigWin({ amount, bet, tier, label, title }) {
       <div class="bw-hint">kliknij, aby pominąć</div>`;
     document.body.appendChild(ov);
     const amtEl = ov.querySelector('.bw-amt'), lbl = ov.querySelector('.bw-label'), bar = ov.querySelector('.bw-bar i');
-    const dur = Math.min(12000, 1600 + steps.length * 1200);
+    const dur = Math.min(16000, 1600 + steps.length * 1200);
     let stage = 0, counting = true, closed = false, autoClose = null;
     const stopCoins = cxCoinFountain(ov.querySelector('canvas'), () => counting ? 2 + stage * 2 : (Math.random() < .3 ? 1 : 0));
     cxSound.play('bigwin');
     const t0 = performance.now();
     // Poziomy ponad Frito: własne cząsteczki, błysk i trzęsienie
     const fxCv = ov.querySelector('.bw-fx');
-    const fx = typeof CxFx !== 'undefined' ? new CxFx({ canvas: () => fxCv, theme: () => CX_TIER_FX[steps[stage][2]] || null, alive: () => !closed }) : null;
+    const fx = typeof CxFx !== 'undefined' ? new CxFx({ canvas: () => fxCv, theme: () => fxOf(steps[stage][2]) || null, alive: () => !closed }) : null;
     const burst = list => { if (!fx) return; const W = innerWidth, H = innerHeight;
       for (const [k, n] of list) fx.emit(k === 'ember' ? W * (.2 + Math.random() * .6) : W / 2, k === 'ember' ? H * .9 : H * .42, k, n, { spread: k === 'ember' ? W * .35 : k === 'bolt' ? 30 : 60, scale: k === 'ring' ? 3 : 1.4, speed: 1.6 }); };
-    const loopFx = setInterval(() => { const t = CX_TIER_FX[steps[stage][2]]; if (t && !closed) burst(t.loop.map(([k, n]) => [k, Math.max(1, Math.round(n * (counting ? 1 : .5)))])); }, 120);
+    const fxOf = tier => { const j = CX_JP[tier]; if (!j) return CX_TIER_FX[tier]; const b = CX_TIER_FX[j.fx]; return { ...b, colors: [j.a, j.b, '#ffffff', ...b.colors.slice(0, 2)], glyphs: j.e + j.e + '✦💰', burst: [...b.burst, ['glyph', 30]], loop: [...b.loop, ['glyph', 2]] }; };
+    const loopFx = setInterval(() => { const t = fxOf(steps[stage][2]); if (t && !closed) burst(t.loop.map(([k, n]) => [k, Math.max(1, Math.round(n * (counting ? 1 : .5)))])); }, 120);
     const setStage = i => {
       if (i === stage) return;
       stage = i;
       const tier = steps[i][2];
-      ov.className = 'cx-bigwin t-' + tier;
+      const jp = CX_JP[tier];
+      ov.className = 'cx-bigwin t-' + tier + (jp ? ' t-jp t-' + jp.fx : '');
+      if (jp) { ov.style.setProperty('--ja', jp.a); ov.style.setProperty('--jb', jp.b); }
       lbl.innerHTML = cxBwLabel(steps[i][1]);
       lbl.classList.remove('bump'); void lbl.offsetWidth; lbl.classList.add('bump');
       cxSound.play('feature');
-      if (CX_TIER_FX[tier]) {
-        burst(CX_TIER_FX[tier].burst);
+      if (fxOf(tier)) {
+        burst(fxOf(tier).burst);
         ov.classList.add('boom'); setTimeout(() => ov.classList.remove('boom'), 700);
         cxSound.play(CX_TIER_ORDER.indexOf(tier) >= CX_TIER_ORDER.indexOf('cosmic') ? 'scwin' : 'bigwin');
       }
@@ -258,7 +284,8 @@ function cxBigWin({ amount, bet, tier, label, title }) {
     const step = now => {
       if (!counting) return;
       const p = Math.min(1, (now - t0) / dur);
-      const cur = amount * (1 - Math.pow(1 - p, 2.2));
+      // Duże wygrane: licznik w skali logarytmicznej — każdy poziom (progi rosną geometrycznie) dostaje podobny czas
+      const cur = bet && mult >= 500 ? Math.min(amount, bet * Math.exp(Math.log(mult) * (p < 1 ? Math.pow(p, .85) : 1))) : amount * (1 - Math.pow(1 - p, 2.2));
       amtEl.textContent = cxFmt(cur) + ' AT$';
       bar.style.width = (p * 100) + '%';
       const m = bet ? cur / bet : 0;

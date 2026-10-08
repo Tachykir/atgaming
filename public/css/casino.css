@@ -839,3 +839,14 @@
 @media (max-height: 540px) { .cx-bigwin.t-divine .bw-label { font-size: clamp(16px, 5.4dvh, 30px); } }
 .cx-bigwin.t-divine .bw-amt::before { content: '🌯'; }
 .cx-bigwin .bw-label, .cx-bigwin .bw-amt, .cx-bigwin .bw-title, .cx-bigwin .bw-bar, .cx-bigwin .bw-mult, .cx-bigwin .bw-hint { z-index: 2; }
+
+/* ══ Jackpoty ponad Rollo Kebabem (kolory z --ja / --jb) ═════════ */
+.cx-bigwin.t-jp { --bwf: var(--ja); background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--jb) 55%, transparent), rgba(4,3,10,.96) 75%); }
+.cx-bigwin.t-jp .bw-label { font-size: clamp(22px, 4.4vw, 56px); line-height: 1.08; max-width: min(1100px, 92vw); text-align: center; letter-spacing: 0;
+  background-image: linear-gradient(180deg, #ffffff, var(--ja) 45%, var(--jb)); background-size: 100% 100%; animation: bwBump .45s cubic-bezier(.2,1.8,.4,1);
+  filter: drop-shadow(0 5px 0 color-mix(in srgb, var(--jb) 40%, #000)) drop-shadow(0 0 40px var(--ja)); }
+.cx-bigwin.t-jp .bw-rays { background: repeating-conic-gradient(color-mix(in srgb, var(--ja) 20%, transparent) 0 6deg, color-mix(in srgb, var(--jb) 14%, transparent) 6deg 12deg, transparent 12deg 20deg); animation-duration: 6s; }
+.cx-bigwin.t-jp .bw-amt { color: #fff; text-shadow: 0 3px 0 #000, 0 0 40px var(--ja); }
+.cx-bigwin.t-jp .bw-amt::before { content: '💰 JACKPOT 💰'; position: absolute; left: 50%; top: -1.05em; transform: translateX(-50%); font: 800 .42em 'Syne', sans-serif; letter-spacing: .2em; white-space: nowrap; color: var(--ja); text-shadow: 0 0 16px var(--jb); animation: fsBob .8s ease-in-out infinite alternate; }
+@media (max-height: 540px) { .cx-bigwin.t-jp .bw-label { font-size: clamp(16px, 6dvh, 32px); } }
+.cx-bigwin.t-jp .bw-amt { margin-top: .55em; }

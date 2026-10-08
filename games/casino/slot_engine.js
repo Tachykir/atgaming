@@ -29,6 +29,16 @@ const WIN_TIERS = [
   { min: 2500,  tier: 'cosmic', label: 'Kosmiczne Frito' },
   { min: 5000,  tier: 'legend', label: 'Legendarne Frito' },
   { min: 10000, tier: 'divine', label: 'Super mega rollo kebab w picie z frytkami amerykański z podwójnym mięsem zalany sosami na maksa' },
+  { min: 15000, tier: 'j1', label: 'Pierogi Babci Jackpot' },
+  { min: 25000, tier: 'j2', label: 'Żabka o 3 w nocy Jackpot' },
+  { min: 50000, tier: 'j3', label: 'Krokodyl w Wiśle Jackpot' },
+  { min: 75000, tier: 'j4', label: 'Sąsiad kupił nowego Ursusa Jackpot' },
+  { min: 100000, tier: 'j5', label: 'Kaczka Dziwaczka Jackpot' },
+  { min: 250000, tier: 'j6', label: 'Janusz w kosmosie Jackpot' },
+  { min: 500000, tier: 'j7', label: 'Pizza z ananasem i ketchupem Jackpot' },
+  { min: 1000000, tier: 'j8', label: 'Żaba w krawacie na giełdzie Jackpot' },
+  { min: 5000000, tier: 'j9', label: 'Czarodziej z Biedronki Jackpot' },
+  { min: 10000000, tier: 'j10', label: 'Koniec świata, nic już nie ma sensu Jackpot' },
 ];
 function getTier(mult) {
   if (!(mult > 0)) return { tier: 'none', label: '' };
