@@ -137,29 +137,29 @@ function cxCoinRain(n = 30, emojis = ['🪙', '💰', '✨']) {
 const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito', 'ultra', 'turbo', 'cosmic', 'legend', 'divine', 'j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9', 'j10'];
 const CX_LADDER = [[0, 'BIG WIN', 'mega'], [15, 'MEGA WIN', 'mega'], [40, 'HUGE WIN', 'huge'], [100, 'GIGA WIN', 'giga'], [300, 'MEGA GIGA FRITO WIN', 'frito'],
   [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 KOSMICZNE FRITO', 'cosmic'], [5000, '👑 LEGENDARNE FRITO', 'legend'], [10000, '🌯 SUPER MEGA ROLLO KEBAB W PICIE Z FRYTKAMI AMERYKAŃSKI Z PODWÓJNYM MIĘSEM ZALANY SOSAMI NA MAKSA', 'divine'],
-  [15000, '🥟 PIEROGI BABCI JACKPOT', 'j1'],
-  [25000, '🐸 ŻABKA O 3 W NOCY JACKPOT', 'j2'],
-  [50000, '🐊 KROKODYL W WIŚLE JACKPOT', 'j3'],
-  [75000, '🚜 SĄSIAD KUPIŁ NOWEGO URSUSA JACKPOT', 'j4'],
-  [100000, '🦆 KACZKA DZIWACZKA JACKPOT', 'j5'],
-  [250000, '🛸 JANUSZ W KOSMOSIE JACKPOT', 'j6'],
-  [500000, '🍕 PIZZA Z ANANASEM I KETCHUPEM JACKPOT', 'j7'],
-  [1000000, '📈 ŻABA W KRAWACIE NA GIEŁDZIE JACKPOT', 'j8'],
-  [5000000, '🧙 CZARODZIEJ Z BIEDRONKI JACKPOT', 'j9'],
-  [10000000, '💀 KONIEC ŚWIATA, NIC JUŻ NIE MA SENSU JACKPOT', 'j10']];
+  [15000, '🌯 DUBEL KEBAB', 'j1'],
+  [25000, '🍟 FRYTKI GRATIS', 'j2'],
+  [50000, '🌶️ OSTRY NA MAKSA', 'j3'],
+  [75000, '🧄 SOS CZOSNKOWY BEZ LIMITU', 'j4'],
+  [100000, '🥙 KEBAB XXL DLA CAŁEJ EKIPY', 'j5'],
+  [250000, '🏪 WŁASNA BUDKA Z KEBABEM', 'j6'],
+  [500000, '🚚 SIEĆ FOOD TRUCKÓW', 'j7'],
+  [1000000, '🏙️ KEBAB IMPERIUM', 'j8'],
+  [5000000, '👑 KRÓL KEBABA', 'j9'],
+  [10000000, '🌌 KEBAB WSZECHŚWIATA', 'j10']];
 // Efekty poziomów ponad Mega Giga Frito: [cząsteczki przy wejściu, cząsteczki ciągłe, kolory]
-// Jackpoty ponad Rollo Kebabem: kolory etykiety + preset efektów + emoji lecące po ekranie
+// Jackpoty ponad Rollo Kebabem (kebab-saga): kolory etykiety + preset efektów + emoji lecące po ekranie
 const CX_JP = {
-  j1: { a: '#ffe9b0', b: '#e8a33d', fx: 'legend', e: '🥟' },
-  j2: { a: '#9dffb0', b: '#18a84a', fx: 'ultra', e: '🐸' },
-  j3: { a: '#c9ff7a', b: '#3c8a1e', fx: 'turbo', e: '🐊' },
-  j4: { a: '#ffb36b', b: '#c2410c', fx: 'ultra', e: '🚜' },
-  j5: { a: '#fff36b', b: '#e0b000', fx: 'cosmic', e: '🦆' },
-  j6: { a: '#7fe8ff', b: '#6a45f0', fx: 'cosmic', e: '🛸' },
-  j7: { a: '#ffd36b', b: '#ff3b3b', fx: 'legend', e: '🍕' },
-  j8: { a: '#5effa9', b: '#0aa36b', fx: 'turbo', e: '📈' },
-  j9: { a: '#ff7ad9', b: '#b400ff', fx: 'cosmic', e: '🧙' },
-  j10: { a: '#ffffff', b: '#ff2d55', fx: 'divine', e: '💀' },
+  j1: { a: '#ffe9b0', b: '#e8a33d', fx: 'legend', e: '🌯' },
+  j2: { a: '#fff36b', b: '#e0a800', fx: 'ultra', e: '🍟' },
+  j3: { a: '#ffb36b', b: '#ff2d1f', fx: 'ultra', e: '🌶️' },
+  j4: { a: '#ffffff', b: '#c9c2b0', fx: 'cosmic', e: '🧄' },
+  j5: { a: '#ffd36b', b: '#c2410c', fx: 'legend', e: '🥙' },
+  j6: { a: '#7fe8ff', b: '#1e6fd9', fx: 'turbo', e: '🏪' },
+  j7: { a: '#5effa9', b: '#0aa36b', fx: 'turbo', e: '🚚' },
+  j8: { a: '#ff7ad9', b: '#7a1fff', fx: 'cosmic', e: '🏙️' },
+  j9: { a: '#fff3c4', b: '#d4a017', fx: 'legend', e: '👑' },
+  j10: { a: '#ffffff', b: '#ff2d55', fx: 'divine', e: '🌌' },
 };
 const CX_TIER_FX = {
   ultra:  { burst: [['ember', 80], ['spark', 40], ['ring', 3]], loop: [['ember', 6]], colors: ['#ff3b1f', '#ff8a1f', '#ffd36b', '#fff3c4'] },
@@ -250,7 +250,7 @@ function cxBigWin({ amount, bet, tier, label, title }) {
     const fx = typeof CxFx !== 'undefined' ? new CxFx({ canvas: () => fxCv, theme: () => fxOf(steps[stage][2]) || null, alive: () => !closed }) : null;
     const burst = list => { if (!fx) return; const W = innerWidth, H = innerHeight;
       for (const [k, n] of list) fx.emit(k === 'ember' ? W * (.2 + Math.random() * .6) : W / 2, k === 'ember' ? H * .9 : H * .42, k, n, { spread: k === 'ember' ? W * .35 : k === 'bolt' ? 30 : 60, scale: k === 'ring' ? 3 : 1.4, speed: 1.6 }); };
-    const fxOf = tier => { const j = CX_JP[tier]; if (!j) return CX_TIER_FX[tier]; const b = CX_TIER_FX[j.fx]; return { ...b, colors: [j.a, j.b, '#ffffff', ...b.colors.slice(0, 2)], glyphs: j.e + j.e + '✦💰', burst: [...b.burst, ['glyph', 30]], loop: [...b.loop, ['glyph', 2]] }; };
+    const fxOf = tier => { const j = CX_JP[tier]; if (!j) return CX_TIER_FX[tier]; const b = CX_TIER_FX[j.fx]; return { ...b, colors: [j.a, j.b, '#ffffff', ...b.colors.slice(0, 2)], glyphs: (j.e + j.e + '✦💰').replace(/\uFE0F/g, ''), burst: [...b.burst, ['glyph', 30]], loop: [...b.loop, ['glyph', 2]] }; };
     const loopFx = setInterval(() => { const t = fxOf(steps[stage][2]); if (t && !closed) burst(t.loop.map(([k, n]) => [k, Math.max(1, Math.round(n * (counting ? 1 : .5)))])); }, 120);
     const setStage = i => {
       if (i === stage) return;
