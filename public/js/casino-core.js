@@ -136,14 +136,14 @@ function cxCoinRain(n = 30, emojis = ['🪙', '💰', '✨']) {
 // licznikiem kwoty i fontanną monet. Zwraca Promise (po zamknięciu).
 const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito', 'ultra', 'turbo', 'cosmic', 'legend', 'divine'];
 const CX_LADDER = [[0, 'BIG WIN', 'mega'], [15, 'MEGA WIN', 'mega'], [40, 'HUGE WIN', 'huge'], [100, 'GIGA WIN', 'giga'], [300, 'MEGA GIGA FRITO WIN', 'frito'],
-  [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 KOSMICZNE FRITO', 'cosmic'], [5000, '👑 LEGENDARNE FRITO', 'legend'], [10000, '✨ BOSKIE FRITO', 'divine']];
+  [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 KOSMICZNE FRITO', 'cosmic'], [5000, '👑 LEGENDARNE FRITO', 'legend'], [10000, '🌯 SUPER MEGA ROLLO KEBAB W PICIE Z FRYTKAMI AMERYKAŃSKI Z PODWÓJNYM MIĘSEM ZALANY SOSAMI NA MAKSA', 'divine']];
 // Efekty poziomów ponad Mega Giga Frito: [cząsteczki przy wejściu, cząsteczki ciągłe, kolory]
 const CX_TIER_FX = {
   ultra:  { burst: [['ember', 80], ['spark', 40], ['ring', 3]], loop: [['ember', 6]], colors: ['#ff3b1f', '#ff8a1f', '#ffd36b', '#fff3c4'] },
   turbo:  { burst: [['bolt', 18], ['spark', 50], ['ring', 4]], loop: [['bolt', 1], ['spark', 3]], colors: ['#b48cff', '#4fe3ff', '#ffffff', '#7aa7ff'] },
   cosmic: { burst: [['star', 70], ['ring', 5], ['glyph', 20]], loop: [['star', 4], ['glyph', 1]], colors: ['#ff4fd8', '#7aa7ff', '#4fe3ff', '#fff', '#b48cff'], glyphs: '✦✧★☄' },
   legend: { burst: [['coin', 70], ['star', 40], ['ring', 4], ['glyph', 16]], loop: [['coin', 3], ['glyph', 1]], colors: ['#ffd36b', '#fff3c4', '#4fe3ff', '#f5a623'], glyphs: '💎👑✦' },
-  divine: { burst: [['ring', 7], ['star', 80], ['spark', 70], ['bolt', 10], ['coin', 40], ['glyph', 20]], loop: [['star', 4], ['spark', 3], ['coin', 2]], colors: ['#ffffff', '#fff3c4', '#ffd36b', '#ffe9a8'], glyphs: '✨✦👑' },
+  divine: { burst: [['ring', 7], ['star', 80], ['spark', 70], ['bolt', 10], ['coin', 40], ['glyph', 30]], loop: [['star', 3], ['spark', 3], ['coin', 2], ['glyph', 2]], colors: ['#ffffff', '#fff3c4', '#ffd36b', '#ffe9a8'], glyphs: '🌯🍟🌯🍟✨' },
 };
 // Monety/klejnoty renderowane raz do bufora — w pętli tylko drawImage (bez gradientów na klatkę)
 const CX_COIN_SPR = (() => {

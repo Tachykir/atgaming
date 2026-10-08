@@ -170,7 +170,7 @@ function cxShowVip() {
   }
   cxModal(`<h3>🎖️ Program VIP</h3>
     ${cxVipCardHTML()}
-    <p class="cx-rules" style="margin:12px 0">Każdy spin na automacie (także darmowy) daje <b>1 XP</b>, a duże wygrane dodatkowo: Big Win +5, Mega +15, Huge +40, Giga +100, Mega Giga Frito +300, Ultra Frito +600, Turbo Giga Frito +1 200, Kosmiczne Frito +2 500, Legendarne Frito +5 000, Boskie Frito +10 000, uruchomienie bonusu +25. VIP 1 wymaga 1 000 XP, a każdy kolejny poziom o 500 XP więcej. Poziomy nie mają limitu. Każdy poziom zwiększa o 1% <b>wszystkie wygrane na automatach</b> (VIP 10 = ×1,10, VIP 100 = ×2,00) i o 10% <b>zdobywane XP</b> (VIP 10 = ×2 XP, VIP 100 = ×11 XP).</p>
+    <p class="cx-rules" style="margin:12px 0">Każdy spin na automacie (także darmowy) daje <b>1 XP</b>, a duże wygrane dodatkowo: Big Win +5, Mega +15, Huge +40, Giga +100, Mega Giga Frito +300, Ultra Frito +600, Turbo Giga Frito +1 200, Kosmiczne Frito +2 500, Legendarne Frito +5 000, Super Mega Rollo Kebab +10 000, uruchomienie bonusu +25. VIP 1 wymaga 1 000 XP, a każdy kolejny poziom o 500 XP więcej. Poziomy nie mają limitu. Każdy poziom zwiększa o 1% <b>wszystkie wygrane na automatach</b> (VIP 10 = ×1,10, VIP 100 = ×2,00) i o 10% <b>zdobywane XP</b> (VIP 10 = ×2 XP, VIP 100 = ×11 XP).</p>
     <table class="cx-hist cx-vip-tbl"><thead><tr><th>Poziom</th><th class="r">Łącznie XP</th><th class="r">Wygrane</th><th class="r">XP</th><th class="r">Brakuje</th></tr></thead><tbody>${rows.join('')}</tbody></table>`, { wide: true });
 }
 socket.on('casinoVip', v => {

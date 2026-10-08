@@ -28,7 +28,7 @@ const WIN_TIERS = [
   { min: 1000,  tier: 'turbo',  label: 'Turbo Giga Frito' },
   { min: 2500,  tier: 'cosmic', label: 'Kosmiczne Frito' },
   { min: 5000,  tier: 'legend', label: 'Legendarne Frito' },
-  { min: 10000, tier: 'divine', label: 'Boskie Frito' },
+  { min: 10000, tier: 'divine', label: 'Super mega rollo kebab w picie z frytkami amerykański z podwójnym mięsem zalany sosami na maksa' },
 ];
 function getTier(mult) {
   if (!(mult > 0)) return { tier: 'none', label: '' };

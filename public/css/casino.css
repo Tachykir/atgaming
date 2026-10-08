@@ -835,3 +835,7 @@
 .cx-bigwin.t-divine .bw-amt { color: #fff; text-shadow: 0 3px 0 #6b4a00, 0 0 8px #000, 0 0 40px #ffd36b; }
 .cx-bigwin.t-divine .bw-rays { background: repeating-conic-gradient(rgba(255,255,255,.16) 0 4deg, rgba(255,211,107,.1) 4deg 9deg, transparent 9deg 15deg); animation-duration: 5s; }
 .cx-bigwin.t-divine.boom .bw-flash { animation-duration: 1.2s; }
+.cx-bigwin.t-divine .bw-label { font-size: clamp(20px, 3.6vw, 44px); line-height: 1.08; max-width: min(1100px, 92vw); text-align: center; letter-spacing: 0; }
+@media (max-height: 540px) { .cx-bigwin.t-divine .bw-label { font-size: clamp(16px, 5.4dvh, 30px); } }
+.cx-bigwin.t-divine .bw-amt::before { content: '🌯'; }
+.cx-bigwin .bw-label, .cx-bigwin .bw-amt, .cx-bigwin .bw-title, .cx-bigwin .bw-bar, .cx-bigwin .bw-mult, .cx-bigwin .bw-hint { z-index: 2; }
