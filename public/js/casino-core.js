@@ -136,19 +136,19 @@ function cxCoinRain(n = 30, emojis = ['🪙', '💰', '✨']) {
 // licznikiem kwoty i fontanną monet. Zwraca Promise (po zamknięciu).
 const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito', 'ultra', 'turbo', 'cosmic', 'legend', 'divine', 'j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9', 'j10'];
 const CX_LADDER = [[0, 'BIG WIN', 'mega'], [15, 'MEGA WIN', 'mega'], [40, 'HUGE WIN', 'huge'], [100, 'GIGA WIN', 'giga'], [300, 'MEGA GIGA FRITO WIN', 'frito'],
-  [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 KOSMICZNE FRITO', 'cosmic'], [5000, '👑 LEGENDARNE FRITO', 'legend'], [10000, '✨ BOSKA WYGRANA', 'divine'],
-  [15000, '🥇 ZŁOTA WYGRANA', 'j1'],
-  [25000, '💿 PLATYNOWA WYGRANA', 'j2'],
-  [50000, '💎 DIAMENTOWA WYGRANA', 'j3'],
-  [75000, '👑 KRÓLEWSKA WYGRANA', 'j4'],
-  [100000, '🏛️ CESARSKA WYGRANA', 'j5'],
-  [250000, '⚔️ TYTANICZNA WYGRANA', 'j6'],
-  [500000, '⭐ GWIEZDNA WYGRANA', 'j7'],
-  [1000000, '🌌 GALAKTYCZNA WYGRANA', 'j8'],
-  [5000000, '♾️ NIESKOŃCZONA WYGRANA', 'j9'],
+  [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 COSMIC FRITO', 'cosmic'], [5000, '👑 LEGENDARY FRITO', 'legend'], [10000, '✨ DIVINE WIN', 'divine'],
+  [15000, '🥇 GOLDEN WIN', 'j1'],
+  [25000, '💿 PLATINUM WIN', 'j2'],
+  [50000, '💎 DIAMOND WIN', 'j3'],
+  [75000, '👑 ROYAL WIN', 'j4'],
+  [100000, '🏛️ IMPERIAL WIN', 'j5'],
+  [250000, '⚔️ TITAN WIN', 'j6'],
+  [500000, '⭐ STELLAR WIN', 'j7'],
+  [1000000, '🌌 GALACTIC WIN', 'j8'],
+  [5000000, '♾️ INFINITE WIN', 'j9'],
   [10000000, '🌯 SUPER MEGA ROLLO KEBAB W PICIE Z FRYTKAMI AMERYKAŃSKI Z PODWÓJNYM MIĘSEM ZALANY SOSAMI NA MAKSA', 'j10']];
 // Efekty poziomów ponad Mega Giga Frito: [cząsteczki przy wejściu, cząsteczki ciągłe, kolory]
-// Jackpoty ponad Boską wygraną (na szczycie 10 mln× — Super mega rollo kebab): kolory etykiety + preset efektów + emoji lecące po ekranie
+// Jackpoty ponad Divine Win (na szczycie 10 mln× — Super mega rollo kebab): kolory etykiety + preset efektów + emoji lecące po ekranie
 const CX_JP = {
   j1: { a: '#fff3c4', b: '#d4a017', fx: 'legend', e: '🥇' },
   j2: { a: '#ffffff', b: '#9fb4c8', fx: 'turbo', e: '💿' },
