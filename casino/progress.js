@@ -16,9 +16,10 @@ const DAILY = [2_000, 3_000, 4_000, 5_000, 6_500, 8_000, 10_000]; // dzień seri
 // ── VIP ──────────────────────────────────────────────────────
 // Każdy spin na automacie (także darmowy) = 1 XP (+ bonus za duże wygrane). VIP 1 za 1000 XP, każdy kolejny
 // poziom kosztuje o 500 XP więcej (1000, 1500, 2000…). Poziomy bez limitu.
-// Każdy poziom = +1%: mnożnik wygranych na automatach i mnożnik zdobywanego XP = 1 + 0,01 × poziom.
+// Każdy poziom: +1% do wygranych na automatach (1 + 0,01 × poziom) i +10% do zdobywanego XP (1 + 0,1 × poziom).
 const vipTotal = L => 1000 * L + 250 * L * (L - 1);            // XP łącznie potrzebne do poziomu L (= 250L² + 750L)
 const vipMult = L => Math.round((1 + 0.01 * L) * 100) / 100;
+const vipXpMult = L => Math.round((1 + 0.1 * L) * 100) / 100;
 // Dodatkowe XP za duże wygrane (tier wg mnożnika × stawki) i uruchomienie funkcji bonusowej
 const VIP_TIER_XP = { big: 5, mega: 15, huge: 40, giga: 100, frito: 300 };
 const VIP_FEATURE_XP = 25;
@@ -32,7 +33,7 @@ function vipLevel(xp) {
 function vipStatus(xp) {
   const level = vipLevel(xp);
   const from = vipTotal(level), to = vipTotal(level + 1);
-  return { level, xp: Math.floor(xp), mult: vipMult(level), xpMult: vipMult(level), cur: Math.floor(xp - from), need: to - from, nextMult: vipMult(level + 1) };
+  return { level, xp: Math.floor(xp), mult: vipMult(level), xpMult: vipXpMult(level), cur: Math.floor(xp - from), need: to - from, nextMult: vipMult(level + 1) };
 }
 
 // cond(m, ev) → true gdy zdobyte; progress(m) → [ile, cel] dla paska postępu
@@ -134,7 +135,7 @@ async function recordRound(id, ev) {
     // XP za spin automatu (płatny lub darmowy)
     if (SLOT_GAMES.includes(ev.game) && (ev.kind === 'round' || ev.kind === 'free')) {
       const before = vipLevel(m.vip.xp);
-      const xm = vipMult(before);   // poziom VIP mnoży też zdobywane XP (+1% za poziom)
+      const xm = vipXpMult(before);   // poziom VIP mnoży też zdobywane XP (+10% za poziom)
       const bonus = (VIP_TIER_XP[ev.tier] || 0) + (ev.feature ? VIP_FEATURE_XP : 0);
       m.vip.xp = Math.round((m.vip.xp + (1 + bonus) * xm) * 100) / 100;
       const st = vipStatus(m.vip.xp);
@@ -210,4 +211,4 @@ function start() {
   if (!pruneTimer) { pruneTimer = setInterval(() => store.pruneHistory().catch(() => {}), 6 * 3600_000); pruneTimer.unref?.(); }
 }
 
-module.exports = { VIP_TIER_XP, VIP_FEATURE_XP, vipFor, vipMultFor, vipStatus, vipLevel, vipTotal, vipMult, logEvent: log, recordRound, noteBalance, claimDaily, dailyStatus, achievementsFor, history, flush, start, setIo, ACHIEVEMENTS, DAILY, dayOf };
+module.exports = { VIP_TIER_XP, VIP_FEATURE_XP, vipFor, vipMultFor, vipStatus, vipLevel, vipTotal, vipMult, vipXpMult, logEvent: log, recordRound, noteBalance, claimDaily, dailyStatus, achievementsFor, history, flush, start, setIo, ACHIEVEMENTS, DAILY, dayOf };

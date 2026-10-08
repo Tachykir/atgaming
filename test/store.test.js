@@ -118,4 +118,5 @@ test('VIP: bonusowe XP za duże wygrane i funkcję bonusową', async () => {
   await progress.recordRound('v2', { game: 'hot_777', bet: 10, win: 1000, balance: 1, kind: 'round', tier: 'giga', feature: true, history: false });
   assert.strictEqual((await progress.vipFor('v2')).xp, 1 + progress.VIP_TIER_XP.giga + progress.VIP_FEATURE_XP);   // VIP 0 → XP ×1
   assert.strictEqual(progress.vipMult(10), 1.1);
+  assert.strictEqual(progress.vipXpMult(10), 2);
 });
