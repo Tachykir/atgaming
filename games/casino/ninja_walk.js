@@ -16,7 +16,7 @@ const E = require('./slot_engine');
 
 const COLS = 5, ROWS = 3;
 const PAY_SCALE = 0.971;
-const MAX_WIN = 10000;      // limit wygranej (× stawki) na spin / na całą serię FS
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 const MAX_STEPS = 60;       // bezpiecznik długości ciągu respinów
 
 const raw = [

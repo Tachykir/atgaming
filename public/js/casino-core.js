@@ -134,8 +134,17 @@ function cxCoinRain(n = 30, emojis = ['🪙', '💰', '✨']) {
 
 // Duża wygrana — nakładka z eskalacją (Big → Mega → Huge → Giga → Frito),
 // licznikiem kwoty i fontanną monet. Zwraca Promise (po zamknięciu).
-const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito'];
-const CX_LADDER = [[0, 'BIG WIN', 'mega'], [15, 'MEGA WIN', 'mega'], [40, 'HUGE WIN', 'huge'], [100, 'GIGA WIN', 'giga'], [300, 'MEGA GIGA FRITO WIN', 'frito']];
+const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito', 'ultra', 'turbo', 'cosmic', 'legend', 'divine'];
+const CX_LADDER = [[0, 'BIG WIN', 'mega'], [15, 'MEGA WIN', 'mega'], [40, 'HUGE WIN', 'huge'], [100, 'GIGA WIN', 'giga'], [300, 'MEGA GIGA FRITO WIN', 'frito'],
+  [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 KOSMICZNE FRITO', 'cosmic'], [5000, '👑 LEGENDARNE FRITO', 'legend'], [10000, '✨ BOSKIE FRITO', 'divine']];
+// Efekty poziomów ponad Mega Giga Frito: [cząsteczki przy wejściu, cząsteczki ciągłe, kolory]
+const CX_TIER_FX = {
+  ultra:  { burst: [['ember', 80], ['spark', 40], ['ring', 3]], loop: [['ember', 6]], colors: ['#ff3b1f', '#ff8a1f', '#ffd36b', '#fff3c4'] },
+  turbo:  { burst: [['bolt', 18], ['spark', 50], ['ring', 4]], loop: [['bolt', 1], ['spark', 3]], colors: ['#b48cff', '#4fe3ff', '#ffffff', '#7aa7ff'] },
+  cosmic: { burst: [['star', 70], ['ring', 5], ['glyph', 20]], loop: [['star', 4], ['glyph', 1]], colors: ['#ff4fd8', '#7aa7ff', '#4fe3ff', '#fff', '#b48cff'], glyphs: '✦✧★☄' },
+  legend: { burst: [['coin', 70], ['star', 40], ['ring', 4], ['glyph', 16]], loop: [['coin', 3], ['glyph', 1]], colors: ['#ffd36b', '#fff3c4', '#4fe3ff', '#f5a623'], glyphs: '💎👑✦' },
+  divine: { burst: [['ring', 7], ['star', 80], ['spark', 70], ['bolt', 10], ['coin', 40], ['glyph', 20]], loop: [['star', 4], ['spark', 3], ['coin', 2]], colors: ['#ffffff', '#fff3c4', '#ffd36b', '#ffe9a8'], glyphs: '✨✦👑' },
+};
 // Monety/klejnoty renderowane raz do bufora — w pętli tylko drawImage (bez gradientów na klatkę)
 const CX_COIN_SPR = (() => {
   const cache = {};
@@ -195,34 +204,49 @@ function cxCoinFountain(canvas, getIntensity) {
   loop();
   return () => { alive = false; cancelAnimationFrame(raf); };
 }
+// Emoji na początku etykiety poza gradientem tekstu
+function cxBwLabel(t) { const m = t.match(/^(\S+)\s(.+)$/u); return m && /\p{Extended_Pictographic}/u.test(m[1]) ? `<span class="bw-e">${m[1]}</span> ${cxEsc(m[2])}` : cxEsc(t); }
 function cxBigWin({ amount, bet, tier, label, title }) {
   return new Promise(resolve => {
     const mult = bet ? amount / bet : 25;
     const steps = CX_LADDER.filter(s => s[0] <= mult);
     const ov = document.createElement('div');
     ov.className = 'cx-bigwin t-' + steps[0][2];
-    ov.innerHTML = `<div class="bw-rays"></div><canvas></canvas>${title ? `<div class="bw-title">${cxEsc(title)}</div>` : ''}<div class="bw-label">${steps[0][1]}</div>
+    ov.innerHTML = `<div class="bw-rays"></div><div class="bw-flash"></div><canvas></canvas><canvas class="bw-fx"></canvas>${title ? `<div class="bw-title">${cxEsc(title)}</div>` : ''}<div class="bw-label">${cxBwLabel(steps[0][1])}</div>
       <div class="bw-amt">0 AT$</div><div class="bw-bar"><i></i></div><div class="bw-mult">${bet ? mult.toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + '× stawki' : ''}</div>
       <div class="bw-hint">kliknij, aby pominąć</div>`;
     document.body.appendChild(ov);
     const amtEl = ov.querySelector('.bw-amt'), lbl = ov.querySelector('.bw-label'), bar = ov.querySelector('.bw-bar i');
-    const dur = Math.min(7000, 1600 + steps.length * 1200);
+    const dur = Math.min(12000, 1600 + steps.length * 1200);
     let stage = 0, counting = true, closed = false, autoClose = null;
     const stopCoins = cxCoinFountain(ov.querySelector('canvas'), () => counting ? 2 + stage * 2 : (Math.random() < .3 ? 1 : 0));
     cxSound.play('bigwin');
     const t0 = performance.now();
+    // Poziomy ponad Frito: własne cząsteczki, błysk i trzęsienie
+    const fxCv = ov.querySelector('.bw-fx');
+    const fx = typeof CxFx !== 'undefined' ? new CxFx({ canvas: () => fxCv, theme: () => CX_TIER_FX[steps[stage][2]] || null, alive: () => !closed }) : null;
+    const burst = list => { if (!fx) return; const W = innerWidth, H = innerHeight;
+      for (const [k, n] of list) fx.emit(k === 'ember' ? W * (.2 + Math.random() * .6) : W / 2, k === 'ember' ? H * .9 : H * .42, k, n, { spread: k === 'ember' ? W * .35 : k === 'bolt' ? 30 : 60, scale: k === 'ring' ? 3 : 1.4, speed: 1.6 }); };
+    const loopFx = setInterval(() => { const t = CX_TIER_FX[steps[stage][2]]; if (t && !closed) burst(t.loop.map(([k, n]) => [k, Math.max(1, Math.round(n * (counting ? 1 : .5)))])); }, 120);
     const setStage = i => {
       if (i === stage) return;
       stage = i;
-      ov.className = 'cx-bigwin t-' + steps[i][2];
-      lbl.textContent = steps[i][1];
+      const tier = steps[i][2];
+      ov.className = 'cx-bigwin t-' + tier;
+      lbl.innerHTML = cxBwLabel(steps[i][1]);
       lbl.classList.remove('bump'); void lbl.offsetWidth; lbl.classList.add('bump');
       cxSound.play('feature');
+      if (CX_TIER_FX[tier]) {
+        burst(CX_TIER_FX[tier].burst);
+        ov.classList.add('boom'); setTimeout(() => ov.classList.remove('boom'), 700);
+        cxSound.play(CX_TIER_ORDER.indexOf(tier) >= CX_TIER_ORDER.indexOf('cosmic') ? 'scwin' : 'bigwin');
+      }
     };
     const close = () => {
       if (closed) return;
       closed = true; counting = false; clearTimeout(autoClose);
       ov.style.transition = 'opacity .3s'; ov.style.opacity = '0';
+      clearInterval(loopFx);
       setTimeout(() => { stopCoins(); ov.remove(); resolve(); }, 300);
     };
     const finish = () => {

@@ -141,7 +141,7 @@ function initOWUI(table) {
       'KASKADY: wygrywające symbole znikają, a z góry spadają nowe (wysokość bębna się nie zmienia) — aż do braku wygranej.',
       '🏛️ Świątynia (Scatter): 4 / 5 / 6 = 10 / 15 / 20 Free Spinów (+5 za każdą kolejną). W Free Spinach 3+ Świątynie = +5 spinów za każdą ponad dwie.',
       '🌩️ FREE SPINY — MNOŻNIK ZEUSA: startuje od ×1, rośnie o +1 po każdej kaskadzie i NIE resetuje się między spinami. Każda wygrana jest mnożona przez bieżący mnożnik.',
-      'Maksymalna wygrana: 10 000× stawki (na spin / cały bonus).',
+      'Bez limitu wygranej.',
       'Wypłaty w tabeli to × stawki łącznej za JEDNĄ kombinację (sposób).',
       'RTP ≈ 95%.',
     ],

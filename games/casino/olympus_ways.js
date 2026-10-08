@@ -16,7 +16,7 @@ const E = require('./slot_engine');
 const COLS = 6, MIN_H = 2, MAX_H = 7, MIN_REELS = 3;
 const WAYS_NORM = 20;          // stała normalizacyjna: p = wypłata za 1 sposób × WAYS_NORM
 const PAY_SCALE = 4.55;
-const MAX_WIN = 10000;         // limit wygranej (× stawki) na spin / cały bonus
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 
 // p[3..6] — wypłata (× stawki × WAYS_NORM) za 1 kombinację na 3/4/5/6 bębnach
 const raw = [

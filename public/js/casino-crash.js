@@ -44,7 +44,7 @@ function crInfo() {
     <li>Kliknij <b>Wypłać</b>, aby zgarnąć stawka × aktualny mnożnik. Jeśli rakieta wybuchnie przed wypłatą — tracisz stawkę.</li>
     <li><b>Auto cash-out</b>: wpisz mnożnik (np. 2.00), a serwer wypłaci Cię automatycznie, gdy zostanie osiągnięty.</li>
     <li>Możesz kliknąć <b>Postaw</b> w trakcie lotu — zakład trafi do następnej rundy.</li>
-    <li>Punkt wybuchu jest losowany na starcie rundy: P(≥ x) = RTP / x (obecnie RTP ${cxRtpPct(cxCrashRtp)}). Max ×1000.</li></ul></div>`);
+    <li>Punkt wybuchu jest losowany na starcie rundy: P(≥ x) = RTP / x (obecnie RTP ${cxRtpPct(cxCrashRtp)}). Bez limitu mnożnika.</li></ul></div>`);
 }
 function crSaveBet() { const v = Number(document.getElementById('cr-bet').value); if (v) { cr.bet = v; try { localStorage.setItem('cr_bet_' + cr.table.id, v); } catch (e) {} } }
 function crBetMul(m) {

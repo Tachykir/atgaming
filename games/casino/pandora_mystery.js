@@ -14,7 +14,7 @@ const E = require('./slot_engine');
 
 const COLS = 5, ROWS = 4;
 const PAY_SCALE = 0.853;
-const MAX_WIN = 10000;
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 const FS = { 3: 10, 4: 14, 5: 18 };
 const STICKY_SPINS = 2;
 

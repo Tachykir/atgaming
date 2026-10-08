@@ -235,7 +235,7 @@ function initDSUI(table) {
       '🛟 3 / 4 / 5 Kół ratunkowych (Scatter) = 10 / 15 / 20 Free Spinów.',
       '🧑‍✈️ W Free Spinach pojawia się Rybak (Wild). Każdy rybak, który wyląduje, ZBIERA kwoty wszystkich ryb na planszy.',
       'Każdy rybak trafia na licznik: co 4 rybaków → +10 Free Spinów, a mnożnik zbierania rośnie ×2 → ×3 → ×10 (maks. 3 progi).',
-      'Maksymalna wygrana: 10 000× stawki.',
+      'Bez limitu wygranej.',
       'RTP ≈ 95%.',
     ],
     async present(res, kit) {

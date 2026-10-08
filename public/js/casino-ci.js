@@ -217,7 +217,7 @@ function initCIUI(table) {
       '🌟 Supernowa (Wild) pojawia się od bębna 2 i zastępuje wszystkie symbole poza Planetą.',
       '🪐 Planeta (Scatter): 3 lub więcej w jednym spinie (na wszystkich bębnach, także dołożonych) = 10 Free Spinów. W Free Spinach 3+ Planety = +10.',
       'Free Spiny: mnożnik startuje od ×3 (jak dla 6 bębnów) i nigdy nie spada — zostaje najwyższy osiągnięty. Więcej Supernowych na bębnach.',
-      'Wypłaty w tabeli: × stawki łącznej za 1 sposób. Maksymalna wygrana: 10 000× stawki.',
+      'Wypłaty w tabeli: × stawki łącznej za 1 sposób. Bez limitu wygranej.',
       'RTP ≈ 95%.',
     ],
     onMount(kit) {

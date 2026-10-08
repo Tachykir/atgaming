@@ -131,7 +131,7 @@ function initTCUI(table) {
       '🗿 Posąg (Wild) pojawia się na bębnach 2–5 i zastępuje wszystkie symbole poza Piorunem.',
       '⚡ Piorun (Scatter) tylko na bębnach 1, 3 i 5: 3 Pioruny = 10 Free Spinów (w Free Spinach +10).',
       'Free Spiny: w około 1/3 spinów na bębny 2–4 spada KOLOS-WILD 3×3 z mnożnikiem ×2 / ×3 / ×5, który mnoży całą wygraną spinu (na każdym bębnie liczy się jako jeden Wild). Częstsze zwykłe Kolosy.',
-      'Wypłaty w tabeli: × stawki łącznej za 1 sposób. Maksymalna wygrana: 10 000× stawki.',
+      'Wypłaty w tabeli: × stawki łącznej za 1 sposób. Bez limitu wygranej.',
       'RTP ≈ 95%.',
     ],
     onMount(kit) {

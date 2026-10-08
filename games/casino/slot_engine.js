@@ -24,6 +24,11 @@ const WIN_TIERS = [
   { min: 25,  tier: 'huge',  label: 'Huge Win'  },
   { min: 75,  tier: 'giga',  label: 'Giga Win'  },
   { min: 250, tier: 'frito', label: 'Mega Giga Frito Win' },
+  { min: 500,   tier: 'ultra',  label: 'Ultra Frito Win' },
+  { min: 1000,  tier: 'turbo',  label: 'Turbo Giga Frito' },
+  { min: 2500,  tier: 'cosmic', label: 'Kosmiczne Frito' },
+  { min: 5000,  tier: 'legend', label: 'Legendarne Frito' },
+  { min: 10000, tier: 'divine', label: 'Boskie Frito' },
 ];
 function getTier(mult) {
   if (!(mult > 0)) return { tier: 'none', label: '' };

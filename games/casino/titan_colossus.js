@@ -13,7 +13,7 @@ const E = require('./slot_engine');
 
 const COLS = 5, ROWS = 4;
 const PAY_SCALE = 0.892;
-const MAX_WIN = 10000; // × stawki
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 const FS_AWARD = 10;
 const P_COLO2 = 0.17, P_COLO3 = 0.06;      // gra podstawowa: szansa na kolosa 2×2 / 3×3
 const P_COLO2_FS = 0.35, P_COLO3_FS = 0.15; // FS (gdy brak Kolosa-Wild)

@@ -15,7 +15,7 @@ const E = require('./slot_engine');
 
 const COLS = 5, ROWS = 4;
 const PAY_SCALE = 0.98;
-const MAX_WIN = 10000;          // limit wygranej (× stawki) na spin / na całą serię FS
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 const DUEL_P = 0.022;            // dodatkowa szansa na „wezwanie do pojedynku” (wildy na 1. i 5. bębnie)
 
 // p[n] = wypłata × stawka-na-linię za n symboli

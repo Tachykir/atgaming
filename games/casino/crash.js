@@ -10,7 +10,7 @@ const BETTING_SECONDS = 7;
 const PAUSE_AFTER_CRASH_MS = 3500;
 const TICK_MS = 100;
 const GROWTH = 0.07;          // multiplier = e^(GROWTH * t)
-const MAX_MULT = 1000;
+const MAX_MULT = Infinity;   // bez limitu mnożnika
 
 // P(crash >= x) = RTP / x  (domyślnie RTP 96%, ustawiane w panelu admina)
 function generateCrashPoint(rtp = 0.96) {

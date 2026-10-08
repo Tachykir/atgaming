@@ -14,7 +14,7 @@ const E = require('./slot_engine');
 
 const COLS = 5, ROWS = 3;
 const PAY_SCALE = 3.055;
-const MAX_WIN = 10000; // × stawki na jeden spin
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 const BASE_RTP = 0.953;
 
 // p[n] = wypłata × stawka-na-linię za n symboli na linii

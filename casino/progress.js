@@ -21,7 +21,7 @@ const vipTotal = L => 1000 * L + 250 * L * (L - 1);            // XP łącznie p
 const vipMult = L => Math.round((1 + 0.01 * L) * 100) / 100;
 const vipXpMult = L => Math.round((1 + 0.1 * L) * 100) / 100;
 // Dodatkowe XP za duże wygrane (tier wg mnożnika × stawki) i uruchomienie funkcji bonusowej
-const VIP_TIER_XP = { big: 5, mega: 15, huge: 40, giga: 100, frito: 300 };
+const VIP_TIER_XP = { big: 5, mega: 15, huge: 40, giga: 100, frito: 300, ultra: 600, turbo: 1200, cosmic: 2500, legend: 5000, divine: 10000 };
 const VIP_FEATURE_XP = 25;
 function vipLevel(xp) {
   if (!(xp > 0)) return 0;
@@ -46,6 +46,8 @@ const ACHIEVEMENTS = [
   { id: 'big_win',     icon: '💰', name: 'Duża wygrana',        desc: 'Wygraj co najmniej 25× stawki',           reward: 5_000,  cond: (m, ev) => ev?.mult >= 25 },
   { id: 'giga_win',    icon: '💎', name: 'Giga wygrana',        desc: 'Wygraj co najmniej 75× stawki',           reward: 15_000, cond: (m, ev) => ev?.mult >= 75 },
   { id: 'frito',       icon: '🔥', name: 'Mega Giga Frito',     desc: 'Wygraj co najmniej 250× stawki',          reward: 50_000, cond: (m, ev) => ev?.mult >= 250 },
+  { id: 'cosmic_frito', icon: '🌌', name: 'Kosmiczne Frito',    desc: 'Wygraj co najmniej 2 500× stawki',        reward: 250_000, cond: (m, ev) => ev?.mult >= 2500 },
+  { id: 'divine_frito', icon: '✨', name: 'Boskie Frito',       desc: 'Wygraj co najmniej 10 000× stawki',       reward: 1_000_000, cond: (m, ev) => ev?.mult >= 10000 },
   { id: 'high_roller', icon: '🎩', name: 'High roller',         desc: 'Postaw 100 000 AT$ w jednym zakładzie',   reward: 10_000, cond: (m, ev) => ev?.bet >= 100_000 },
   { id: 'explorer',    icon: '🧭', name: 'Odkrywca',            desc: `Zagraj na wszystkich ${SLOT_GAMES.length} automatach`,      reward: 25_000, progress: m => [SLOT_GAMES.filter(g => m.games.includes(g)).length, SLOT_GAMES.length] },
   { id: 'crash_10x',   icon: '🚀', name: 'Na Księżyc',          desc: 'Wypłać w Crash przy mnożniku ≥ 10×',      reward: 8_000,  cond: (m, ev) => ev?.game === 'crash' && ev?.mult >= 10 && ev?.win > 0 },

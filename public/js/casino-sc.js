@@ -113,7 +113,7 @@ function initSCUI(table) {
       'Wygrana klastra = wypłata × SUMA mnożników pól pod klastrem (jeśli pod klastrem nie ma mnożników — ×1).',
       'W grze podstawowej oznaczenia znikają po spinie. W FREE SPINACH zostają na całą serię!',
       '🍬 Cukierek-Gwiazda (Scatter): 3 / 4 / 5 / 6 / 7+ = 10 / 12 / 15 / 20 / 30 Free Spinów. Ponowne wyzwolenie w trakcie Free Spinów dodaje spiny.',
-      'Maksymalna wygrana: 10 000× stawki (na spin / cały bonus).',
+      'Bez limitu wygranej.',
       'Wypłaty w tabeli to × stawki łącznej za klaster danej wielkości.',
       'RTP ≈ 95%.',
     ],

@@ -183,7 +183,7 @@ function initALUI(table) {
       '⚗️ Mikstura jest Wildem. Po wylądowaniu TRANSMUTUJE: wszystkie symbole najniższego obecnego poziomu na planszy zamieniają się w symbol o poziom wyżej. Każda mikstura = jedna transmutacja; dopiero potem liczone są linie.',
       '🔮 Kamień Filozoficzny (Scatter): 3 / 4 / 5 = 10 / 12 / 15 Free Spinów. Na start serii 🪨 Kamień znika z puli.',
       'W Free Spinach transmutacje są TRWAŁE: każda mikstura usuwa najniższy poziom z puli symboli do końca serii (aż zostaną tylko 🥈 🥇 💎). Drabina nad planszą pokazuje usunięte poziomy.',
-      'Maksymalna wygrana: 10 000× stawki na spin.',
+      'Bez limitu wygranej.',
       'RTP ≈ 95%.',
     ],
     async present(res, kit) {

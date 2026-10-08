@@ -16,7 +16,7 @@ const E = require('./slot_engine');
 
 const COLS = 7, ROWS = 7, CLUSTER_MIN = 5, MAX_SPOT = 128;
 const PAY_SCALE = 1.094;
-const MAX_WIN = 10000;
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 const FS_TABLE = { 3: 10, 4: 12, 5: 15, 6: 20, 7: 30 };
 
 // p[5..15] — × stawki łącznej za klaster danej wielkości (15 = 15+)

@@ -12,7 +12,7 @@ const E = require('./slot_engine');
 
 const COLS = 5, ROWS = 3;
 const PAY_SCALE = 1.84;
-const MAX_WIN = 10000;            // limit wygranej (× stawki) — jednego spinu i całego bonusu
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 const FS = { 3: 10, 4: 15, 5: 20 };
 const LEVELS = [1, 2, 3, 10];     // mnożniki zbierania po kolejnych progach
 const PER_LEVEL = 4;              // rybaków na próg

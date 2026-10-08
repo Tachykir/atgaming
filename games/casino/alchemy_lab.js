@@ -16,7 +16,7 @@ const E = require('./slot_engine');
 
 const COLS = 5, ROWS = 4;
 const PAY_SCALE = 0.733;
-const MAX_WIN = 10000;
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 const MAX_FLOOR = 2; // w FS najniższy możliwy poziom puli: Srebro
 const BASE_RTP = 0.953;
 const TOP = 4;

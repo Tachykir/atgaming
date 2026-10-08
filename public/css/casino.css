@@ -808,3 +808,30 @@
 :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-bronze { --vc: #e0915a; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-silver { --vc: #d9e2ee; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-gold { --vc: #ffd36b; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-plat { --vc: #7fe8ff; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-diamond { --vc: #b7a2ff; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-legend { --vc: #ff6fb5; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-mythic { --vc: #ff4d4d; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-cosmic { --vc: #5effe0; }
 .cx-vip-xp { position: fixed; z-index: 3000; transform: translateX(-50%); pointer-events: none; font: 800 14px 'Syne', sans-serif; color: #7fffc4; text-shadow: 0 2px 6px #000; animation: cxVipXp 1.6s ease-out forwards; }
 @keyframes cxVipXp { 0% { opacity: 0; transform: translate(-50%, -6px) scale(.7); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, 26px) scale(1); } }
+
+/* ══ Big Win ponad Mega Giga Frito ═══════════════════════════════ */
+.cx-bigwin .bw-label .bw-e { -webkit-text-fill-color: initial; color: #fff; display: inline-block; }
+.cx-bigwin .bw-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.cx-bigwin .bw-flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 45%, #fff, var(--bwf, #ffd36b) 35%, transparent 75%); }
+.cx-bigwin.boom .bw-flash { animation: bwFlash .7s ease-out; }
+.cx-bigwin.boom { animation: skShake .5s; }
+@keyframes bwFlash { 10% { opacity: .9; } 100% { opacity: 0; } }
+.cx-bigwin.t-ultra { --bwf: #ff5a1f; background: radial-gradient(circle at 50% 45%, rgba(255,90,31,.45), rgba(20,4,0,.94) 70%); }
+.cx-bigwin.t-ultra .bw-label { background-image: linear-gradient(180deg, #fff3c4, #ffb02e 35%, #ff3b1f 75%, #8a0d00); filter: drop-shadow(0 6px 0 #4a0a00) drop-shadow(0 0 40px rgba(255,80,20,.85)); }
+.cx-bigwin.t-ultra .bw-rays { background: repeating-conic-gradient(rgba(255,90,31,.14) 0 8deg, transparent 8deg 18deg); }
+.cx-bigwin.t-turbo { --bwf: #b48cff; background: radial-gradient(circle at 50% 45%, rgba(120,90,255,.45), rgba(4,4,24,.95) 70%); }
+.cx-bigwin.t-turbo .bw-label { background-image: linear-gradient(180deg, #ffffff, #4fe3ff 40%, #8b6cff 80%); filter: drop-shadow(0 6px 0 #160b5a) drop-shadow(0 0 40px rgba(79,227,255,.9)); }
+.cx-bigwin.t-turbo .bw-rays { background: repeating-conic-gradient(rgba(79,227,255,.13) 0 5deg, transparent 5deg 15deg); animation-duration: 6s; }
+.cx-bigwin.t-cosmic { --bwf: #ff4fd8; background: radial-gradient(circle at 50% 45%, rgba(255,79,216,.35), rgba(30,10,80,.6) 40%, rgba(2,2,14,.97) 75%); }
+.cx-bigwin.t-cosmic .bw-label { background-image: linear-gradient(90deg, #ff4fd8, #7aa7ff, #4fe3ff, #3ff2a3, #ffd36b, #ff4fd8); background-size: 200% 100%; animation: bwBump .45s cubic-bezier(.2,1.8,.4,1), bwRainbow 2s linear infinite; filter: drop-shadow(0 6px 0 #1a0640) drop-shadow(0 0 44px rgba(180,140,255,.9)); }
+.cx-bigwin.t-cosmic .bw-rays { background: repeating-conic-gradient(rgba(255,79,216,.12) 0 6deg, rgba(79,227,255,.1) 6deg 12deg, transparent 12deg 20deg); animation-duration: 8s; }
+@keyframes bwRainbow { to { background-position: 200% 0; } }
+.cx-bigwin.t-legend { --bwf: #ffd36b; background: radial-gradient(circle at 50% 45%, rgba(255,211,107,.5), rgba(40,24,0,.9) 55%, rgba(6,4,0,.97) 80%); }
+.cx-bigwin.t-legend .bw-label { background-image: linear-gradient(180deg, #ffffff, #fff3c4 25%, #ffd36b 55%, #b8860b); filter: drop-shadow(0 6px 0 #4a2a00) drop-shadow(0 0 50px rgba(255,211,107,1)); }
+.cx-bigwin.t-legend .bw-amt::before, .cx-bigwin.t-divine .bw-amt::before { content: '👑'; position: absolute; left: 50%; top: -.95em; transform: translateX(-50%); font-size: .8em; filter: drop-shadow(0 0 16px #ffd36b); animation: fsBob 1s ease-in-out infinite alternate; }
+.cx-bigwin.t-legend .bw-rays { background: repeating-conic-gradient(rgba(255,211,107,.18) 0 6deg, transparent 6deg 14deg); }
+.cx-bigwin.t-divine { --bwf: #ffffff; background: radial-gradient(circle at 50% 45%, rgba(255,248,220,.42), rgba(160,120,30,.4) 35%, rgba(24,16,2,.96) 75%); }
+.cx-bigwin.t-divine .bw-label { background-image: linear-gradient(180deg, #ffffff, #fff8e1 40%, #ffd36b 80%); filter: drop-shadow(0 4px 0 #8a6a00) drop-shadow(0 0 30px #fff) drop-shadow(0 0 70px rgba(255,211,107,1)); }
+.cx-bigwin.t-divine .bw-amt { color: #fff; text-shadow: 0 3px 0 #6b4a00, 0 0 8px #000, 0 0 40px #ffd36b; }
+.cx-bigwin.t-divine .bw-rays { background: repeating-conic-gradient(rgba(255,255,255,.16) 0 4deg, rgba(255,211,107,.1) 4deg 9deg, transparent 9deg 15deg); animation-duration: 5s; }
+.cx-bigwin.t-divine.boom .bw-flash { animation-duration: 1.2s; }

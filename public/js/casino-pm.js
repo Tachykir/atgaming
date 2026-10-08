@@ -228,7 +228,7 @@ function initPMUI(table) {
       '✨ Mystery Multiplier (gra podstawowa, ok. 1 na 12 spinów): każda odsłonięta puszka dostaje mnożnik ×2–×10. Mnożniki puszek na wygrywającej linii SUMUJĄ się i mnożą wygraną tej linii.',
       '👁️ 3 / 4 / 5 Oczu (Scatter) = 10 / 14 / 18 Free Spinów (także ponownie w trakcie bonusu).',
       '🎁 W Free Spinach każda puszka ma gwarantowany mnożnik ×2–×50 i jest LEPKA — zostaje na planszy przez 2 kolejne spiny (z tym samym mnożnikiem), odsłaniając się za każdym razem razem z resztą puszek.',
-      'Maksymalna wygrana: 10 000× stawki.',
+      'Bez limitu wygranej.',
       'RTP ≈ 95%.',
     ],
     async present(res, kit) {

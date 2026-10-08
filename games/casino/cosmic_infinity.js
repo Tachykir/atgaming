@@ -14,7 +14,7 @@ const E = require('./slot_engine');
 
 const ROWS = 3, START_COLS = 3, MAX_COLS = 12;
 const PAY_SCALE = 0.9735;
-const MAX_WIN = 10000; // × stawki
+const MAX_WIN = Infinity;  // bez limitu wygranej (kod limitu zostaje — nigdy się nie uruchamia)
 // Mnożnik wg liczby bębnów, do których sięga wygrana
 const MULT = [0, 0, 0, 1, 1, 2, 3, 4, 6, 8, 12, 18, 25];
 const FS_START_MULT = MULT[6];

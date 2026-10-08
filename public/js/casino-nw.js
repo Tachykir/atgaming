@@ -185,7 +185,7 @@ function initNWUI(table) {
       'Każdy ninja zaczyna z mnożnikiem ×1, który rośnie o +1 przy każdym kroku. Na linii mnożniki wszystkich ninja SUMUJĄ się.',
       'Cały ciąg respinów to jeden spin — wypłata to suma wygranych ze wszystkich kroków.',
       '🏯 3 / 4 / 5 Świątyń = 8 / 12 / 16 Free Spinów. W Free Spinach ninja wchodzi od razu z ×2 i chodzi wolniej (skok co drugi respin), więc respinów jest więcej. 3+ 🏯 w trakcie = kolejne spiny.',
-      'Maksymalna wygrana: 10 000× stawki (spin lub cała seria Free Spinów).',
+      'Bez limitu wygranej.',
       'RTP ≈ 95%.',
     ],
     async present(res, kit) {

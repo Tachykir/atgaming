@@ -267,7 +267,7 @@ function initWDUI(table) {
       'Na linii wygrywającej mnożniki wszystkich wildów MNOŻĄ SIĘ ze sobą — np. ×5 i ×10 dają ×50.',
       '⚔️ POJEDYNEK (gra podstawowa): gdy wildy wylądują na 1. i 5. bębnie, rewolwerowcy strzelają się — zwycięzca podwaja swój mnożnik.',
       '⭐ 3 / 4 / 5 Gwiazd Szeryfa = 10 / 12 / 15 Free Spinów. W Free Spinach każdy wild jest LEPKI — zostaje do końca serii, a jego mnożnik rośnie o +1 przy każdym kolejnym spinie. 3+ ⭐ w trakcie = +5 spinów.',
-      'Maksymalna wygrana: 10 000× stawki (spin lub cała seria Free Spinów).',
+      'Bez limitu wygranej.',
       'RTP ≈ 95%.',
     ],
     async present(res, kit) {

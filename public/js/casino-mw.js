@@ -416,7 +416,7 @@ function initMWUI(table) {
       'Koło ma 24 segmenty: mnożniki stawki ×10, ×15, ×20, ×25, ×50, ×75, ×100, ×250, ×500, ×1000 (im wyższy, tym rzadszy), „+8 FREE SPINS”, „RESPIN KOŁA ×2” oraz jackpoty MINI ×50, MAJOR ×200 i GRAND ×1000.',
       'RESPIN KOŁA ×2: koło kręci się jeszcze raz, a wynik zostaje podwojony (także liczba free spinów). Respiny łączą się w łańcuch — maks. ×8.',
       'Free Spiny: 🌟 Wildy pojawiają się znacznie częściej, a trzy scattery mogą ponownie uruchomić koło.',
-      'Maksymalna wygrana: 10 000× stawki na spin.',
+      'Bez limitu wygranej.',
       'RTP ≈ 95%.',
     ],
     async present(res, kit) {
