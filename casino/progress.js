@@ -14,19 +14,25 @@ const SLOT_GAMES = ['slots', 'path_of_gambling', 'jackpot_frenzy', 'dragon_hoard
 const DAILY = [2_000, 3_000, 4_000, 5_000, 6_500, 8_000, 10_000]; // dzień serii 1…7+
 
 // ── VIP ──────────────────────────────────────────────────────
-// Każdy spin na automacie (także darmowy) = 1 XP. VIP 1 za 1000 XP, każdy kolejny poziom
-// kosztuje o 500 XP więcej (1000, 1500, 2000…). Maks. VIP 100. Mnożnik wygranych: 1 + 0,01 × poziom.
-const VIP_MAX = 100;
-const vipTotal = L => 1000 * L + 250 * L * (L - 1);            // XP łącznie potrzebne do poziomu L
+// Każdy spin na automacie (także darmowy) = 1 XP (+ bonus za duże wygrane). VIP 1 za 1000 XP, każdy kolejny
+// poziom kosztuje o 500 XP więcej (1000, 1500, 2000…). Poziomy bez limitu.
+// Każdy poziom = +1%: mnożnik wygranych na automatach i mnożnik zdobywanego XP = 1 + 0,01 × poziom.
+const vipTotal = L => 1000 * L + 250 * L * (L - 1);            // XP łącznie potrzebne do poziomu L (= 250L² + 750L)
 const vipMult = L => Math.round((1 + 0.01 * L) * 100) / 100;
 // Dodatkowe XP za duże wygrane (tier wg mnożnika × stawki) i uruchomienie funkcji bonusowej
 const VIP_TIER_XP = { big: 5, mega: 15, huge: 40, giga: 100, frito: 300 };
 const VIP_FEATURE_XP = 25;
-function vipLevel(xp) { let L = 0; while (L < VIP_MAX && xp >= vipTotal(L + 1)) L++; return L; }
+function vipLevel(xp) {
+  if (!(xp > 0)) return 0;
+  let L = Math.max(0, Math.floor((-750 + Math.sqrt(750 * 750 + 1000 * xp)) / 500));
+  while (vipTotal(L + 1) <= xp) L++;
+  while (L > 0 && vipTotal(L) > xp) L--;
+  return L;
+}
 function vipStatus(xp) {
-  const level = vipLevel(xp), max = level >= VIP_MAX;
-  const from = vipTotal(level), to = max ? from : vipTotal(level + 1);
-  return { level, xp, mult: vipMult(level), max, cur: xp - from, need: to - from, nextMult: max ? null : vipMult(level + 1), maxLevel: VIP_MAX };
+  const level = vipLevel(xp);
+  const from = vipTotal(level), to = vipTotal(level + 1);
+  return { level, xp: Math.floor(xp), mult: vipMult(level), xpMult: vipMult(level), cur: Math.floor(xp - from), need: to - from, nextMult: vipMult(level + 1) };
 }
 
 // cond(m, ev) → true gdy zdobyte; progress(m) → [ile, cel] dla paska postępu
@@ -128,11 +134,12 @@ async function recordRound(id, ev) {
     // XP za spin automatu (płatny lub darmowy)
     if (SLOT_GAMES.includes(ev.game) && (ev.kind === 'round' || ev.kind === 'free')) {
       const before = vipLevel(m.vip.xp);
+      const xm = vipMult(before);   // poziom VIP mnoży też zdobywane XP (+1% za poziom)
       const bonus = (VIP_TIER_XP[ev.tier] || 0) + (ev.feature ? VIP_FEATURE_XP : 0);
-      m.vip.xp += 1 + bonus;
+      m.vip.xp = Math.round((m.vip.xp + (1 + bonus) * xm) * 100) / 100;
       const st = vipStatus(m.vip.xp);
       if (st.level > before) log(id, { game: 'vip', kind: 'vip', note: `Awans na VIP ${st.level} — mnożnik wygranych ×${st.mult.toFixed(2)}` });
-      io?.to('user:' + id).emit('casinoVip', { ...st, levelUp: st.level > before, gain: 1 + bonus, bonus });
+      io?.to('user:' + id).emit('casinoVip', { ...st, levelUp: st.level > before, gain: Math.round((1 + bonus) * xm), bonus: bonus ? Math.round((1 + bonus) * xm) : 0 });
     }
     touch(e);
     if (ev.history !== false) log(id, { game: ev.game, kind: ev.kind || 'round', bet, win, balance: ev.balance ?? null, note: ev.note ?? null });
@@ -203,4 +210,4 @@ function start() {
   if (!pruneTimer) { pruneTimer = setInterval(() => store.pruneHistory().catch(() => {}), 6 * 3600_000); pruneTimer.unref?.(); }
 }
 
-module.exports = { VIP_TIER_XP, VIP_FEATURE_XP, vipFor, vipMultFor, vipStatus, vipLevel, vipTotal, VIP_MAX, logEvent: log, recordRound, noteBalance, claimDaily, dailyStatus, achievementsFor, history, flush, start, setIo, ACHIEVEMENTS, DAILY, dayOf };
+module.exports = { VIP_TIER_XP, VIP_FEATURE_XP, vipFor, vipMultFor, vipStatus, vipLevel, vipTotal, vipMult, logEvent: log, recordRound, noteBalance, claimDaily, dailyStatus, achievementsFor, history, flush, start, setIo, ACHIEVEMENTS, DAILY, dayOf };

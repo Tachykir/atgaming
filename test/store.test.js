@@ -94,7 +94,9 @@ test('VIP: 1 XP za spin, progi 1000 / +500, mnożnik 1 + 0,01 × poziom', async 
   assert.deepStrictEqual([1, 2, 3, 100].map(progress.vipTotal), [1000, 2500, 4500, 2_575_000]);
   assert.strictEqual(progress.vipLevel(999), 0);
   assert.strictEqual(progress.vipLevel(1000), 1);
-  assert.strictEqual(progress.vipLevel(1e12), progress.VIP_MAX);
+  assert.strictEqual(progress.vipLevel(progress.vipTotal(1000)), 1000);   // bez limitu
+  assert.strictEqual(progress.vipLevel(progress.vipTotal(1000) - 0.5), 999);
+  for (let L = 0; L < 300; L++) assert.strictEqual(progress.vipLevel(progress.vipTotal(L)), L);
   assert.strictEqual(progress.vipStatus(2500).mult, 1.02);
   await store.ensureWallet(user('v1'));
   const events = [];
@@ -114,5 +116,6 @@ test('VIP: bonusowe XP za duże wygrane i funkcję bonusową', async () => {
   const progress = require('../casino/progress');
   await store.ensureWallet(user('v2'));
   await progress.recordRound('v2', { game: 'hot_777', bet: 10, win: 1000, balance: 1, kind: 'round', tier: 'giga', feature: true, history: false });
-  assert.strictEqual((await progress.vipFor('v2')).xp, 1 + progress.VIP_TIER_XP.giga + progress.VIP_FEATURE_XP);
+  assert.strictEqual((await progress.vipFor('v2')).xp, 1 + progress.VIP_TIER_XP.giga + progress.VIP_FEATURE_XP);   // VIP 0 → XP ×1
+  assert.strictEqual(progress.vipMult(10), 1.1);
 });

@@ -128,10 +128,10 @@ function cxNextAchievement() {
 }
 
 // ══ VIP ══════════════════════════════════════════════════════
-// 1 spin = 1 XP; VIP 1 za 1000 XP, każdy kolejny poziom +500 XP; mnożnik wygranych 1 + 0,01 × poziom (maks. VIP 100)
+// 1 spin = 1 XP; VIP 1 za 1000 XP, każdy kolejny poziom +500 XP; bez limitu poziomów; mnożnik wygranych i XP 1 + 0,01 × poziom
 let cxVip = null;
 const cxVipTotal = L => 1000 * L + 250 * L * (L - 1);
-const CX_VIP_TIERS = [[100, 'legend', 'Legenda'], [75, 'diamond', 'Diament'], [50, 'plat', 'Platyna'], [25, 'gold', 'Złoto'], [10, 'silver', 'Srebro'], [1, 'bronze', 'Brąz'], [0, 'none', 'Start']];
+const CX_VIP_TIERS = [[500, 'cosmic', 'Kosmiczny'], [250, 'mythic', 'Mityczny'], [100, 'legend', 'Legenda'], [75, 'diamond', 'Diament'], [50, 'plat', 'Platyna'], [25, 'gold', 'Złoto'], [10, 'silver', 'Srebro'], [1, 'bronze', 'Brąz'], [0, 'none', 'Start']];
 const cxVipTier = L => CX_VIP_TIERS.find(t => L >= t[0]);
 const cxVipMultTxt = m => '×' + m.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -141,17 +141,17 @@ async function cxLoadVip() {
 function cxVipChipHTML() {
   const v = cxVip;
   if (!v) return '';
-  const pct = v.max ? 100 : Math.floor(v.cur / v.need * 100);
+  const pct = Math.floor(v.cur / v.need * 100);
   return `<span class="vip-lv">VIP ${v.level}</span><span class="vip-m">${cxVipMultTxt(v.mult)}</span><i style="--p:${pct}%"></i>`;
 }
 function cxVipCardHTML() {
   const v = cxVip;
   if (!v) return '';
-  const pct = v.max ? 100 : (v.cur / v.need * 100);
+  const pct = v.cur / v.need * 100;
   return `<div class="cx-vip-card t-${cxVipTier(v.level)[1]}" onclick="cxShowVip()" title="Poziom VIP — szczegóły">
     <div class="vc-top"><span class="vc-badge">🎖️ VIP ${v.level}</span><span class="vc-mult">wygrane ${cxVipMultTxt(v.mult)}</span></div>
     <div class="vc-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
-    <div class="vc-txt">${v.max ? 'Maksymalny poziom!' : `${cxFmt(v.cur)} / ${cxFmt(v.need)} XP do VIP ${v.level + 1}`}</div></div>`;
+    <div class="vc-txt">${cxFmt(v.cur)} / ${cxFmt(v.need)} XP do VIP ${v.level + 1} · XP ${cxVipMultTxt(v.mult)}</div></div>`;
 }
 function cxRenderVip() {
   const tier = cxVip ? cxVipTier(cxVip.level)[1] : 'none';
@@ -162,15 +162,15 @@ function cxShowVip() {
   const v = cxVip;
   if (!v) return;
   const rows = [];
-  const from = Math.max(1, v.level - 2), to = Math.min(v.maxLevel, from + 9);
-  const marks = [10, 25, 50, 75, 100].filter(L => L > to);
+  const from = Math.max(1, v.level - 2), to = from + 9;
+  const marks = [10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000].filter(L => L > to).slice(0, 5);
   for (const L of [...Array.from({ length: to - from + 1 }, (_, i) => from + i), ...marks]) {
     const need = cxVipTotal(L), done = v.level >= L;
-    rows.push(`<tr class="${done ? 'done' : ''}${L === v.level ? ' cur' : ''}"><td><b>VIP ${L}</b> <small>${cxVipTier(L)[2]}</small></td><td class="r">${cxFmt(need)} XP</td><td class="r">${cxVipMultTxt(1 + L / 100)}</td><td class="r">${done ? '✓' : `${cxFmt(Math.max(0, need - v.xp))} spinów`}</td></tr>`);
+    rows.push(`<tr class="${done ? 'done' : ''}${L === v.level ? ' cur' : ''}"><td><b>VIP ${L}</b> <small>${cxVipTier(L)[2]}</small></td><td class="r">${cxFmt(need)} XP</td><td class="r">${cxVipMultTxt(1 + L / 100)}</td><td class="r">${done ? '✓' : `${cxFmt(Math.max(0, need - v.xp))} XP`}</td></tr>`);
   }
   cxModal(`<h3>🎖️ Program VIP</h3>
     ${cxVipCardHTML()}
-    <p class="cx-rules" style="margin:12px 0">Każdy spin na automacie (także darmowy) daje <b>1 XP</b>, a duże wygrane dodatkowo: Big Win +5, Mega +15, Huge +40, Giga +100, Mega Giga Frito +300, uruchomienie bonusu +25. VIP 1 wymaga 1 000 XP, a każdy kolejny poziom o 500 XP więcej. Każdy poziom zwiększa <b>wszystkie wygrane na automatach o 1%</b> (VIP 10 = ×1,10, VIP 100 = ×2,00).</p>
+    <p class="cx-rules" style="margin:12px 0">Każdy spin na automacie (także darmowy) daje <b>1 XP</b>, a duże wygrane dodatkowo: Big Win +5, Mega +15, Huge +40, Giga +100, Mega Giga Frito +300, uruchomienie bonusu +25. VIP 1 wymaga 1 000 XP, a każdy kolejny poziom o 500 XP więcej. Poziomy nie mają limitu. Każdy poziom zwiększa o 1% <b>wszystkie wygrane na automatach</b> i <b>zdobywane XP</b> (VIP 10 = ×1,10, VIP 100 = ×2,00, VIP 200 = ×3,00…).</p>
     <table class="cx-hist cx-vip-tbl"><thead><tr><th>Poziom</th><th class="r">Łącznie XP</th><th class="r">Mnożnik</th><th class="r">Brakuje</th></tr></thead><tbody>${rows.join('')}</tbody></table>`, { wide: true });
 }
 socket.on('casinoVip', v => {
