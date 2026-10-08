@@ -785,3 +785,24 @@
   filter: drop-shadow(0 8px 0 rgba(0,0,0,.45)) drop-shadow(0 0 60px var(--fa)); animation: mfText 1.3s cubic-bezier(.2,1.6,.4,1) forwards; }
 @keyframes mfBg { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes mfText { 0% { transform: scale(3); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 75% { opacity: 1; } 100% { transform: scale(.8); opacity: 0; } }
+
+/* ══ VIP ═════════════════════════════════════════════════════════ */
+.cx-vip-chip { --vc: #c7c2d9; display: inline-flex; align-items: center; gap: 6px; position: relative; overflow: hidden; padding: 6px 10px 8px; border-radius: 12px; cursor: pointer;
+  background: rgba(0,0,0,.35); border: 1px solid color-mix(in srgb, var(--vc) 60%, transparent); color: #fff; font: 800 12px 'Syne', sans-serif; white-space: nowrap; }
+.cx-vip-chip[hidden] { display: none; }
+.cx-vip-chip .vip-lv { color: var(--vc); }
+.cx-vip-chip .vip-m { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--cx-win); }
+.cx-vip-chip i { position: absolute; left: 0; bottom: 0; height: 3px; width: var(--p); background: var(--vc); transition: width .4s; }
+.cx-vip-card { --vc: #c7c2d9; margin-top: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(0,0,0,.3); border: 1px solid color-mix(in srgb, var(--vc) 55%, transparent); text-align: left; cursor: pointer; }
+.cx-vip-card .vc-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.cx-vip-card .vc-badge { font: 800 13px 'Syne', sans-serif; color: var(--vc); }
+.cx-vip-card .vc-mult { font: 600 12px 'DM Mono', monospace; color: var(--cx-win); }
+.cx-vip-card .vc-bar { height: 6px; border-radius: 6px; background: rgba(255,255,255,.08); margin: 6px 0 4px; overflow: hidden; }
+.cx-vip-card .vc-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--vc) 60%, #000), var(--vc)); transition: width .4s; }
+.cx-vip-card .vc-txt { font-size: 11px; color: var(--muted); }
+.cx-hero-wallet .cx-vip-card span { text-transform: none; letter-spacing: 0; }
+.cx-vip-tbl tr.done td { color: var(--muted); }
+.cx-vip-tbl tr.cur td { background: rgba(255,211,107,.1); color: #fff; }
+.cx-vip-tbl small { color: var(--muted); font-weight: 600; }
+.cx-vip-pop { border-color: var(--vc, var(--cx-gold)); }
+:is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-bronze { --vc: #e0915a; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-silver { --vc: #d9e2ee; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-gold { --vc: #ffd36b; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-plat { --vc: #7fe8ff; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-diamond { --vc: #b7a2ff; } :is(.cx-vip-chip, .cx-vip-card, .cx-vip-pop).t-legend { --vc: #ff6fb5; }

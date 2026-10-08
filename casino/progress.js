@@ -13,6 +13,19 @@ const SLOT_GAMES = ['slots', 'path_of_gambling', 'jackpot_frenzy', 'dragon_hoard
   'olympus_ways', 'wild_duel', 'cosmic_infinity', 'deep_sea', 'sugar_cells', 'pandora_mystery', 'titan_colossus', 'ninja_walk', 'mega_wheel', 'alchemy_lab'];
 const DAILY = [2_000, 3_000, 4_000, 5_000, 6_500, 8_000, 10_000]; // dzień serii 1…7+
 
+// ── VIP ──────────────────────────────────────────────────────
+// Każdy spin na automacie (także darmowy) = 1 XP. VIP 1 za 1000 XP, każdy kolejny poziom
+// kosztuje o 500 XP więcej (1000, 1500, 2000…). Maks. VIP 100. Mnożnik wygranych: 1 + 0,01 × poziom.
+const VIP_MAX = 100;
+const vipTotal = L => 1000 * L + 250 * L * (L - 1);            // XP łącznie potrzebne do poziomu L
+const vipMult = L => Math.round((1 + 0.01 * L) * 100) / 100;
+function vipLevel(xp) { let L = 0; while (L < VIP_MAX && xp >= vipTotal(L + 1)) L++; return L; }
+function vipStatus(xp) {
+  const level = vipLevel(xp), max = level >= VIP_MAX;
+  const from = vipTotal(level), to = max ? from : vipTotal(level + 1);
+  return { level, xp, mult: vipMult(level), max, cur: xp - from, need: to - from, nextMult: max ? null : vipMult(level + 1), maxLevel: VIP_MAX };
+}
+
 // cond(m, ev) → true gdy zdobyte; progress(m) → [ile, cel] dla paska postępu
 const ACHIEVEMENTS = [
   { id: 'first_win',   icon: '🎉', name: 'Pierwsza wygrana',    desc: 'Wygraj cokolwiek w kasynie',              reward: 1_000,  cond: (m, ev) => ev?.win > 0 },
@@ -28,6 +41,8 @@ const ACHIEVEMENTS = [
   { id: 'crash_10x',   icon: '🚀', name: 'Na Księżyc',          desc: 'Wypłać w Crash przy mnożniku ≥ 10×',      reward: 8_000,  cond: (m, ev) => ev?.game === 'crash' && ev?.mult >= 10 && ev?.win > 0 },
   { id: 'roulette_35', icon: '🎡', name: 'Strzał w numer',      desc: 'Traf pojedynczy numer w ruletce',         reward: 5_000,  cond: (m, ev) => ev?.game === 'roulette' && ev?.straight },
   { id: 'daily_7',     icon: '📅', name: 'Stały bywalec',       desc: 'Odbierz dzienny bonus 7 dni z rzędu',     reward: 15_000, progress: m => [m.daily.streak || 0, 7] },
+  { id: 'vip_10',      icon: '🎖️', name: 'Stały gość VIP',      desc: 'Osiągnij poziom VIP 10',                  reward: 25_000, progress: m => [vipLevel(m.vip.xp), 10] },
+  { id: 'vip_50',      icon: '👑', name: 'Elita VIP',           desc: 'Osiągnij poziom VIP 50',                  reward: 250_000, progress: m => [vipLevel(m.vip.xp), 50] },
   { id: 'millionaire', icon: '🏦', name: 'Milioner',            desc: 'Miej na koncie 1 000 000 AT$',            reward: 25_000, progress: m => [Math.min(m.c.maxBalance, 1_000_000), 1_000_000] },
 ];
 
@@ -36,13 +51,13 @@ function setIo(i) { io = i; }
 
 // ── Profil gracza ────────────────────────────────────────────
 const metas = new Map();   // id → { data, dirty }
-const fresh = () => ({ c: { rounds: 0, spins: 0, wins: 0, bonuses: 0, wagered: 0, won: 0, maxBalance: 0 }, games: [], ach: {}, daily: { last: null, streak: 0 } });
+const fresh = () => ({ c: { rounds: 0, spins: 0, wins: 0, bonuses: 0, wagered: 0, won: 0, maxBalance: 0 }, games: [], ach: {}, daily: { last: null, streak: 0 }, vip: { xp: 0 } });
 async function meta(id) {
   let e = metas.get(id);
   if (!e) {
     const saved = await store.getMeta(id).catch(() => null);
     const base = fresh();
-    const data = saved ? { ...base, ...saved, c: { ...base.c, ...saved.c }, daily: { ...base.daily, ...saved.daily } } : base;
+    const data = saved ? { ...base, ...saved, c: { ...base.c, ...saved.c }, daily: { ...base.daily, ...saved.daily }, vip: { ...base.vip, ...saved.vip } } : base;
     e = metas.get(id) || { data, dirty: false };   // ktoś mógł załadować w międzyczasie
     metas.set(id, e);
   }
@@ -107,6 +122,14 @@ async function recordRound(id, ev) {
     if (ev.balance > c.maxBalance) c.maxBalance = ev.balance;
     if (!m.games.includes(ev.game)) m.games.push(ev.game);
     if (ev.mult === undefined && bet > 0) ev.mult = win / bet;
+    // XP za spin automatu (płatny lub darmowy)
+    if (SLOT_GAMES.includes(ev.game) && (ev.kind === 'round' || ev.kind === 'free')) {
+      const before = vipLevel(m.vip.xp);
+      m.vip.xp++;
+      const st = vipStatus(m.vip.xp);
+      if (st.level > before) log(id, { game: 'vip', kind: 'vip', note: `Awans na VIP ${st.level} — mnożnik wygranych ×${st.mult.toFixed(2)}` });
+      io?.to('user:' + id).emit('casinoVip', { ...st, levelUp: st.level > before });
+    }
     touch(e);
     if (ev.history !== false) log(id, { game: ev.game, kind: ev.kind || 'round', bet, win, balance: ev.balance ?? null, note: ev.note ?? null });
     await checkAchievements(id, e, ev);
@@ -154,6 +177,10 @@ async function claimDaily(id) {
   } finally { claiming.delete(id); }
 }
 
+async function vipFor(id) { return vipStatus((await meta(id)).data.vip.xp); }
+/** Mnożnik wygranych VIP gracza (1 = brak). */
+async function vipMultFor(id) { if (!id) return 1; try { return vipMult(vipLevel((await meta(id)).data.vip.xp)); } catch (e) { return 1; } }
+
 async function achievementsFor(id) {
   const m = (await meta(id)).data;
   return ACHIEVEMENTS.map(a => {
@@ -172,4 +199,4 @@ function start() {
   if (!pruneTimer) { pruneTimer = setInterval(() => store.pruneHistory().catch(() => {}), 6 * 3600_000); pruneTimer.unref?.(); }
 }
 
-module.exports = { logEvent: log, recordRound, noteBalance, claimDaily, dailyStatus, achievementsFor, history, flush, start, setIo, ACHIEVEMENTS, DAILY, dayOf };
+module.exports = { vipFor, vipMultFor, vipStatus, vipLevel, vipTotal, VIP_MAX, logEvent: log, recordRound, noteBalance, claimDaily, dailyStatus, achievementsFor, history, flush, start, setIo, ACHIEVEMENTS, DAILY, dayOf };

@@ -173,7 +173,7 @@ function registerHandlers(socket, io, casino) {
       if (!state.pick || state.pick.done) return;
       const r = resolvePick(state, Number(data.index));
       if (!r) return;
-      const k = E.rtpScale(casino, def.game);
+      const k = E.rtpScale(casino, def.game) * (casino.progress ? await casino.progress.vipMultFor(discordUser.id) : 1);
       const cash = Math.floor(r.cash * k);
       if (cash > 0) {
         await casino.updateBalance(discordUser.id, cash);
@@ -193,7 +193,7 @@ function registerHandlers(socket, io, casino) {
     const discordUser = socket.getDiscordUser(data);
     if (!discordUser) return;
     const state = await E.loadState(def, casino, discordUser.id);
-    const k = E.rtpScale(casino, def.game);
+    const k = E.rtpScale(casino, def.game) * (casino.progress ? await casino.progress.vipMultFor(discordUser.id) : 1);
     socket.emit('casinoAAState', { freeSpins: state.freeSpins, fsMult: state.fsMult, freeBet: state.freeBet, rtpScale: k, pick: state.pick && !state.pick.done ? scalePick(publicPick(state.pick, false), k) : null });
   });
 }

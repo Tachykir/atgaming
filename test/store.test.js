@@ -88,3 +88,24 @@ test('osiągnięcia: pierwsza wygrana i high roller przyznają nagrody raz', asy
   const hist = await progress.history('a1', 10);
   assert.ok(hist.some(h => h.kind === 'achievement'));
 });
+
+test('VIP: 1 XP za spin, progi 1000 / +500, mnożnik 1 + 0,01 × poziom', async () => {
+  const progress = require('../casino/progress');
+  assert.deepStrictEqual([1, 2, 3, 100].map(progress.vipTotal), [1000, 2500, 4500, 2_575_000]);
+  assert.strictEqual(progress.vipLevel(999), 0);
+  assert.strictEqual(progress.vipLevel(1000), 1);
+  assert.strictEqual(progress.vipLevel(1e12), progress.VIP_MAX);
+  assert.strictEqual(progress.vipStatus(2500).mult, 1.02);
+  await store.ensureWallet(user('v1'));
+  const events = [];
+  progress.setIo({ to: () => ({ emit: (ev, d) => events.push([ev, d]) }) });
+  for (let i = 0; i < 999; i++) await progress.recordRound('v1', { game: 'hot_777', bet: 10, win: 0, balance: 1, kind: i % 2 ? 'free' : 'round', history: false });
+  await progress.recordRound('v1', { game: 'pachinko', bet: 10, win: 0, balance: 1 });   // nie automat — bez XP
+  assert.strictEqual(await progress.vipMultFor('v1'), 1);
+  await progress.recordRound('v1', { game: 'hot_777', bet: 10, win: 0, balance: 1, kind: 'round', history: false });
+  assert.strictEqual(await progress.vipMultFor('v1'), 1.01);
+  const ups = events.filter(([ev, d]) => ev === 'casinoVip' && d.levelUp);
+  assert.strictEqual(ups.length, 1);
+  assert.strictEqual(ups[0][1].level, 1);
+  progress.setIo(null);
+});

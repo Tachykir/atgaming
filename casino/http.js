@@ -97,6 +97,7 @@ function mount(app, io) {
     res.status(r.error ? 409 : 200).json(r);
   }));
   app.get('/api/casino/history', authed(async (req, res, u) => res.json(await casino.progress.history(u.id, Number(req.query.limit) || 50))));
+  app.get('/api/casino/vip', authed(async (req, res, u) => res.json(await casino.progress.vipFor(u.id))));
   app.get('/api/casino/achievements', authed(async (req, res, u) => res.json(await casino.progress.achievementsFor(u.id))));
 
   app.get('/api/casino/leaderboard', wrap(async (req, res) => res.json(await casino.getLeaderboard(50))));

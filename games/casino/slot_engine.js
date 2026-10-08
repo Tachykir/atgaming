@@ -139,7 +139,8 @@ function register(def, socket, io, casino) {
         if (!free) await casino.updateBalance(discordUser.id, bet);
         return socket.emit('casinoError', { message: 'Błąd automatu — stawka zwrócona' });
       }
-      const k = rtpScale(casino, def.game);
+      const vip = casino.progress ? await casino.progress.vipMultFor(discordUser.id) : 1;
+      const k = rtpScale(casino, def.game) * vip;   // RTP z panelu admina × mnożnik VIP gracza
       if (k !== 1) res = scaleMoney(res, k);
       const payout = Math.max(0, Math.floor(res.payout || 0));
       if (payout > 0) await casino.updateBalance(discordUser.id, payout);
@@ -161,7 +162,7 @@ function register(def, socket, io, casino) {
         ...res,
         payout, bet, paid: !free, cost: free ? 0 : bet, net: payout - (free ? 0 : bet),
         mult, tier: tier.tier, label: tier.label, balance,
-        nextFree: def.isFree(state), rtpScale: k,
+        nextFree: def.isFree(state), rtpScale: k, vipMult: vip,
       });
       return true;
     });

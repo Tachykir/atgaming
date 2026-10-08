@@ -334,6 +334,7 @@ function cxTopbar({ icon, title, sub, info }) {
     <button class="cx-icon-btn" title="Pełny ekran" data-pwa-fs${window.atPwa?.fsAvailable ? '' : ' hidden'}>⛶</button>
     ${typeof CX_FX !== 'undefined' ? `<button class="cx-icon-btn${CX_FX.lite ? '' : ' on'}" title="Efekty: pełne / lekkie (płynniej na słabszych urządzeniach)" onclick="cxToggleFx(this)">✨</button>` : ''}
     <button class="cx-icon-btn${cxSound.muted ? '' : ' on'}" title="Dźwięk" onclick="this.classList.toggle('on', !cxSound.toggle())">🔊</button>
+    <button class="cx-vip-chip" data-cx-vip-chip onclick="cxShowVip()" title="Poziom VIP"${typeof cxVip !== 'undefined' && cxVip ? '' : ' hidden'}>${typeof cxVipChipHTML === 'function' ? cxVipChipHTML() : ''}</button>
     <div class="cx-balance"><span>Saldo</span><b data-cx-balance>${cxFmt(cxBalance())} AT$</b></div>
   </div>`;
 }
@@ -469,7 +470,7 @@ function renderCasinoHero() {
       <div class="cx-hero-user">${w.avatar ? `<img src="${cxEsc(w.avatar)}" alt="" onerror="this.style.display='none'">` : ''}<div><div style="font-weight:800">${cxEsc(w.globalName)}</div>
         <div class="cx-hero-stats"><span class="cx-pill">Gry: <b>${cxFmt(w.gamesPlayed)}</b></span><span class="cx-pill">Bilans: <b class="${profit >= 0 ? 'cx-pos' : 'cx-neg'}">${profit >= 0 ? '+' : ''}${cxFmt(profit)}</b></span></div></div></div>
       <div class="cx-hero-actions" id="cx-hero-actions"></div></div>
-      <div class="cx-hero-wallet"><span>Twoje saldo</span><b data-cx-balance>${cxFmt(w.balance)} AT$</b></div>`;
+      <div class="cx-hero-wallet"><span>Twoje saldo</span><b data-cx-balance>${cxFmt(w.balance)} AT$</b><div data-cx-vip-card>${typeof cxVipCardHTML === 'function' ? cxVipCardHTML() : ''}</div></div>`;
   }
   document.querySelectorAll('[data-needs-login]').forEach(b => b.style.display = w ? '' : 'none');
   if (w && typeof cxLoadDaily === 'function') { if (cxDaily) cxRenderProgressActions(); else cxLoadDaily(); }
