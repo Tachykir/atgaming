@@ -34,7 +34,7 @@ const SYMS = raw.map(s => ({ ...s, p: s.p ? s.p.map(v => v * PAY_SCALE) : null }
 const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
 const W_BASE = SYMS.map(s => s.w);
 const W_FREE = [4, 5, 6, 8, 11, 14, 17, 0.25];
-const pickBase = E.makePicker(W_BASE), pickFree = E.makePicker(W_FREE);
+const pickBase = E.symPicker(W_BASE), pickFree = E.symPicker(W_FREE);
 
 function findClusters(grid) {
   const seen = Array.from({ length: COLS }, () => Array(ROWS).fill(false));

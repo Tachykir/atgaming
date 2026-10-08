@@ -28,8 +28,8 @@ const raw = [
 ];
 const SYMS = raw.map(s => ({ ...s, p: s.p ? s.p.map(v => v * PAY_SCALE) : null }));
 const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
-const pick = E.makePicker(SYMS.map(s => s.w));
-const pickNoScatter = E.makePicker(SYMS.map((s, i) => i === I.tome ? 0 : s.w));
+const pick = E.symPicker(SYMS.map(s => s.w));
+const pickNoScatter = E.symPicker(SYMS.map((s, i) => i === I.tome ? 0 : s.w));
 
 function findClusters(grid) {
   const visited = Array.from({ length: COLS }, () => Array(ROWS).fill(false));

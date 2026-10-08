@@ -49,10 +49,10 @@ function deletePlayerTable(user, tableId, io) {
 }
 
 let simBusy = false;
-function runSim(game, spins) {
+function runSim(game, spins, factors = casino.symw.factors(game), scale = casino.rtp.scale(game), precise = false) {
   return new Promise((resolve, reject) => {
-    const w = new Worker(path.join(__dirname, 'simWorker.js'), { workerData: { game, spins, scale: casino.rtp.scale(game) } });
-    const kill = setTimeout(() => { w.terminate(); reject(new Error('Symulacja trwała zbyt długo')); }, 120_000);
+    const w = new Worker(path.join(__dirname, 'simWorker.js'), { workerData: { game, spins, scale, factors, precise } });
+    const kill = setTimeout(() => { w.terminate(); reject(new Error('Symulacja trwała zbyt długo')); }, 180_000);
     w.once('message', m => { clearTimeout(kill); resolve(m); w.terminate(); });
     w.once('error', e => { clearTimeout(kill); reject(e); });
   });
@@ -154,12 +154,38 @@ function mount(app, io) {
   });
   admin('post', '/rtp/reset', async (req, res) => { await casino.rtp.resetAll(); res.json({ ok: true }); });
   admin('post', '/rtp/stats-reset', async (req, res) => { await casino.tracker.reset(req.body.gameId || null); res.json({ ok: true }); });
+  // Szanse symboli automatów
+  const symInfo = game => {
+    const m = games.SLOTS[game];
+    const syms = (m.SYMS || []).map((s, i) => {
+      const ms = m.meta?.syms?.[i] || {};
+      return { i, n: s.n || ms.n || s.id || '#' + i, e: s.e || ms.e || null, img: s.img || ms.img || null, color: s.color || ms.color || null, w: Number(s.w) || 0,
+        wild: !!(s.wild || ms.wild), scatter: !!(s.scatter || ms.scatter) };
+    });
+    const c = casino.symw.get(game);
+    return { game, name: casino.rtp.GAMES[game]?.name || game, syms, factors: c?.f || syms.map(() => 1), keep: c ? c.keep : true, base: casino.rtp.GAMES[game]?.base, effBase: casino.rtp.effectiveBase(game), target: casino.rtp.target(game), at: c?.at || null };
+  };
+  const slotOr400 = (req, res) => { const g = String(req.body.gameId); if (!games.SLOTS[g]?.SYMS) { res.status(400).json({ error: 'Nieznany automat' }); return null; } return g; };
+  admin('post', '/symbols', async (req, res) => { const g = slotOr400(req, res); if (g) res.json(symInfo(g)); });
+  admin('post', '/symbols/set', async (req, res) => {
+    const g = slotOr400(req, res); if (!g) return;
+    if (simBusy) return res.status(429).json({ error: 'Trwa symulacja — poczekaj chwilę' });
+    simBusy = true;
+    try {
+      const n = games.SLOTS[g].SYMS.length;
+      await casino.symw.set(g, req.body.factors, n, { keep: req.body.keepRtp !== false, measure: f => runSim(g, 250_000, f, 1, true).then(r => r.baseRtp) });
+      console.log(`🎲 Szanse symboli ${g} zmienione (admin)`);
+      res.json({ ok: true, ...symInfo(g) });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+    finally { simBusy = false; }
+  });
+  admin('post', '/symbols/reset', async (req, res) => { const g = slotOr400(req, res); if (!g) return; await casino.symw.reset(g); res.json({ ok: true, ...symInfo(g) }); });
   admin('post', '/rtp/simulate', async (req, res) => {
     const game = String(req.body.gameId);
     if (!games.SLOTS[game]) return res.status(400).json({ error: 'Symulacja dostępna tylko dla automatów' });
     if (simBusy) return res.status(429).json({ error: 'Trwa inna symulacja — poczekaj' });
     simBusy = true;
-    try { res.json(await runSim(game, Math.max(10_000, Math.min(400_000, Number(req.body.spins) || 100_000)))); }
+    try { res.json(await runSim(game, Math.max(10_000, Math.min(1_000_000, Number(req.body.spins) || 100_000)))); }
     catch (e) { res.status(500).json({ error: e.message }); }
     finally { simBusy = false; }
   });

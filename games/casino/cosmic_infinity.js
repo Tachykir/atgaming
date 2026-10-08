@@ -40,7 +40,7 @@ const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
 const W_FIRST = SYMS.map(s => s.wild ? 0 : s.w);   // bęben 1 bez Wilda
 const W_REST = SYMS.map(s => s.w);
 const W_FREE = W_REST.map((w, i) => SYMS[i].wild ? FS_WILD_W : w);   // w Free Spinach więcej Supernowych
-const pickFirst = E.makePicker(W_FIRST), pickRest = E.makePicker(W_REST), pickFree = E.makePicker(W_FREE);
+const pickFirst = E.symPicker(W_FIRST), pickRest = E.symPicker(W_REST), pickFree = E.symPicker(W_FREE);
 function reel(c, free) { return Array.from({ length: ROWS }, () => (c === 0 ? pickFirst() : free ? pickFree() : pickRest())); }
 
 // Wygrane ways od lewej: symbol z bębna 1, kolejne bębny zawierające symbol lub Wild

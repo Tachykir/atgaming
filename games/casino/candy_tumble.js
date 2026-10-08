@@ -29,7 +29,7 @@ const SYMS = raw.map(s => ({ ...s, p: s.p ? s.p.map(v => v * PAY_SCALE) : null }
 const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
 const BASE_W = SYMS.map(s => s.w);
 const FREE_W = BASE_W.slice(); FREE_W[I.bomb] = 5.5; FREE_W[I.lolly] = 1.0;
-const pickBase = E.makePicker(BASE_W), pickFree = E.makePicker(FREE_W);
+const pickBase = E.symPicker(BASE_W), pickFree = E.symPicker(FREE_W);
 const BOMBS = [[2, 40], [3, 20], [4, 12], [5, 10], [8, 6], [10, 5], [15, 3], [25, 2], [50, 1.2], [100, 0.5]];
 const pickBomb = E.makePicker(BOMBS.map(b => b[1]));
 const SCATTER_PAY = { 4: 3, 5: 5, 6: 100 };

@@ -34,7 +34,7 @@ const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
 const W_BASE = SYMS.map(s => s.w);
 const W_FREE = SYMS.map((s, i) => i === I.wild ? 5.5 : s.w);
 const W_NOWILD = SYMS.map((s, i) => i === I.wild ? 0 : s.w);
-const pickBase = E.makePicker(W_BASE), pickFree = E.makePicker(W_FREE), pickNoWild = E.makePicker(W_NOWILD);
+const pickBase = E.symPicker(W_BASE), pickFree = E.symPicker(W_FREE), pickNoWild = E.symPicker(W_NOWILD);
 const SCATTER_REELS = [0, 2, 4];
 const SC_CHANCE = 0.18, SC_CHANCE_FS = 0.17; // szansa na scatter na bębnie 1/3/5
 

@@ -35,9 +35,9 @@ const SYMS = raw.map(s => ({ ...s, p: s.p.map(v => v * PAY_SCALE) }));
 const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
 const BASE_W = SYMS.map(s => s.w);
 const FREE_W = BASE_W.slice(); FREE_W[I.wild] = 0.4; FREE_W[I.star] = 0.6;
-const pickBase = E.makePicker(BASE_W), pickFree = E.makePicker(FREE_W);
+const pickBase = E.symPicker(BASE_W), pickFree = E.symPicker(FREE_W);
 const NON_SC = BASE_W.slice(); NON_SC[I.star] = 0; NON_SC[I.wild] = 0;
-const pickPlain = E.makePicker(NON_SC);
+const pickPlain = E.symPicker(NON_SC);
 
 // Mnożniki wildów (rzadsze wyższe)
 const MULTS = [[2, 52], [3, 25], [5, 13], [10, 6.5], [25, 2], [100, 0.3]];

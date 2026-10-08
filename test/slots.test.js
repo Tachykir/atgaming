@@ -40,3 +40,15 @@ test('evalLines: wild uzupełnia linię', () => {
   assert.strictEqual(wins[0].count, 3);
   assert.strictEqual(wins[0].win, 5);
 });
+
+test('szanse symboli: mnożniki z panelu zmieniają losowanie tylko w kontekście gry', () => {
+  const pick = E.symPicker([1, 1, 1]);
+  const count = f => { const c = [0, 0, 0]; E.withSymFactors(f, () => { for (let i = 0; i < 30000; i++) c[pick()]++; }); return c; };
+  const off = count([0, 1, 1]);
+  assert.strictEqual(off[0], 0);
+  const boosted = count([4, 1, 1]);
+  assert.ok(boosted[0] / 30000 > 0.6 && boosted[0] / 30000 < 0.73, String(boosted));
+  const plain = count(null);
+  assert.ok(Math.abs(plain[0] / 30000 - 1 / 3) < 0.03);
+  assert.ok(Math.abs(count([1, 1]).reduce((a, b) => a + b) - 30000) === 0);   // zła długość → ignorowane
+});

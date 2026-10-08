@@ -40,8 +40,8 @@ const FS_START_FLOOR = 1; // Kamień Filozoficzny na start Free Spinów usuwa �
 
 // Pickery dla każdego „dna” puli (0 = pełna pula, 3 = tylko Złoto i Diament)
 const pickers = [0, 1, 2, 3].map(floor => {
-  const base = E.makePicker(SYMS.map((s, i) => i === SCATTER ? 0 : i === POTION ? POTION_W : s.lv >= floor ? s.w : 0));
-  const free = E.makePicker(SYMS.map((s, i) => i === SCATTER ? 0 : i === POTION ? POTION_W_FS : s.lv >= floor ? s.w : 0));
+  const base = E.symPicker(SYMS.map((s, i) => i === SCATTER ? 0 : i === POTION ? POTION_W : s.lv >= floor ? s.w : 0));
+  const free = E.symPicker(SYMS.map((s, i) => i === SCATTER ? 0 : i === POTION ? POTION_W_FS : s.lv >= floor ? s.w : 0));
   return { base, free };
 });
 

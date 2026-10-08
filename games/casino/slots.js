@@ -22,7 +22,7 @@ const raw = [
 ];
 const SYMS = raw.map(s => ({ ...s, p: s.p.map(v => v * PAY_SCALE) }));
 const IDX_SCATTER = SYMS.findIndex(s => s.scatter);
-const pick = E.makePicker(SYMS.map(s => s.w));
+const pick = E.symPicker(SYMS.map(s => s.w));
 
 const LINES = [
   [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],

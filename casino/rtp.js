@@ -63,7 +63,11 @@ async function load() {
 
 function adjustable(gameId) { const g = GAMES[gameId]; return !!g && g.kind !== 'fixed'; }
 function target(gameId) { const g = GAMES[gameId]; if (!g) return 1; return targets[gameId] ?? g.base; }
-function scale(gameId) { const g = GAMES[gameId]; if (!g || g.kind === 'fixed') return 1; return target(gameId) / g.base; }
+// Bazowe RTP po zmianie szans symboli (zmierzone symulacją) — skalowanie liczone od niego
+const baseOverride = {};
+function setBaseOverride(gameId, v) { if (v > 0) baseOverride[gameId] = v; else delete baseOverride[gameId]; }
+function effectiveBase(gameId) { return baseOverride[gameId] ?? GAMES[gameId]?.base; }
+function scale(gameId) { const g = GAMES[gameId]; if (!g || g.kind === 'fixed') return 1; return target(gameId) / effectiveBase(gameId); }
 
 async function set(gameId, value, by = 'admin') {
   if (!adjustable(gameId)) throw new Error('Tej gry nie można regulować');
@@ -82,7 +86,7 @@ async function resetAll(by = 'admin') {
 }
 
 function list() {
-  return Object.entries(GAMES).map(([id, g]) => ({ id, name: g.name, kind: g.kind, base: g.base, target: target(id), scale: scale(id), adjustable: g.kind !== 'fixed', overridden: id in targets }));
+  return Object.entries(GAMES).map(([id, g]) => ({ id, name: g.name, kind: g.kind, base: g.base, effBase: effectiveBase(id), target: target(id), scale: scale(id), adjustable: g.kind !== 'fixed', overridden: id in targets }));
 }
 
-module.exports = { GAMES, MIN, MAX, load, target, scale, set, resetAll, list, adjustable, get history() { return history; } };
+module.exports = { GAMES, MIN, MAX, load, setBaseOverride, effectiveBase, target, scale, set, resetAll, list, adjustable, get history() { return history; } };

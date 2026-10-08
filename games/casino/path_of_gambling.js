@@ -39,8 +39,8 @@ const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
 
 const baseW = SYMS.map(s => s.w);
 const pitW  = baseW.slice(); pitW[I.lock] = 1.0; pitW[I.valdo] = 0.12; pitW[I.mist] = 0; pitW[I.sacred] = 0.4;
-const pickBase = E.makePicker(baseW);
-const pickPit  = E.makePicker(pitW);
+const pickBase = E.symPicker(baseW);
+const pickPit  = E.symPicker(pitW);
 
 const LINES = [
   [2,2,2,2,2],[0,0,0,0,0],[4,4,4,4,4],[1,1,1,1,1],[3,3,3,3,3],

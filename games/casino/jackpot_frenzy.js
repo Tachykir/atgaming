@@ -110,7 +110,7 @@ const def = {
     const cols = inFree && state.miniGames.dublet ? COLS_DUBLET : COLS_NORMAL;
     if (inFree) state.freeSpins--;
 
-    const pick = E.makePicker(weightsFor(inFree ? state.miniGames : {}));
+    const pick = E.symPicker(weightsFor(inFree ? state.miniGames : {}));
     const grid = Array.from({ length: cols }, (_, c) => Array.from({ length: ROWS }, (_, r) => {
       const st = state.sticky.find(s => s.col === c && s.row === r);
       return st ? (st.type === 'silver' ? IDX.silver : IDX.gold) : pick();
@@ -200,4 +200,4 @@ const def = {
 
 function registerHandlers(socket, io, casino) { E.register(def, socket, io, casino); }
 
-module.exports = { registerHandlers, def, progressive };
+module.exports = { registerHandlers, def, progressive, SYMS };

@@ -42,6 +42,27 @@ function makePicker(weights) {
   return () => weightedPick(weights, total);
 }
 
+// ── Szanse symboli ustawiane w panelu admina ─────────────────────
+// Picker symboli (tablica wag indeksowana jak SYMS gry). Podczas spinu silnik ustawia mnożniki
+// szans danej gry (symFactors[i] = ×N dla symbolu i) — picker mnoży przez nie wagi bazowe.
+// Spin jest synchroniczny, więc kontekst jest bezpieczny.
+let symFactors = null;
+function withSymFactors(f, fn) {
+  const prev = symFactors;
+  symFactors = f || null;
+  try { return fn(); } finally { symFactors = prev; }
+}
+function symPicker(weights) {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let cf = null, cw = null, ct = 0;
+  return () => {
+    const f = symFactors;
+    if (!f || f.length !== weights.length) return weightedPick(weights, total);
+    if (f !== cf) { cw = weights.map((w, i) => w * (f[i] ?? 1)); ct = cw.reduce((a, b) => a + b, 0); cf = f; }
+    return ct > 0 ? weightedPick(cw, ct) : weightedPick(weights, total);
+  };
+}
+
 // Średnia ważona stawka do funkcji typu "licznik" (pit meter, kociołki, speed meter).
 // Zapobiega nabijaniu licznika na minimalnej stawce i odbieraniu bonusu na maksymalnej.
 function meterAdd(meter, bet, points) {
@@ -133,7 +154,8 @@ function register(def, socket, io, casino) {
 
       let res;
       try {
-        res = def.spin(state, { bet, paid: !free, level, cfg, data });
+        const f = casino.symw ? casino.symw.factors(def.game) : null;
+        res = withSymFactors(f, () => def.spin(state, { bet, paid: !free, level, cfg, data }));
       } catch (e) {
         console.error(`[${def.game}] spin error:`, e);
         if (!free) await casino.updateBalance(discordUser.id, bet);
@@ -155,7 +177,7 @@ function register(def, socket, io, casino) {
       const mult = bet > 0 ? payout / bet : 0;
       const tier = getTier(mult);
       casino.progress?.recordRound(discordUser.id, {
-        game: def.game, bet: free ? 0 : bet, win: payout, mult, balance, kind: free ? 'free' : 'round',
+        game: def.game, bet: free ? 0 : bet, win: payout, mult, tier: tier.tier, balance, kind: free ? 'free' : 'round',
         feature: !!(res.freeSpinsAwarded || res.bonusPick || res.holdTriggered || res.turboTriggered || res.triggeredCauldrons?.length),
       });
       socket.emit(def.resultEvent, {
@@ -231,7 +253,8 @@ function levelFromConfig(cfg) {
 }
 
 // Symulacja RTP (używana w testach/kalibracji)
-function simulate(def, spins = 200000, bet = 100, autoBonus = null) {
+function simulate(def, spins = 200000, bet = 100, autoBonus = null, factors = null) {
+  if (factors) return withSymFactors(factors, () => simulate(def, spins, bet, autoBonus));
   const state = def.newState();
   let paid = 0, won = 0, hits = 0, max = 0, sq = 0;
   for (let i = 0; i < spins; i++) {
@@ -251,4 +274,4 @@ function simulate(def, spins = 200000, bet = 100, autoBonus = null) {
   return { rtp: won / paid, hitRate: hits / spins, maxMult: max, sd: Math.sqrt(Math.max(0, sq / spins - mean * mean)) };
 }
 
-module.exports = { register, stateFor, loadState, persistState, scaleMoney, rtpScale, getTier, WIN_TIERS, makePicker, weightedPick, meterAdd, meterBet, meterReset, simulate, levelFromConfig, evalLines, countSym };
+module.exports = { register, stateFor, loadState, persistState, scaleMoney, rtpScale, getTier, WIN_TIERS, makePicker, symPicker, withSymFactors, weightedPick, meterAdd, meterBet, meterReset, simulate, levelFromConfig, evalLines, countSym };

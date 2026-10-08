@@ -170,13 +170,14 @@ function cxShowVip() {
   }
   cxModal(`<h3>🎖️ Program VIP</h3>
     ${cxVipCardHTML()}
-    <p class="cx-rules" style="margin:12px 0">Każdy spin na automacie (także darmowy) daje <b>1 XP</b>. VIP 1 wymaga 1 000 XP, a każdy kolejny poziom o 500 XP więcej. Każdy poziom zwiększa <b>wszystkie wygrane na automatach o 1%</b> (VIP 10 = ×1,10, VIP 100 = ×2,00).</p>
+    <p class="cx-rules" style="margin:12px 0">Każdy spin na automacie (także darmowy) daje <b>1 XP</b>, a duże wygrane dodatkowo: Big Win +5, Mega +15, Huge +40, Giga +100, Mega Giga Frito +300, uruchomienie bonusu +25. VIP 1 wymaga 1 000 XP, a każdy kolejny poziom o 500 XP więcej. Każdy poziom zwiększa <b>wszystkie wygrane na automatach o 1%</b> (VIP 10 = ×1,10, VIP 100 = ×2,00).</p>
     <table class="cx-hist cx-vip-tbl"><thead><tr><th>Poziom</th><th class="r">Łącznie XP</th><th class="r">Mnożnik</th><th class="r">Brakuje</th></tr></thead><tbody>${rows.join('')}</tbody></table>`, { wide: true });
 }
 socket.on('casinoVip', v => {
   const up = v.levelUp;
   cxVip = v;
   cxRenderVip();
+  if (v.bonus > 0) cxVipXpPop(v.bonus);
   if (!up) return;
   cxSound.play('feature');
   const el = document.createElement('div');
@@ -186,3 +187,16 @@ socket.on('casinoVip', v => {
   document.body.appendChild(el);
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 400); }, 3800);
 });
+
+// „+40 XP” wyskakujące przy znaczku VIP (bonusowe XP za dużą wygraną / bonus)
+function cxVipXpPop(n) {
+  const chip = document.querySelector('.cx-screen.active [data-cx-vip-chip]:not([hidden])');
+  if (!chip) return;
+  const r = chip.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'cx-vip-xp';
+  el.textContent = `+${n} XP`;
+  el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = (r.bottom + 4) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1600);
+}

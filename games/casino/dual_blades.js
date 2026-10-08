@@ -26,7 +26,7 @@ const raw = [
 ];
 const SYMS = raw.map(s => ({ ...s, p: s.p.map(v => v * PAY_SCALE) }));
 const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
-const pick = E.makePicker(SYMS.map(s => s.w));
+const pick = E.symPicker(SYMS.map(s => s.w));
 const LINES = [[1,1,1],[0,0,0],[2,2,2],[0,1,2],[2,1,0]];
 const FS = { 3: 8, 4: 10, 5: 15 };
 

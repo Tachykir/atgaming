@@ -11,6 +11,7 @@ const store = require('./store');
 const tablesMod = require('./tables');
 const rtp = require('./rtp');
 const tracker = require('./tracker');
+const symw = require('./symweights');
 const progress = require('./progress');
 
 // Wyłączność per klucz (gracz+gra): odrzuca równoległe żądania zamiast je kolejkować
@@ -25,6 +26,7 @@ async function exclusive(key, fn) {
 async function init() {
   await store.init();
   await rtp.load();
+  await symw.load();
   tracker.start();
   progress.start();
 }
@@ -66,6 +68,6 @@ const api = module.exports = {
   getTablePublic: tablesMod.getTablePublic,
   deleteTable: id => tablesMod.deleteTable(id, (pid, amt) => store.updateBalance(pid, amt).catch(() => {})),
   // pozostałe
-  exclusive, scheduleWeeklyTopup, rtp, tracker, progress, store,
+  exclusive, scheduleWeeklyTopup, rtp, symw, tracker, progress, store,
   START_BALANCE: store.START_BALANCE, WEEKLY_MINIMUM: store.WEEKLY_MINIMUM, WEEKLY_TOP_UP: store.WEEKLY_TOP_UP,
 };

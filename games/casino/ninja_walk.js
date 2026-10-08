@@ -38,8 +38,8 @@ const BASE_W = SYMS.map(s => s.w);
 const RESPIN_W = BASE_W.slice(); RESPIN_W[I.temple] = 0;           // w respinach bez scatterów
 const FREE_W = BASE_W.slice(); FREE_W[I.ninja] = 0.6; FREE_W[I.temple] = 0.9;
 const FREE_RESPIN_W = FREE_W.slice(); FREE_RESPIN_W[I.temple] = 0;
-const pickBase = E.makePicker(BASE_W), pickRespin = E.makePicker(RESPIN_W);
-const pickFree = E.makePicker(FREE_W), pickFreeRespin = E.makePicker(FREE_RESPIN_W);
+const pickBase = E.symPicker(BASE_W), pickRespin = E.symPicker(RESPIN_W);
+const pickFree = E.symPicker(FREE_W), pickFreeRespin = E.symPicker(FREE_RESPIN_W);
 
 const LINES = [
   [1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],

@@ -40,10 +40,10 @@ const SYMS = raw.map(s => ({ ...s, p: s.p.map(v => +(v * PAY_SCALE).toFixed(4)) 
 const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
 const W_FIRST = SYMS.map(s => (s.wild || s.scatter) ? 0 : s.w);
 const W_REST = SYMS.map(s => s.scatter ? 0 : s.w);
-const pickFirst = E.makePicker(W_FIRST), pickRest = E.makePicker(W_REST);
+const pickFirst = E.symPicker(W_FIRST), pickRest = E.symPicker(W_REST);
 // Symbol kolosa: tylko symbole płatne (częściej niskie)
 const COLO_W = SYMS.map(s => (s.wild || s.scatter) ? 0 : s.w);
-const pickColo = E.makePicker(COLO_W);
+const pickColo = E.symPicker(COLO_W);
 const pickFsMult = E.makePicker(FS_WILD_MULTS.map(m => m[1]));
 const rnd = n => Math.floor(Math.random() * n);
 

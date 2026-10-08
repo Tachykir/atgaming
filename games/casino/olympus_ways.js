@@ -38,9 +38,9 @@ const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
 const W_BASE = SYMS.map(s => s.w);
 const noWild = w => w.map((v, i) => i === I.bolt ? 0 : v);
 // Wild tylko na bębnach 2–5 (indeksy 1–4)
-const pickWild = E.makePicker(W_BASE), pickNoWild = E.makePicker(noWild(W_BASE));
+const pickWild = E.symPicker(W_BASE), pickNoWild = E.symPicker(noWild(W_BASE));
 const W_FREE = W_BASE.slice(); W_FREE[I.temple] = 0.55;
-const pickWildF = E.makePicker(W_FREE), pickNoWildF = E.makePicker(noWild(W_FREE));
+const pickWildF = E.symPicker(W_FREE), pickNoWildF = E.symPicker(noWild(W_FREE));
 const HEIGHTS = [[2, 1.5], [3, 2.2], [4, 2.4], [5, 2], [6, 1.4], [7, 1]];
 const pickH = E.makePicker(HEIGHTS.map(h => h[1]));
 

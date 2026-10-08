@@ -109,3 +109,10 @@ test('VIP: 1 XP za spin, progi 1000 / +500, mnożnik 1 + 0,01 × poziom', async 
   assert.strictEqual(ups[0][1].level, 1);
   progress.setIo(null);
 });
+
+test('VIP: bonusowe XP za duże wygrane i funkcję bonusową', async () => {
+  const progress = require('../casino/progress');
+  await store.ensureWallet(user('v2'));
+  await progress.recordRound('v2', { game: 'hot_777', bet: 10, win: 1000, balance: 1, kind: 'round', tier: 'giga', feature: true, history: false });
+  assert.strictEqual((await progress.vipFor('v2')).xp, 1 + progress.VIP_TIER_XP.giga + progress.VIP_FEATURE_XP);
+});

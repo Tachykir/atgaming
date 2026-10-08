@@ -19,6 +19,9 @@ const DAILY = [2_000, 3_000, 4_000, 5_000, 6_500, 8_000, 10_000]; // dzień seri
 const VIP_MAX = 100;
 const vipTotal = L => 1000 * L + 250 * L * (L - 1);            // XP łącznie potrzebne do poziomu L
 const vipMult = L => Math.round((1 + 0.01 * L) * 100) / 100;
+// Dodatkowe XP za duże wygrane (tier wg mnożnika × stawki) i uruchomienie funkcji bonusowej
+const VIP_TIER_XP = { big: 5, mega: 15, huge: 40, giga: 100, frito: 300 };
+const VIP_FEATURE_XP = 25;
 function vipLevel(xp) { let L = 0; while (L < VIP_MAX && xp >= vipTotal(L + 1)) L++; return L; }
 function vipStatus(xp) {
   const level = vipLevel(xp), max = level >= VIP_MAX;
@@ -125,10 +128,11 @@ async function recordRound(id, ev) {
     // XP za spin automatu (płatny lub darmowy)
     if (SLOT_GAMES.includes(ev.game) && (ev.kind === 'round' || ev.kind === 'free')) {
       const before = vipLevel(m.vip.xp);
-      m.vip.xp++;
+      const bonus = (VIP_TIER_XP[ev.tier] || 0) + (ev.feature ? VIP_FEATURE_XP : 0);
+      m.vip.xp += 1 + bonus;
       const st = vipStatus(m.vip.xp);
       if (st.level > before) log(id, { game: 'vip', kind: 'vip', note: `Awans na VIP ${st.level} — mnożnik wygranych ×${st.mult.toFixed(2)}` });
-      io?.to('user:' + id).emit('casinoVip', { ...st, levelUp: st.level > before });
+      io?.to('user:' + id).emit('casinoVip', { ...st, levelUp: st.level > before, gain: 1 + bonus, bonus });
     }
     touch(e);
     if (ev.history !== false) log(id, { game: ev.game, kind: ev.kind || 'round', bet, win, balance: ev.balance ?? null, note: ev.note ?? null });
@@ -199,4 +203,4 @@ function start() {
   if (!pruneTimer) { pruneTimer = setInterval(() => store.pruneHistory().catch(() => {}), 6 * 3600_000); pruneTimer.unref?.(); }
 }
 
-module.exports = { vipFor, vipMultFor, vipStatus, vipLevel, vipTotal, VIP_MAX, logEvent: log, recordRound, noteBalance, claimDaily, dailyStatus, achievementsFor, history, flush, start, setIo, ACHIEVEMENTS, DAILY, dayOf };
+module.exports = { VIP_TIER_XP, VIP_FEATURE_XP, vipFor, vipMultFor, vipStatus, vipLevel, vipTotal, VIP_MAX, logEvent: log, recordRound, noteBalance, claimDaily, dailyStatus, achievementsFor, history, flush, start, setIo, ACHIEVEMENTS, DAILY, dayOf };

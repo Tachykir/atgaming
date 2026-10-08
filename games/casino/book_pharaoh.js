@@ -26,7 +26,7 @@ const raw = [
 // Wild + scatter: przy liniach traktuj jak wild (bez własnej wypłaty liniowej)
 const SYMS = raw.map(s => ({ ...s, p: s.p.map(v => v * PAY_SCALE), scatter: false }));
 const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
-const pick = E.makePicker(SYMS.map(s => s.w));
+const pick = E.symPicker(SYMS.map(s => s.w));
 const LINES = [[1,1,1,1,1],[0,0,0,0,0],[2,2,2,2,2],[0,1,2,1,0],[2,1,0,1,2],[1,2,2,2,1],[1,0,0,0,1],[2,2,1,0,0],[0,0,1,2,2],[2,1,1,1,0]];
 const BOOK_PAY = { 3: 2, 4: 20, 5: 200 };
 const FS_COUNT = 10;

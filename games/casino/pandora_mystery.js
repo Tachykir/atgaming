@@ -34,10 +34,10 @@ const raw = [
 ];
 const SYMS = raw.map(s => ({ ...s, p: s.p.map(v => v * PAY_SCALE) }));
 const I = Object.fromEntries(SYMS.map((s, i) => [s.id, i]));
-const pick = E.makePicker(SYMS.map(s => s.w));
+const pick = E.symPicker(SYMS.map(s => s.w));
 const BOX_FREE_W = 3, STACK_FREE = 0.08;
-const pickFreeSym = E.makePicker(SYMS.map((s, i) => i === I.eye ? s.w * 0.5 : i === I.box ? BOX_FREE_W : s.w));
-const pickReveal = E.makePicker(SYMS.map(s => s.rw));
+const pickFreeSym = E.symPicker(SYMS.map((s, i) => i === I.eye ? s.w * 0.5 : i === I.box ? BOX_FREE_W : s.w));
+const pickReveal = E.symPicker(SYMS.map(s => s.rw));
 const STACK_CHANCE = 0.13;        // szansa na stos puszek w bębnie
 const MM_CHANCE = 1 / 11;         // Mystery Multiplier w grze podstawowej (gdy są puszki)
 
