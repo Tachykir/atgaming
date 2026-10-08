@@ -136,37 +136,37 @@ function cxCoinRain(n = 30, emojis = ['🪙', '💰', '✨']) {
 // licznikiem kwoty i fontanną monet. Zwraca Promise (po zamknięciu).
 const CX_TIER_ORDER = ['none', 'win', 'big', 'mega', 'huge', 'giga', 'frito', 'ultra', 'turbo', 'cosmic', 'legend', 'divine', 'j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'j7', 'j8', 'j9', 'j10'];
 const CX_LADDER = [[0, 'BIG WIN', 'mega'], [15, 'MEGA WIN', 'mega'], [40, 'HUGE WIN', 'huge'], [100, 'GIGA WIN', 'giga'], [300, 'MEGA GIGA FRITO WIN', 'frito'],
-  [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 KOSMICZNE FRITO', 'cosmic'], [5000, '👑 LEGENDARNE FRITO', 'legend'], [10000, '🌯 SUPER MEGA ROLLO KEBAB W PICIE Z FRYTKAMI AMERYKAŃSKI Z PODWÓJNYM MIĘSEM ZALANY SOSAMI NA MAKSA', 'divine'],
-  [15000, '🌯 DUBEL KEBAB', 'j1'],
-  [25000, '🍟 FRYTKI GRATIS', 'j2'],
-  [50000, '🌶️ OSTRY NA MAKSA', 'j3'],
-  [75000, '🧄 SOS CZOSNKOWY BEZ LIMITU', 'j4'],
-  [100000, '🥙 KEBAB XXL DLA CAŁEJ EKIPY', 'j5'],
-  [250000, '🏪 WŁASNA BUDKA Z KEBABEM', 'j6'],
-  [500000, '🚚 SIEĆ FOOD TRUCKÓW', 'j7'],
-  [1000000, '🏙️ KEBAB IMPERIUM', 'j8'],
-  [5000000, '👑 KRÓL KEBABA', 'j9'],
-  [10000000, '🌌 KEBAB WSZECHŚWIATA', 'j10']];
+  [500, '🔥 ULTRA FRITO WIN', 'ultra'], [1000, '⚡ TURBO GIGA FRITO', 'turbo'], [2500, '🌌 KOSMICZNE FRITO', 'cosmic'], [5000, '👑 LEGENDARNE FRITO', 'legend'], [10000, '✨ BOSKA WYGRANA', 'divine'],
+  [15000, '🥇 ZŁOTA WYGRANA', 'j1'],
+  [25000, '💿 PLATYNOWA WYGRANA', 'j2'],
+  [50000, '💎 DIAMENTOWA WYGRANA', 'j3'],
+  [75000, '👑 KRÓLEWSKA WYGRANA', 'j4'],
+  [100000, '🏛️ CESARSKA WYGRANA', 'j5'],
+  [250000, '⚔️ TYTANICZNA WYGRANA', 'j6'],
+  [500000, '⭐ GWIEZDNA WYGRANA', 'j7'],
+  [1000000, '🌌 GALAKTYCZNA WYGRANA', 'j8'],
+  [5000000, '♾️ NIESKOŃCZONA WYGRANA', 'j9'],
+  [10000000, '🌯 SUPER MEGA ROLLO KEBAB W PICIE Z FRYTKAMI AMERYKAŃSKI Z PODWÓJNYM MIĘSEM ZALANY SOSAMI NA MAKSA', 'j10']];
 // Efekty poziomów ponad Mega Giga Frito: [cząsteczki przy wejściu, cząsteczki ciągłe, kolory]
-// Jackpoty ponad Rollo Kebabem (kebab-saga): kolory etykiety + preset efektów + emoji lecące po ekranie
+// Jackpoty ponad Boską wygraną (na szczycie 10 mln× — Super mega rollo kebab): kolory etykiety + preset efektów + emoji lecące po ekranie
 const CX_JP = {
-  j1: { a: '#ffe9b0', b: '#e8a33d', fx: 'legend', e: '🌯' },
-  j2: { a: '#fff36b', b: '#e0a800', fx: 'ultra', e: '🍟' },
-  j3: { a: '#ffb36b', b: '#ff2d1f', fx: 'ultra', e: '🌶️' },
-  j4: { a: '#ffffff', b: '#c9c2b0', fx: 'cosmic', e: '🧄' },
-  j5: { a: '#ffd36b', b: '#c2410c', fx: 'legend', e: '🥙' },
-  j6: { a: '#7fe8ff', b: '#1e6fd9', fx: 'turbo', e: '🏪' },
-  j7: { a: '#5effa9', b: '#0aa36b', fx: 'turbo', e: '🚚' },
-  j8: { a: '#ff7ad9', b: '#7a1fff', fx: 'cosmic', e: '🏙️' },
-  j9: { a: '#fff3c4', b: '#d4a017', fx: 'legend', e: '👑' },
-  j10: { a: '#ffffff', b: '#ff2d55', fx: 'divine', e: '🌌' },
+  j1: { a: '#fff3c4', b: '#d4a017', fx: 'legend', e: '🥇' },
+  j2: { a: '#ffffff', b: '#9fb4c8', fx: 'turbo', e: '💿' },
+  j3: { a: '#bff4ff', b: '#2bb6e8', fx: 'cosmic', e: '💎' },
+  j4: { a: '#ffe9b0', b: '#b8860b', fx: 'legend', e: '👑' },
+  j5: { a: '#ffd36b', b: '#9b1c1c', fx: 'ultra', e: '🏛️' },
+  j6: { a: '#d9e2ee', b: '#4b5563', fx: 'turbo', e: '⚔️' },
+  j7: { a: '#fff36b', b: '#6a45f0', fx: 'cosmic', e: '⭐' },
+  j8: { a: '#ff7ad9', b: '#3b1fa8', fx: 'cosmic', e: '🌌' },
+  j9: { a: '#7fffd4', b: '#0f766e', fx: 'divine', e: '♾️' },
+  j10: { a: '#fff3c4', b: '#e8a33d', fx: 'divine', e: '🌯', g: '🌯🍟🌯🍟✨' },
 };
 const CX_TIER_FX = {
   ultra:  { burst: [['ember', 80], ['spark', 40], ['ring', 3]], loop: [['ember', 6]], colors: ['#ff3b1f', '#ff8a1f', '#ffd36b', '#fff3c4'] },
   turbo:  { burst: [['bolt', 18], ['spark', 50], ['ring', 4]], loop: [['bolt', 1], ['spark', 3]], colors: ['#b48cff', '#4fe3ff', '#ffffff', '#7aa7ff'] },
   cosmic: { burst: [['star', 70], ['ring', 5], ['glyph', 20]], loop: [['star', 4], ['glyph', 1]], colors: ['#ff4fd8', '#7aa7ff', '#4fe3ff', '#fff', '#b48cff'], glyphs: '✦✧★☄' },
   legend: { burst: [['coin', 70], ['star', 40], ['ring', 4], ['glyph', 16]], loop: [['coin', 3], ['glyph', 1]], colors: ['#ffd36b', '#fff3c4', '#4fe3ff', '#f5a623'], glyphs: '💎👑✦' },
-  divine: { burst: [['ring', 7], ['star', 80], ['spark', 70], ['bolt', 10], ['coin', 40], ['glyph', 30]], loop: [['star', 3], ['spark', 3], ['coin', 2], ['glyph', 2]], colors: ['#ffffff', '#fff3c4', '#ffd36b', '#ffe9a8'], glyphs: '🌯🍟🌯🍟✨' },
+  divine: { burst: [['ring', 7], ['star', 80], ['spark', 70], ['bolt', 10], ['coin', 40], ['glyph', 30]], loop: [['star', 3], ['spark', 3], ['coin', 2], ['glyph', 2]], colors: ['#ffffff', '#fff3c4', '#ffd36b', '#ffe9a8'], glyphs: '✨👑✦' },
 };
 // Monety/klejnoty renderowane raz do bufora — w pętli tylko drawImage (bez gradientów na klatkę)
 const CX_COIN_SPR = (() => {
@@ -250,7 +250,7 @@ function cxBigWin({ amount, bet, tier, label, title }) {
     const fx = typeof CxFx !== 'undefined' ? new CxFx({ canvas: () => fxCv, theme: () => fxOf(steps[stage][2]) || null, alive: () => !closed }) : null;
     const burst = list => { if (!fx) return; const W = innerWidth, H = innerHeight;
       for (const [k, n] of list) fx.emit(k === 'ember' ? W * (.2 + Math.random() * .6) : W / 2, k === 'ember' ? H * .9 : H * .42, k, n, { spread: k === 'ember' ? W * .35 : k === 'bolt' ? 30 : 60, scale: k === 'ring' ? 3 : 1.4, speed: 1.6 }); };
-    const fxOf = tier => { const j = CX_JP[tier]; if (!j) return CX_TIER_FX[tier]; const b = CX_TIER_FX[j.fx]; return { ...b, colors: [j.a, j.b, '#ffffff', ...b.colors.slice(0, 2)], glyphs: (j.e + j.e + '✦💰').replace(/\uFE0F/g, ''), burst: [...b.burst, ['glyph', 30]], loop: [...b.loop, ['glyph', 2]] }; };
+    const fxOf = tier => { const j = CX_JP[tier]; if (!j) return CX_TIER_FX[tier]; const b = CX_TIER_FX[j.fx]; return { ...b, colors: [j.a, j.b, '#ffffff', ...b.colors.slice(0, 2)], glyphs: (j.g || j.e + j.e + '✦💰').replace(/\uFE0F/g, ''), burst: [...b.burst, ['glyph', 30]], loop: [...b.loop, ['glyph', 2]] }; };
     const loopFx = setInterval(() => { const t = fxOf(steps[stage][2]); if (t && !closed) burst(t.loop.map(([k, n]) => [k, Math.max(1, Math.round(n * (counting ? 1 : .5)))])); }, 120);
     const setStage = i => {
       if (i === stage) return;
