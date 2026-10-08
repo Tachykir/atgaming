@@ -778,7 +778,9 @@ class SlotKit {
     this.updateBet();
   }
   updateBet() {
-    this.$('bet').textContent = this.free > 0 && this.freeBet ? cxFmt(this.freeBet) : cxFmt(this.bet);
+    const b = this.free > 0 && this.freeBet ? this.freeBet : this.bet;
+    this.$('bet').textContent = b >= 1e10 ? cxShort(b) : cxFmt(b);   // bardzo duże stawki skrótem (np. 250T, 1Q)
+    this.$('bet').title = cxFmt(b) + ' AT$';
     const lock = this.spinning || this.free > 0;
     this.$('betdown').disabled = lock || this.betIdx === 0;
     this.$('betup').disabled = lock || this.betIdx === this.steps.length - 1;

@@ -19,6 +19,15 @@ let pg = null;
 let jsonDb = null;
 
 // ─── POSTGRES ───────────────────────────────────────────────────
+// Kwoty AT$ jako parametr SQL: liczba całkowita w zapisie dziesiętnym (bez notacji wykładniczej dla dużych liczb)
+const M = v => BigInt(Math.trunc(Number(v) || 0)).toString();
+async function migrateMoney(table, cols) {
+  const r = await pg.query(`SELECT column_name FROM information_schema.columns WHERE table_name=$1 AND data_type <> 'numeric' AND column_name = ANY($2)`, [table, cols]).catch(() => ({ rows: [] }));
+  for (const { column_name: col } of r.rows) {
+    await pg.query(`ALTER TABLE ${table} ALTER COLUMN ${col} TYPE NUMERIC(40,0)`).catch(e => console.error(`Migracja ${table}.${col}:`, e.message));
+  }
+}
+
 async function initPg() {
   const { Pool } = require('pg');
   pg = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 10 });
@@ -28,17 +37,15 @@ async function initPg() {
       username     TEXT NOT NULL,
       global_name  TEXT NOT NULL,
       avatar       TEXT,
-      balance      BIGINT NOT NULL DEFAULT ${START_BALANCE},
-      total_won    BIGINT NOT NULL DEFAULT 0,
-      total_lost   BIGINT NOT NULL DEFAULT 0,
+      balance      NUMERIC(40,0) NOT NULL DEFAULT ${START_BALANCE},
+      total_won    NUMERIC(40,0) NOT NULL DEFAULT 0,
+      total_lost   NUMERIC(40,0) NOT NULL DEFAULT 0,
       games_played INTEGER NOT NULL DEFAULT 0,
       created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       last_seen    TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`);
-  // Migracja starszych instalacji: INTEGER → BIGINT
-  for (const col of ['balance', 'total_won', 'total_lost']) {
-    await pg.query(`ALTER TABLE casino_wallets ALTER COLUMN ${col} TYPE BIGINT`).catch(() => {});
-  }
+  // Migracja starszych instalacji: INTEGER/BIGINT → NUMERIC(40,0) (stawki do 1 biliarda × wygrane ×10 000 nie mieszczą się w BIGINT)
+  await migrateMoney('casino_wallets', ['balance', 'total_won', 'total_lost']);
   await pg.query(`
     CREATE TABLE IF NOT EXISTS casino_topup_log (
       id SERIAL PRIMARY KEY, ran_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), count INTEGER NOT NULL, details JSONB
@@ -46,8 +53,8 @@ async function initPg() {
   await pg.query(`
     CREATE TABLE IF NOT EXISTS casino_slot_stats (
       discord_id TEXT NOT NULL, game_id TEXT NOT NULL,
-      spins BIGINT NOT NULL DEFAULT 0, spent BIGINT NOT NULL DEFAULT 0, won BIGINT NOT NULL DEFAULT 0,
-      best_win BIGINT NOT NULL DEFAULT 0, pit_meter INTEGER NOT NULL DEFAULT 0,
+      spins BIGINT NOT NULL DEFAULT 0, spent NUMERIC(40,0) NOT NULL DEFAULT 0, won NUMERIC(40,0) NOT NULL DEFAULT 0,
+      best_win NUMERIC(40,0) NOT NULL DEFAULT 0, pit_meter INTEGER NOT NULL DEFAULT 0,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (discord_id, game_id)
     )`);
@@ -64,7 +71,7 @@ async function initPg() {
   await pg.query(`
     CREATE TABLE IF NOT EXISTS casino_game_totals (
       game_id TEXT PRIMARY KEY, rounds BIGINT NOT NULL DEFAULT 0,
-      wagered BIGINT NOT NULL DEFAULT 0, returned BIGINT NOT NULL DEFAULT 0,
+      wagered NUMERIC(40,0) NOT NULL DEFAULT 0, returned NUMERIC(40,0) NOT NULL DEFAULT 0,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`);
   await pg.query(`
@@ -80,10 +87,13 @@ async function initPg() {
   await pg.query(`
     CREATE TABLE IF NOT EXISTS casino_history (
       id BIGSERIAL PRIMARY KEY, discord_id TEXT NOT NULL, ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      game TEXT NOT NULL, kind TEXT NOT NULL, bet BIGINT NOT NULL DEFAULT 0, win BIGINT NOT NULL DEFAULT 0,
-      balance BIGINT, note TEXT
+      game TEXT NOT NULL, kind TEXT NOT NULL, bet NUMERIC(40,0) NOT NULL DEFAULT 0, win NUMERIC(40,0) NOT NULL DEFAULT 0,
+      balance NUMERIC(40,0), note TEXT
     )`);
   await pg.query('CREATE INDEX IF NOT EXISTS casino_history_user ON casino_history (discord_id, id DESC)');
+  await migrateMoney('casino_slot_stats', ['spent', 'won', 'best_win']);
+  await migrateMoney('casino_game_totals', ['wagered', 'returned']);
+  await migrateMoney('casino_history', ['bet', 'win', 'balance']);
   console.log('🐘 Casino: połączono z PostgreSQL');
 }
 
@@ -188,7 +198,7 @@ async function updateBalance(id, delta) {
         total_won  = CASE WHEN $2>0 THEN total_won+$2 ELSE total_won END,
         total_lost = CASE WHEN $2<0 THEN total_lost-$2 ELSE total_lost END,
         last_seen = NOW()
-      WHERE discord_id=$1 RETURNING balance`, [id, delta]);
+      WHERE discord_id=$1 RETURNING balance`, [id, M(delta)]);
     return r.rows[0] ? Number(r.rows[0].balance) : null;
   }
   const w = jsonDb.wallets[id];
@@ -206,7 +216,7 @@ async function debit(id, amount) {
   if (pg) {
     const r = await pg.query(`
       UPDATE casino_wallets SET balance = balance - $2, total_lost = total_lost + $2, last_seen = NOW()
-      WHERE discord_id=$1 AND balance >= $2 RETURNING balance`, [id, amount]);
+      WHERE discord_id=$1 AND balance >= $2 RETURNING balance`, [id, M(amount)]);
     return r.rows[0] ? Number(r.rows[0].balance) : null;
   }
   const w = jsonDb.wallets[id];
@@ -232,7 +242,7 @@ async function getAllWallets() {
 
 async function adminSetBalance(id, balance) {
   if (pg) {
-    const r = await pg.query('UPDATE casino_wallets SET balance=$1, last_seen=NOW() WHERE discord_id=$2', [balance, id]);
+    const r = await pg.query('UPDATE casino_wallets SET balance=$1, last_seen=NOW() WHERE discord_id=$2', [M(balance), id]);
     return r.rowCount > 0;
   }
   const w = jsonDb.wallets[id];
@@ -294,7 +304,7 @@ async function updateSlotStats(id, gameId, { spins = 0, spent = 0, won = 0, best
         spins=casino_slot_stats.spins+$3, spent=casino_slot_stats.spent+$4, won=casino_slot_stats.won+$5,
         best_win=GREATEST(casino_slot_stats.best_win,$6),
         pit_meter=COALESCE($7, casino_slot_stats.pit_meter), updated_at=NOW()`,
-      [id, gameId, spins, spent, won, bestWin, pitMeter]);
+      [id, gameId, spins, M(spent), M(won), M(bestWin), pitMeter]);
     return;
   }
   const key = id + ':' + gameId;
@@ -347,7 +357,7 @@ async function addGameTotals(batch) { // { gameId: { rounds, wagered, returned }
     for (const [g, t] of entries) {
       await pg.query(`INSERT INTO casino_game_totals (game_id, rounds, wagered, returned) VALUES ($1,$2,$3,$4)
         ON CONFLICT (game_id) DO UPDATE SET rounds=casino_game_totals.rounds+$2, wagered=casino_game_totals.wagered+$3,
-          returned=casino_game_totals.returned+$4, updated_at=NOW()`, [g, t.rounds, Math.round(t.wagered), Math.round(t.returned)]);
+          returned=casino_game_totals.returned+$4, updated_at=NOW()`, [g, t.rounds, M(Math.round(t.wagered)), M(Math.round(t.returned))]);
     }
     return;
   }
@@ -438,7 +448,7 @@ async function addHistory(rows) {
     rows.forEach((r, i) => {
       const o = i * 8;
       vals.push(`($${o + 1},$${o + 2},$${o + 3},$${o + 4},$${o + 5},$${o + 6},$${o + 7},$${o + 8})`);
-      args.push(r.discordId, new Date(r.ts), r.game, r.kind, Math.round(r.bet || 0), Math.round(r.win || 0), r.balance ?? null, r.note ?? null);
+      args.push(r.discordId, new Date(r.ts), r.game, r.kind, M(Math.round(r.bet || 0)), M(Math.round(r.win || 0)), r.balance == null ? null : M(r.balance), r.note ?? null);
     });
     await pg.query(`INSERT INTO casino_history (discord_id, ts, game, kind, bet, win, balance, note) VALUES ${vals.join(',')}`, args);
     return;

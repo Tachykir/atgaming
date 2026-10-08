@@ -131,7 +131,7 @@ function mount(app, io) {
   });
   admin('post', '/set-balance', async (req, res) => {
     const { discordId, amount } = req.body;
-    const v = parseInt(amount);
+    const v = Math.floor(Number(amount));
     if (!discordId || !Number.isFinite(v) || v < 0) return res.status(400).json({ error: 'Nieprawidłowe dane' });
     if (!await casino.adminSetBalance(discordId, v)) return res.status(404).json({ error: 'Portfel nie istnieje' });
     casino.progress.logEvent(discordId, { game: 'admin', kind: 'admin', balance: v, note: `Saldo ustawione przez admina: ${v.toLocaleString('pl-PL')} AT$` });

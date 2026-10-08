@@ -10,7 +10,7 @@ let counter = 1;
 const STAKES = {
   low:    { minBet: 10,        maxBet: 10_000 },
   medium: { minBet: 10_000,    maxBet: 1_000_000 },
-  high:   { minBet: 1_000_000, maxBet: 1_000_000_000 },
+  high:   { minBet: 1_000_000, maxBet: 1_000_000_000_000_000 },   // do 1 biliarda (1Q)
 };
 const LEVEL_NAME = { low: 'Low', medium: 'Medium', high: 'High' };
 
